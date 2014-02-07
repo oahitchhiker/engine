@@ -450,7 +450,7 @@ void CL_MouseMove(usercmd_t *cmd)
 	if (mx == 0.0f && my == 0.0f)
 		return;
 	
-	if (cl_mouseAccel->value != 0.0f)
+	if (cl_mouseAccel->value != 0.0f && cl_mouseAccelOffset->value > 0.0f)
 	{
 		if(cl_mouseAccelStyle->integer == 0)
 		{

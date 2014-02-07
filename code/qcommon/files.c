@@ -1226,6 +1226,7 @@ long FS_FOpenFileReadDir(const char *filename, searchpath_t *search, fileHandle_
 						if(!FS_IsExt(filename, ".shader", len) &&
 						   !FS_IsExt(filename, ".txt", len) &&
 						   !FS_IsExt(filename, ".cfg", len) &&
+						   Q_stricmp(filename,"qagame.qvm") != 0 && //Never reference qagame because it prevents serverside mods
 						   !FS_IsExt(filename, ".config", len) &&
 						   !FS_IsExt(filename, ".bot", len) &&
 						   !FS_IsExt(filename, ".arena", len) &&
