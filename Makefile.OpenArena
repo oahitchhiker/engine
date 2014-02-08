@@ -40,5 +40,11 @@ COPYDIR=/usr/local/games/openarena
 
 # DEBUG_CFLAGS=-ggdb -O0
 
+# You normally pass these on the command line (e.g. make V=1)
+# rather than setting them for all builds.
+#
 # Verbose build
 # V=1
+#
+# Build a zip -r9 file or Mac OSX release zip (make-macosx-app.sh)
+# ARCHIVE=1
