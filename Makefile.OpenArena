@@ -1,3 +1,7 @@
+# Avoid making updates to this file unless you want to change defaults.
+# Create a Makefile.local which is ignored by git for your local overrides
+# that you don't want committed to git.
+
 # Defaults for OpenArena.  You shouldn't need to modify this section
 # This is only the client/server engine so we don't build the QVM here.
 BUILD_STANDALONE=1
