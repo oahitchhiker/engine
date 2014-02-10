@@ -1,7 +1,7 @@
 # OpenArena Engine (client and server) #
 
 This project is a fork of ioquake3 with OpenArena specific changes.
-[![Build Status](https://travis-ci.org/OpenArena/engine.png?branch=master)](https://travis-ci.org/OpenArena/engine)
+[![Build Status](https://travis-ci.org/OpenArena/engine.png?branch=experimental/latest-libraries)](https://travis-ci.org/OpenArena/engine)
 
 ## Building ##
 
