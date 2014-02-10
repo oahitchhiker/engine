@@ -52,15 +52,17 @@ load.  ioquake3 assumes a naming convention renderer_*_.
 
 Example:
 
-    # Enable the default ioquake3 renderer.
-    $ ./openarena.x86_64 +set cl_renderer renderergl1
-
-    # Enable the OpenArena renderer with GLSL, bloom support and more.
+    # Enable the default OpenArena renderer with GLSL, bloom support and more.
+    # This is based on the renderergl1 code.
     $ ./openarena.x86_64 +set cl_renderer openarena1
+
+    # Enable the default ioquake3 renderer (renderergl1).
+    # If you are having trouble with OA's renderer, this is a safe alternative.
+    $ ./openarena.x86_64 +set cl_renderer opengl1
 
     # Enable renderergl2 which is now in upstream
     # It doesn't work with OpenArena yet
-    $ ./openarena.x86_64 +set cl_renderer renderergl2
+    $ ./openarena.x86_64 +set cl_renderer opengl2
 
 ## Changes from 0.8.8 release ##
 
