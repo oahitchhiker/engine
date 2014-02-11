@@ -13,10 +13,12 @@ will break in the middle of the build.
 If you are on Ubuntu or Debian, the easiest way to compile this is to install
 the build dependencies for the "ioquake3" package.
 
-    $ sudo aptitude build-dep ioquake3
-    $ git clone git://github.com/OpenArena/engine.git
-    $ cd engine
-    $ make
+```sh
+$ sudo aptitude build-dep ioquake3
+$ git clone git://github.com/OpenArena/engine.git
+$ cd engine
+$ make
+```
 
 You may want to change a few things in Makefile.local.  Other than installing
 the build dependencies, you shouldn't need to do anything else.  By default it
@@ -52,17 +54,19 @@ load.  ioquake3 assumes a naming convention renderer_*_.
 
 Example:
 
-    # Enable the default OpenArena renderer with GLSL, bloom support and more.
-    # This is based on the renderergl1 code.
-    $ ./openarena.x86_64 +set cl_renderer openarena1
+```sh
+# Enable the default OpenArena renderer with GLSL, bloom support and more.
+# This is based on the renderergl1 code.
+$ ./openarena.x86_64 +set cl_renderer openarena1
 
-    # Enable the default ioquake3 renderer (renderergl1).
-    # If you are having trouble with OA's renderer, this is a safe alternative.
-    $ ./openarena.x86_64 +set cl_renderer opengl1
+# Enable the default ioquake3 renderer (renderergl1).
+# If you are having trouble with OA's renderer, this is a safe alternative.
+$ ./openarena.x86_64 +set cl_renderer opengl1
 
-    # Enable renderergl2 which is now in upstream
-    # It doesn't work with OpenArena yet
-    $ ./openarena.x86_64 +set cl_renderer opengl2
+# Enable renderergl2 which is now in upstream
+# It doesn't work with OpenArena yet
+$ ./openarena.x86_64 +set cl_renderer opengl2
+```
 
 ## TODO ##
 
