@@ -1,14 +1,11 @@
-# OpenArena Engine (client and server) #
+# OpenArena Engine [![Build Status](https://travis-ci.org/OpenArena/engine.png?branch=master)](https://travis-ci.org/OpenArena/engine) #
 
-This project is a fork of ioquake3 with OpenArena specific changes.
-
-[![Build Status](https://travis-ci.org/OpenArena/engine.png?branch=master)](https://travis-ci.org/OpenArena/engine)
+This project is a fork of ioquake3 with OpenArena specific changes to the
+client and server.
 
 ## Building ##
 
-This a standard ioquake3 build which they describe here:
-
-http://wiki.ioquake3.org/Building_ioquake3
+This a standard ioquake3 build which they describe [here](http://wiki.ioquake3.org/Building_ioquake3)
 
 It's not an autotools based build.  If you don't have the dependencies, it
 will break in the middle of the build.
@@ -28,16 +25,18 @@ same directory to run it.
 
 ## Development ##
 
-    # Get this project
-    $ git clone git://github.com/OpenArena/engine.git
-    $ cd engine
+```sh
+# Get this project or sign up on github and fork it
+$ git clone git://github.com/OpenArena/engine.git
+$ cd engine
 
-    # Create a reference to the upstream project
-    $ git remote add upstream git://github.com/ioquake/ioq3.git
+# Create a reference to the upstream project
+$ git remote add upstream git://github.com/ioquake/ioq3.git
 
-    # View changes in this project compared to ioquake3
-    $ git fetch upstream
-    $ git diff upstream/master
+# View changes in this project compared to ioquake3
+$ git fetch upstream
+$ git diff upstream/master
+```
 
 ## Switching renderers ##
 
@@ -45,7 +44,8 @@ Recent ioquake3 versions allow for a modular renderer.  This allows you to
 select the renderer at runtime rather than compiling in one into the binary.
 
 This feature is enabled by default.  If you wish to disable it, uncomment
-USE_RENDERER_DLOPEN=0 in Makefile.local.
+USE_RENDERER_DLOPEN=0 in Makefile.local.  With ioquake3, this embeds the
+opengl1 renderer.  In OpenArena, it embeds the openarena1 renderer.
 
 When you start OpenArena, you can pass the name of the dynamic library to
 load.  ioquake3 assumes a naming convention renderer_*_.
@@ -63,6 +63,31 @@ Example:
     # Enable renderergl2 which is now in upstream
     # It doesn't work with OpenArena yet
     $ ./openarena.x86_64 +set cl_renderer opengl2
+
+## TODO ##
+
+* Wait for ioquake3 to add/reject vorbis so we can fix Windows builds
+    - Cross compiling on Windows works in experimental/latest-libraries branch
+* Wait for ioquake3 to add/reject latest curl
+    - Required to fix build problems on Windows for some users
+    - Also in the experimental/latest-libraries branch
+* Verify that allowing say/say_team to bypass Cmd_Args_Sanitize is safe.
+* Try to avoid changing qcommon area to support GLSL.  Canete's renderergl2
+  didn't need this change so this renderer shouldn't either.
+* Build in FreeBSD and Mac OS X
+* Remove compiler warnings.  I kept them in for now so the code would be
+  as close as possible to 0.8.8.
+* Potential GLSL debugging fix that was made available after 0.8.8 release
+    - Need to find a link to this.  Is this real?
+
+## Status ##
+
+* Initial testing on Debian and Windows
+* Need help testing on other platforms
+* Need help testing the SDL2 branch since ioquake3 is moving to SDL2
+    - sdl2 branch is considered finished in ioquake3 so it is a good base
+    - See experimental/latest-libraries-sdl2 branch in this repository to
+      test with OpenArena.
 
 ## Changes from 0.8.8 release ##
 
@@ -87,32 +112,6 @@ Example:
   HEARTBEAT_FOR_MASTER name since the code says to leave it unless you have a
   good reason.
 * Any trivial whitespace changes were left out
-* GrosBedo added win32 support back to the Makefile
-
-## TODO ##
-
-* Probably need to add Windows support back in
-* Cross compile in Linux for Windows
-    - Cross compiling for Windows may require more changes to the Makefile to
-      enable ogg vorbis support
-    - Currently the vanillla ioquake3 travis builds are not using ogg
-* Verify that allowing say/say_team to bypass Cmd_Args_Sanitize is safe.
-* Try to avoid changing qcommon area to support GLSL.  Canete's renderergl2
-  didn't need this change so this renderer shouldn't either.
-* Build in FreeBSD
-* Build in MacOSX
-* Remove compiler warnings.  I kept them in for now so the code would be
-  as close as possible to 0.8.8.
-* Potential GLSL debugging fix that was made available after 0.8.8 release
-
-## Upstream TODO ##
-
-* Look into adding #ifdef checks for IPv6 so it will build on older systems
-
-## Status ##
-
-* Initial testing was done on Debian
-* Need help testing on other platforms
 
 
 # ioquake3 README #
