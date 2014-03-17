@@ -188,6 +188,7 @@ cvar_t	*r_envMode;
 //cvar_t	*r_waveMode;
 cvar_t	*r_flaresDlight;
 //cvar_t	*r_flaresSurfradii;
+cvar_t	*r_alternateBrightness;		// leilei - linux overbright fix
 
 /*
 ** InitOpenGL
@@ -464,8 +465,9 @@ void RB_TakeScreenshot(int x, int y, int width, int height, char *fileName)
 	memcount = linelen * height;
 
 	// gamma correct
-	if(glConfig.deviceSupportsGamma)
+	if ( glConfig.deviceSupportsGamma && !r_alternateBrightness->integer) {
 		R_GammaCorrect(allbuf + offset, memcount);
+	}
 
 	ri.FS_WriteFile(fileName, buffer, memcount + 18);
 
@@ -1367,6 +1369,7 @@ void R_Init( void ) {
 
 	R_BloomInit();
 	R_PostprocessingInit();
+	R_AltBrightnessInit();	// leilei	- alternate brightness
 	max_polys = r_maxpolys->integer;
 	if (max_polys < MAX_POLYS)
 		max_polys = MAX_POLYS;

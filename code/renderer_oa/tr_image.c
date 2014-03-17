@@ -1317,6 +1317,7 @@ void R_CreateBuiltinImages( void ) {
 }
 
 
+extern cvar_t *r_alternateBrightness;
 /*
 ===============
 R_SetColorMappings
@@ -1330,12 +1331,12 @@ void R_SetColorMappings( void ) {
 
 	// setup the overbright lighting
 	tr.overbrightBits = r_overBrightBits->integer;
-	if ( !glConfig.deviceSupportsGamma ) {
+	if ( !glConfig.deviceSupportsGamma && !r_alternateBrightness->integer) {
 		tr.overbrightBits = 0;		// need hardware gamma for overbright
 	}
 
 	// never overbright in windowed mode
-	if ( !glConfig.isFullscreen ) 
+	if ( !glConfig.isFullscreen && !r_alternateBrightness->integer)
 	{
 		tr.overbrightBits = 0;
 	}
@@ -1398,6 +1399,7 @@ void R_SetColorMappings( void ) {
 
 	if ( glConfig.deviceSupportsGamma )
 	{
+		if(!r_alternateBrightness->integer)
 		GLimp_SetGamma( s_gammatable, s_gammatable, s_gammatable );
 	}
 }

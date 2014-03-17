@@ -38,7 +38,9 @@ static cvar_t *r_bloom_dry;
 
 static cvar_t *r_bloom_reflection;		// LEILEI
 static cvar_t *r_bloom_sky_only;		// LEILEI
+ cvar_t *r_film;
 
+int		fakeit = 0;
 /* 
 ============================================================================== 
  
@@ -878,4 +880,163 @@ void R_BloomInit( void ) {
 
 void R_PostprocessingInit(void) {
 	memset( &postproc, 0, sizeof( postproc ));
+}
+
+
+
+
+
+
+
+
+/* 
+============================================================================== 
+ 
+	Alternate brightness
+
+	Because X11 sucks.
+ 
+============================================================================== 
+*/ 
+
+extern cvar_t *r_alternateBrightness;
+// shamelessly ripped off from tr_bloom.c
+static void ID_INLINE R_Brighter_Quad( int width, int height, float texX, float texY, float texWidth, float texHeight ) {
+	int x = 0;
+	int y = 0;
+	x = 0;
+	y += glConfig.vidHeight - height;
+	width += x;
+	height += y;
+	
+	texWidth += texX;
+	texHeight += texY;
+
+	qglBegin( GL_QUADS );							
+	qglTexCoord2f(	texX,						texHeight	);	
+	qglVertex2f(	x,							y	);
+
+	qglTexCoord2f(	texX,						texY	);				
+	qglVertex2f(	x,							height	);	
+
+	qglTexCoord2f(	texWidth,					texY	);				
+	qglVertex2f(	width,						height	);	
+
+	qglTexCoord2f(	texWidth,					texHeight	);	
+	qglVertex2f(	width,						y	);				
+	qglEnd ();
+}
+
+extern cvar_t	*r_overBrightBits;
+
+void R_BrightItUp (int dst, int src, float intensity)
+{
+	GL_State( GLS_DEPTHTEST_DISABLE | dst | src);
+	GL_Bind( tr.whiteImage );
+	GL_Cull( CT_TWO_SIDED );
+	
+	float alpha=intensity;	// why
+	qglColor4f( alpha,alpha,alpha, 1.0f );
+	if (!fakeit)
+	R_Brighter_Quad( glConfig.vidWidth, glConfig.vidHeight, 0, 0, 1, 1 );
+
+}
+
+void R_BrightScreen( void )
+{
+	
+
+	if( !r_alternateBrightness->value)
+		return;
+	if ( backEnd.doneAltBrightness )
+		return;
+	if ( !backEnd.projection2D )
+		RB_SetGL2D();
+	//if (!fakeit)
+	backEnd.doneAltBrightness = qtrue;
+	
+	// Handle Overbrights first
+	int eh, ah;
+	if (r_overBrightBits->integer)
+		{
+
+			ah = r_overBrightBits->integer;
+			if (ah < 1) ah = 1; if (ah > 2) ah = 2; // clamp so it never looks stupid
+
+			// do a loop for every overbright bit enabled
+				for (eh=0; eh<r_overBrightBits->integer; eh++){
+					R_BrightItUp(GLS_SRCBLEND_DST_COLOR, GLS_DSTBLEND_ONE, 1.0f); }
+
+	
+	}
+	
+
+	
+}
+
+void R_AltBrightnessInit( void ) {
+
+	r_alternateBrightness = ri.Cvar_Get( "r_alternateBrightness", "0", CVAR_ARCHIVE | CVAR_LATCH);
+	r_film = ri.Cvar_Get( "r_film", "0", CVAR_ARCHIVE );
+}
+
+
+
+/* 
+============================================================================== 
+ 
+	Film postprocess
+
+============================================================================== 
+*/ 
+
+void R_FilmScreen( void )
+{
+
+	if( !r_film->integer )
+		return;
+	if ( backEnd.doneFilm )
+		return;
+	if ( !backEnd.projection2D )
+		RB_SetGL2D();
+	backEnd.doneFilm = qtrue;
+	
+
+		// darken vignette.
+		GL_State( GLS_DEPTHTEST_DISABLE | GLS_SRCBLEND_DST_COLOR | GLS_DSTBLEND_ZERO);GL_Bind( tr.dlightImage );	GL_Cull( CT_TWO_SIDED );
+		qglColor4f( 0.941177, 0.952941, 0.968628, 1.0f );
+		R_Brighter_Quad( glConfig.vidWidth, glConfig.vidHeight, 0.35f, 0.35f, 0.2f, 0.2f );
+
+
+
+		// brighten.
+		GL_State( GLS_DEPTHTEST_DISABLE | GLS_SRCBLEND_DST_COLOR | GLS_DSTBLEND_ONE);GL_Bind( tr.dlightImage );	GL_Cull( CT_TWO_SIDED );
+		qglColor4f( 0.941177, 0.952941, 0.968628, 1.0f );
+		R_Brighter_Quad( glConfig.vidWidth, glConfig.vidHeight, 0.25f, 0.25f, 0.48f, 0.48f );
+
+		// invoort.
+		GL_State( GLS_DEPTHTEST_DISABLE | GLS_SRCBLEND_ONE_MINUS_DST_COLOR | GLS_DSTBLEND_ONE_MINUS_SRC_COLOR);GL_Bind( tr.whiteImage );	GL_Cull( CT_TWO_SIDED );
+		qglColor4f(0.85098, 0.85098, 0.815686, 1.0f );
+		R_Brighter_Quad( glConfig.vidWidth, glConfig.vidHeight, 0, 0, 1, 1 );
+
+		// brighten.
+		GL_State( GLS_DEPTHTEST_DISABLE | GLS_SRCBLEND_DST_COLOR | GLS_DSTBLEND_SRC_COLOR);GL_Bind( tr.whiteImage );	GL_Cull( CT_TWO_SIDED );
+		qglColor4f( 0.615686, 0.615686, 0.615686, 1.0f );
+		R_Brighter_Quad( glConfig.vidWidth, glConfig.vidHeight, 0, 0, 1, 1 );
+
+
+		// invoort.
+		GL_State( GLS_DEPTHTEST_DISABLE | GLS_SRCBLEND_ONE_MINUS_DST_COLOR | GLS_DSTBLEND_ONE_MINUS_SRC_COLOR);GL_Bind( tr.whiteImage );	GL_Cull( CT_TWO_SIDED );
+		qglColor4f(1.0f, 1.0f, 1.0f , 1.0f );
+		R_Brighter_Quad( glConfig.vidWidth, glConfig.vidHeight, 0, 0, 1, 1 );
+
+		// brighten.
+		GL_State( GLS_DEPTHTEST_DISABLE | GLS_SRCBLEND_DST_COLOR | GLS_DSTBLEND_SRC_COLOR);GL_Bind( tr.whiteImage );	GL_Cull( CT_TWO_SIDED );
+		qglColor4f(  0.866667, 0.847059, 0.776471, 1.0f );
+		R_Brighter_Quad( glConfig.vidWidth, glConfig.vidHeight, 0, 0, 1, 1 );
+
+
+
+
+
 }

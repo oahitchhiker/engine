@@ -1142,6 +1142,8 @@ const void	*RB_SwapBuffers( const void *data ) {
 		RB_ShowImages();
 	}
 
+	R_BrightScreen();		// leilei - alternate brightness - do it here so we hit evereything
+
 	cmd = (const swapBuffersCommand_t *)data;
 
 	// we measure overdraw by reading back the stencil buffer and
@@ -1175,10 +1177,12 @@ const void	*RB_SwapBuffers( const void *data ) {
 
 	backEnd.doneBloom = qfalse;
 	backEnd.donepostproc = qfalse;
+	backEnd.doneAltBrightness = qfalse;
+	backEnd.doneFilm = qfalse;
 	backEnd.doneSurfaces = qfalse;
 	backEnd.doneSun	     = qfalse;
 	backEnd.doneSunFlare = qfalse;
-
+	
 	return (const void *)(cmd + 1);
 }
 
@@ -1203,6 +1207,8 @@ void RB_ExecuteRenderCommands( const void *data ) {
 			//Check if it's time for BLOOM!
 			R_PostprocessScreen();
 			R_BloomScreen();
+			R_FilmScreen();
+	
 			data = RB_StretchPic( data );
 			break;
 		case RC_DRAW_SURFS:
@@ -1215,6 +1221,9 @@ void RB_ExecuteRenderCommands( const void *data ) {
 			//Check if it's time for BLOOM!
 			R_PostprocessScreen();
 			R_BloomScreen();
+			R_FilmScreen();
+
+
 			data = RB_SwapBuffers( data );
 			break;
 		case RC_SCREENSHOT:

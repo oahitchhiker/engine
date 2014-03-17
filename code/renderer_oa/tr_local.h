@@ -53,7 +53,6 @@ typedef struct dlight_s {
 } dlight_t;
 
 
-// leilei - sun spazzing workaround
 
 // a trRefEntity_t has all the information passed in by
 // the client game, as well as some locally derived info
@@ -964,6 +963,8 @@ typedef struct {
 	qboolean	vertexes2D;		// shader needs to be finished
 	qboolean	doneBloom;		// done bloom this frame
 	qboolean	donepostproc;		// done postprocess this frame
+	qboolean	doneAltBrightness;	// leilei - done alternate brightness this frame
+	qboolean	doneFilm;		// leilei - done film filtering this frame
 	qboolean	doneSun;		// leilei - done drawing a sun
 	qboolean	doneSunFlare;		// leilei - done drawing a sun flare
 	qboolean	doneSurfaces;   // done any 3d surfaces already
@@ -1206,6 +1207,8 @@ extern	cvar_t	*r_specMode;
 
 extern	cvar_t	*r_flaresDlight;
 //extern	cvar_t	*r_flaresSurfradii;
+
+extern cvar_t	*r_alternateBrightness;		// leilei - alternate brightness
 
 //====================================================================
 
@@ -2028,5 +2031,10 @@ void R_BloomScreen( void );
 // Postprocessing
 void R_PostprocessScreen( void );
 void R_PostprocessingInit(void);
+
+// leilei
+void R_BrightScreen( void );
+void R_AltBrightnessInit( void );
+void R_FilmScreen( void );	//	leilei - film effect
 
 #endif //TR_LOCAL_H
