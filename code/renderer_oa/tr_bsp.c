@@ -515,7 +515,7 @@ static void ParseFlare( dsurface_t *ds, drawVert_t *verts, msurface_t *surf, int
 
 	flare = ri.Hunk_Alloc( sizeof( *flare ), h_low );
 	flare->surfaceType = SF_FLARE;
-
+	flare->shadder = surf->shader;		// leilei - custom flare textures
 	surf->data = (surfaceType_t *)flare;
 
 	for ( i = 0 ; i < 3 ; i++ ) {

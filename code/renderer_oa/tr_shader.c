@@ -4715,6 +4715,7 @@ static void CreateInternalShaders( void ) {
 static void CreateExternalShaders( void ) {
 	tr.projectionShadowShader = R_FindShader( "projectionShadow", LIGHTMAP_NONE, qtrue );
 	tr.flareShader = R_FindShader( "flareShader", LIGHTMAP_NONE, qtrue );
+	tr.flareShaderAtlas = R_FindShader( "flareShaderAtlas", LIGHTMAP_NONE, qtrue );	// leilei - lens reflection
 
 	// Hack to make fogging work correctly on flares. Fog colors are calculated
 	// in tr_flare.c already.
@@ -4728,6 +4729,19 @@ static void CreateExternalShaders( void ) {
 			tr.flareShader->stages[index]->stateBits |= GLS_DEPTHTEST_DISABLE;
 		}
 	}
+
+
+	if(!tr.flareShaderAtlas->defaultShader)
+	{
+		int index;
+		
+		for(index = 0; index < tr.flareShader->numUnfoggedPasses; index++)
+		{
+			tr.flareShaderAtlas->stages[index]->adjustColorsForFog = ACFF_NONE;
+			tr.flareShaderAtlas->stages[index]->stateBits |= GLS_DEPTHTEST_DISABLE;
+		}
+	}
+
 
 	tr.sunShader = R_FindShader( "sun", LIGHTMAP_NONE, qtrue );
 }

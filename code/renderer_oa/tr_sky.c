@@ -696,21 +696,48 @@ void R_InitSkyTexCoords( float heightCloud )
 /*
 ** RB_DrawSun
 */
-void RB_DrawSun( float scale, shader_t *shader ) {
+void RB_DrawSun( void ) {
 	float		size;
 	float		dist;
 	vec3_t		origin, vec1, vec2;
-	byte		sunColor[4] = { 255, 255, 255, 255 };
+	vec3_t		temp;
 
 	if ( !backEnd.skyRenderedThisView ) {
 		return;
 	}
+	if ( !r_drawSun->integer ) {
+		return;
+	}
+
+	if ( backEnd.doneSun)	// leilei - only do sun once
+		return;
 
 	qglLoadMatrixf( backEnd.viewParms.world.modelMatrix );
 	qglTranslatef (backEnd.viewParms.or.origin[0], backEnd.viewParms.or.origin[1], backEnd.viewParms.or.origin[2]);
 
 	dist = 	backEnd.viewParms.zFar / 1.75;		// div sqrt(3)
-	size = dist * scale;
+	size = dist * 0.4;
+
+
+	// leilei - SUN color
+	vec3_t	coll;
+
+	coll[0]= 1.0;
+	coll[1]= 1.0;
+	coll[2]= 1.0;
+
+	coll[0]=tr.sunLight[0]/128;
+	coll[1]=tr.sunLight[1]/128;
+	coll[2]=tr.sunLight[2]/128;
+
+
+	int g;
+	for (g=0;g<3;g++)
+	if (coll[g] > 1) coll[g] = 1;
+
+	// also, ajdust the size of the sun depending how bright it is.
+
+	size *= (coll[0] + coll[1] + coll[2] * 0.333) / 4;
 
 	VectorScale( tr.sunDirection, dist, origin );
 	PerpendicularVector( vec1, tr.sunDirection );
@@ -722,14 +749,68 @@ void RB_DrawSun( float scale, shader_t *shader ) {
 	// farthest depth range
 	qglDepthRange( 1.0, 1.0 );
 
-	RB_BeginSurface( shader, 0 );
 
-	RB_AddQuadStamp(origin, vec1, vec2, sunColor);
+
+
+	// FIXME: use quad stamp
+	RB_BeginSurface( tr.sunShader, tess.fogNum );
+		VectorCopy( origin, temp );
+		VectorSubtract( temp, vec1, temp );
+		VectorSubtract( temp, vec2, temp );
+		VectorCopy( temp, tess.xyz[tess.numVertexes] );
+		tess.texCoords[tess.numVertexes][0][0] = 0;
+		tess.texCoords[tess.numVertexes][0][1] = 0;
+		tess.vertexColors[tess.numVertexes][0] = 255;
+		tess.vertexColors[tess.numVertexes][1] = 255;
+		tess.vertexColors[tess.numVertexes][2] = 255;
+		tess.numVertexes++;
+
+		VectorCopy( origin, temp );
+		VectorAdd( temp, vec1, temp );
+		VectorSubtract( temp, vec2, temp );
+		VectorCopy( temp, tess.xyz[tess.numVertexes] );
+		tess.texCoords[tess.numVertexes][0][0] = 0;
+		tess.texCoords[tess.numVertexes][0][1] = 1;
+		tess.vertexColors[tess.numVertexes][0] = 255;
+		tess.vertexColors[tess.numVertexes][1] = 255;
+		tess.vertexColors[tess.numVertexes][2] = 255;
+		tess.numVertexes++;
+
+		VectorCopy( origin, temp );
+		VectorAdd( temp, vec1, temp );
+		VectorAdd( temp, vec2, temp );
+		VectorCopy( temp, tess.xyz[tess.numVertexes] );
+		tess.texCoords[tess.numVertexes][0][0] = 1;
+		tess.texCoords[tess.numVertexes][0][1] = 1;
+		tess.vertexColors[tess.numVertexes][0] = 255;
+		tess.vertexColors[tess.numVertexes][1] = 255;
+		tess.vertexColors[tess.numVertexes][2] = 255;
+		tess.numVertexes++;
+
+		VectorCopy( origin, temp );
+		VectorSubtract( temp, vec1, temp );
+		VectorAdd( temp, vec2, temp );
+		VectorCopy( temp, tess.xyz[tess.numVertexes] );
+		tess.texCoords[tess.numVertexes][0][0] = 1;
+		tess.texCoords[tess.numVertexes][0][1] = 0;
+		tess.vertexColors[tess.numVertexes][0] = 255;
+		tess.vertexColors[tess.numVertexes][1] = 255;
+		tess.vertexColors[tess.numVertexes][2] = 255;
+		tess.numVertexes++;
+
+		tess.indexes[tess.numIndexes++] = 0;
+		tess.indexes[tess.numIndexes++] = 1;
+		tess.indexes[tess.numIndexes++] = 2;
+		tess.indexes[tess.numIndexes++] = 0;
+		tess.indexes[tess.numIndexes++] = 2;
+		tess.indexes[tess.numIndexes++] = 3;
 
 	RB_EndSurface();
 
 	// back to normal depth range
 	qglDepthRange( 0.0, 1.0 );
+
+	backEnd.doneSun = qtrue;
 }
 
 

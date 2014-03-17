@@ -725,15 +725,16 @@ void RB_RenderDrawSurfList( drawSurf_t *drawSurfs, int numDrawSurfs ) {
 		qglDepthRange (0, 1);
 	}
 
-	if (r_drawSun->integer) {
-		RB_DrawSun(0.1, tr.sunShader);
-	}
 
 	// darken down any stencil shadows
 	RB_ShadowFinish();		
 
 	// add light flares on lights that aren't obscured
 	RB_RenderFlares();
+
+	RB_DrawSun();		
+	RB_DrawSunFlare();		// leilei - sun flare
+
 }
 
 
@@ -1175,6 +1176,8 @@ const void	*RB_SwapBuffers( const void *data ) {
 	backEnd.doneBloom = qfalse;
 	backEnd.donepostproc = qfalse;
 	backEnd.doneSurfaces = qfalse;
+	backEnd.doneSun	     = qfalse;
+	backEnd.doneSunFlare = qfalse;
 
 	return (const void *)(cmd + 1);
 }

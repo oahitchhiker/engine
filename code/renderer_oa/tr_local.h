@@ -53,6 +53,8 @@ typedef struct dlight_s {
 } dlight_t;
 
 
+// leilei - sun spazzing workaround
+
 // a trRefEntity_t has all the information passed in by
 // the client game, as well as some locally derived info
 typedef struct {
@@ -523,6 +525,7 @@ typedef struct srfFlare_s {
 	vec3_t			origin;
 	vec3_t			normal;
 	vec3_t			color;
+	shader_t		*shadder;	// leilei - for custom flares
 } srfFlare_t;
 
 typedef struct srfGridMesh_s {
@@ -961,6 +964,8 @@ typedef struct {
 	qboolean	vertexes2D;		// shader needs to be finished
 	qboolean	doneBloom;		// done bloom this frame
 	qboolean	donepostproc;		// done postprocess this frame
+	qboolean	doneSun;		// leilei - done drawing a sun
+	qboolean	doneSunFlare;		// leilei - done drawing a sun flare
 	qboolean	doneSurfaces;   // done any 3d surfaces already
 	trRefEntity_t	entity2D;	// currentEntity will point at this when doing 2D rendering
 } backEndState_t;
@@ -1002,6 +1007,7 @@ typedef struct {
 	shader_t				*projectionShadowShader;
 
 	shader_t				*flareShader;
+	shader_t				*flareShaderAtlas;	// leilei - lens reflections
 	shader_t				*sunShader;
 
 	qhandle_t				skipProgram;
@@ -1084,6 +1090,10 @@ extern char		 depthimage;
 //
 extern cvar_t	*r_flareSize;
 extern cvar_t	*r_flareFade;
+extern cvar_t	*r_flareQuality;
+extern cvar_t	*r_flareSun;
+extern cvar_t	*r_flareMethod;
+
 // coefficient for the flare intensity falloff function.
 #define FLARE_STDCOEFF "150"
 extern cvar_t	*r_flareCoeff;
@@ -1412,7 +1422,7 @@ FLARES
 
 void R_ClearFlares( void );
 
-void RB_AddFlare( void *surface, int fogNum, vec3_t point, vec3_t color, vec3_t normal, int radii );
+void RB_AddFlare(srfFlare_t *surface, int fogNum, vec3_t point, vec3_t color, vec3_t normal, int radii,  int efftype, float scaled, int type);
 void RB_AddDlightFlares( void );
 void RB_RenderFlares (void);
 
@@ -1720,7 +1730,8 @@ SKIES
 void R_BuildCloudData( shaderCommands_t *shader );
 void R_InitSkyTexCoords( float cloudLayerHeight );
 void R_DrawSkyBox( shaderCommands_t *shader );
-void RB_DrawSun( float scale, shader_t *shader );
+void RB_DrawSun( void );
+void RB_DrawSunFlare( void );
 void RB_ClipSkyPolygons( shaderCommands_t *shader );
 
 /*

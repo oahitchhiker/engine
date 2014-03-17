@@ -78,15 +78,29 @@ typedef struct flare_s {
 	vec3_t		origin;
 	vec3_t		color;
 	int		radius;				// leilei - for dynamic light flares
+	qboolean 	peek;  
+	int		ftype;			// leilei - flare types
+						// 0 - off
+						// 1 - nromal flare
+						// 2 - hexagonal polygons (tcpp)
+						// 3 - glow polygons	(tcpp)
+						// 4 - hex and glow polygons	(tcpp)
+						// 5 - lens reflections like it's 1997
+						// 6 - fully modulated lens reflections
+						// 7 - unmodulated lens reflections
+						// 8 - anamorphic like it's 2009
+	struct shader_s		*theshader;	// leilei - custom flare shaders
+	int		type;			// 0 - map, 1 - dlight, 2 - sun
 } flare_t;
 
-#define		MAX_FLARES		256
+#define		MAX_FLARES		256 // was 128
 
 flare_t		r_flareStructs[MAX_FLARES];
 flare_t		*r_activeFlares, *r_inactiveFlares;
 
-int flareCoeff;
 
+vec3_t		sunorg;		// sun flare hack
+int flareCoeff;
 /*
 ==================
 R_SetFlareCoeff
@@ -100,7 +114,12 @@ static void R_SetFlareCoeff( void ) {
 		flareCoeff = r_flareCoeff->value;
 }
 
-/*
+
+qboolean 	forceit;	// for low quality flare testing
+
+
+static int 	pvrhack		=	0;			// leilei = powervr workarounds
+/*	
 ==================
 R_ClearFlares
 ==================
@@ -116,7 +135,6 @@ void R_ClearFlares( void ) {
 		r_flareStructs[i].next = r_inactiveFlares;
 		r_inactiveFlares = &r_flareStructs[i];
 	}
-
 	R_SetFlareCoeff();
 }
 
@@ -128,16 +146,22 @@ RB_AddFlare
 This is called at surface tesselation time
 ==================
 */
-void RB_AddFlare( void *surface, int fogNum, vec3_t point, vec3_t color, vec3_t normal, int radii ) {
+
+float			flaredsize;	// leilei - dirty flare fix for widescreens
+
+
+void RB_AddFlare(srfFlare_t *surface, int fogNum, vec3_t point, vec3_t color, vec3_t normal, int radii, int efftype, float scaled, int type) {
 	int				i;
-	flare_t			*f;
+	flare_t			*f, *oldest;
 	vec3_t			local;
 	float			d = 1;
 	vec4_t			eye, clip, normalized, window;
 
 	backEnd.pc.c_flareAdds++;
 
-	if(normal && (normal[0] || normal[1] || normal[2]))
+	// fade the intensity of the flare down as the
+	// light surface turns away from the viewer
+	if(normal && (normal[0] || normal[1] || normal[2]) )
 	{
 		VectorSubtract( backEnd.viewParms.or.origin, point, local );
 		VectorNormalizeFast(local);
@@ -148,10 +172,13 @@ void RB_AddFlare( void *surface, int fogNum, vec3_t point, vec3_t color, vec3_t 
 			return;
 	}
 
-	// if the point is off the screen, don't bother adding it
-	// calculate screen coordinates and depth
+	flaredsize = backEnd.viewParms.viewportHeight;
+
 	R_TransformModelToClip( point, backEnd.or.modelMatrix, 
 		backEnd.viewParms.projectionMatrix, eye, clip );
+
+	
+
 
 	// check to see if the point is completely off screen
 	for ( i = 0 ; i < 3 ; i++ ) {
@@ -159,6 +186,7 @@ void RB_AddFlare( void *surface, int fogNum, vec3_t point, vec3_t color, vec3_t 
 			return;
 		}
 	}
+
 
 	R_TransformClipToWindow( clip, &backEnd.viewParms, normalized, window );
 
@@ -168,6 +196,7 @@ void RB_AddFlare( void *surface, int fogNum, vec3_t point, vec3_t color, vec3_t 
 	}
 
 	// see if a flare with a matching surface, scene, and view exists
+	oldest = r_flareStructs;
 	for ( f = r_activeFlares ; f ; f = f->next ) {
 		if ( f->surface == surface && f->frameSceneNum == backEnd.viewParms.frameSceneNum
 			&& f->inPortal == backEnd.viewParms.isPortal ) {
@@ -199,21 +228,37 @@ void RB_AddFlare( void *surface, int fogNum, vec3_t point, vec3_t color, vec3_t 
 
 	f->addedFrame = backEnd.viewParms.frameCount;
 	f->fogNum = fogNum;
-
+	f->ftype = efftype;
 	VectorCopy(point, f->origin);
 	VectorCopy( color, f->color );
 
-	// fade the intensity of the flare down as the
-	// light surface turns away from the viewer
+
+
+
+
+
+
+
+	if (!pvrhack)	// leilei - don't do this on powervr
 	VectorScale( f->color, d, f->color ); 
 
 	// save info needed to test
 	f->windowX = backEnd.viewParms.viewportX + window[0];
 	f->windowY = backEnd.viewParms.viewportY + window[1];
 
-	f->radius = radii / 3; // leilei - transfer the radius
 
+	f->radius = radii * scaled * 0.17; 
 	f->eyeZ = eye[2];
+	f->theshader = tr.flareShader;
+	f->type = type;
+
+	if (f->type == 0)
+	f->theshader = surface->shadder;
+	else
+	f->theshader = tr.flareShader;
+	
+
+
 }
 
 /*
@@ -226,7 +271,7 @@ void RB_AddDlightFlares( void ) {
 	int				i, j, k;
 	fog_t			*fog = NULL;
 
-	if ( !r_flares->integer ) {
+	if ( !r_flaresDlight->integer ) {	// leilei - dynamic light flares will be separate from flares
 		return;
 	}
 
@@ -258,7 +303,7 @@ void RB_AddDlightFlares( void ) {
 		else
 			j = 0;
 
-		RB_AddFlare( (void *)l, j, l->origin, l->color, NULL, l->radius * 0.6);
+		RB_AddFlare( (void *)l, j, l->origin, l->color, NULL, l->radius * 0.6, r_flaresDlight->integer, 1.0f, 1);
 	}
 }
 
@@ -283,11 +328,13 @@ void RB_TestFlare( flare_t *f ) {
 
 	backEnd.pc.c_flareTests++;
 
+
 	// doing a readpixels is as good as doing a glFinish(), so
 	// don't bother with another sync
 	glState.finishCalled = qfalse;
 
 	// read back the z buffer contents
+
 	qglReadPixels( f->windowX, f->windowY, 1, 1, GL_DEPTH_COMPONENT, GL_FLOAT, &depth );
 
 	screenZ = backEnd.viewParms.projectionMatrix[14] / 
@@ -295,16 +342,14 @@ void RB_TestFlare( flare_t *f ) {
 
 	visible = ( -f->eyeZ - -screenZ ) < 24;
 
+
+
 	if ( visible ) {
 		if ( !f->visible ) {
 			f->visible = qtrue;
 			f->fadeTime = backEnd.refdef.time - 1;
 		}
-		if ( r_flares->integer == 1337 ) {
-			// - unreal style fading
-			fade = ( ( backEnd.refdef.time - f->fadeTime ) / 2600.0f ) * r_flareFade->value;
-		}
-		else {
+		{
 			fade = ( ( backEnd.refdef.time - f->fadeTime ) / 1000.0f ) * r_flareFade->value;
 		}
 	} else {
@@ -328,9 +373,55 @@ void RB_TestFlare( flare_t *f ) {
 
 /*
 ==================
+RB_TestFlareFast
+
+faster simple one.
+==================
+*/
+void RB_TestFlareFast( flare_t *f ) {
+	qboolean		visible;
+	float			fade;
+	
+
+	backEnd.pc.c_flareTests++;
+
+	visible = 1; // it's visible damnit
+
+
+	if ( visible ) {
+		if ( !f->visible ) {
+			f->visible = qtrue;
+			f->fadeTime = backEnd.refdef.time - 1;
+		}
+		{
+			fade = 1;	// instant fade
+		}
+	} else {
+		if ( f->visible ) {
+			f->visible = qfalse;
+			f->fadeTime = backEnd.refdef.time - 1;
+		}
+		fade = 0;	// instant appear
+	}
+
+	if ( fade < 0 ) {
+		fade = 0;
+	}
+	if ( fade > 1 ) {
+		fade = 1;
+	}
+
+	f->drawIntensity = fade;
+
+}
+
+
+/*
+==================
 RB_RenderFlare
 ==================
 */
+
 void RB_RenderFlare( flare_t *f ) {
 	float			size;
 	vec3_t			color;
@@ -338,8 +429,11 @@ void RB_RenderFlare( flare_t *f ) {
 	float distance, intensity, factor;
 	byte fogFactors[3] = {255, 255, 255};
 	int ind=0;
-
+	int alphcal;
 	backEnd.pc.c_flareRenders++;
+
+	flaredsize = backEnd.viewParms.viewportHeight * (f->radius * 0.06);
+	float flaredsize2 = backEnd.viewParms.viewportHeight;
 
 	// We don't want too big values anyways when dividing by distance.
 	if(f->eyeZ > -1.0f)
@@ -351,15 +445,27 @@ void RB_RenderFlare( flare_t *f ) {
 		f->radius = 0.0f;	// leilei - don't do a radius if there is no radius at all!
 
 	// calculate the flare size..
-	// leilei - dynamic size support for the dynamic light kind of flares
-	size = backEnd.viewParms.viewportWidth * ( (r_flareSize->value + f->radius) /640.0f + 8 / distance );
 
 /*
  * This is an alternative to intensity scaling. It changes the size of the flare on screen instead
  * with growing distance. See in the description at the top why this is not the way to go.
-	// size will change ~ 1/r.
-	size = backEnd.viewParms.viewportWidth * (r_flareSize->value / (distance * -2.0f));
 */
+	// size will change ~ 1/r.
+	if (r_flareMethod->integer == 1 || r_flareMethod->integer == 4 ){			// The "not the way to go" method.
+												// seen in EF
+		size = flaredsize * (r_flareSize->value / (distance * -2.0f));
+	}
+	else if (r_flareMethod->integer == 2){			// Raven method
+		size = flaredsize * ( r_flareSize->value/640.0f + 8 / -f->eyeZ );	}
+	else
+	{
+
+	size = flaredsize * ( (r_flareSize->value) /640.0f + 8 / distance );
+
+	}
+
+
+
 
 /*
  * As flare sizes stay nearly constant with increasing distance we must decrease the intensity
@@ -376,12 +482,28 @@ void RB_RenderFlare( flare_t *f ) {
  */
 
 	factor = distance + size * sqrt(flareCoeff);
+
 	
+
+	if (r_flareMethod->integer == 4)		// leilei - EF didn't scale intensity on distance. Speed I guess
+	intensity = 1;
+	else
 	intensity = flareCoeff * size * size / (factor * factor);
 
+	if (r_flareMethod->integer == 1)		// leilei - stupid hack to fix the not the way method
+	{
+		if (intensity > 1) intensity = 1;
+
+   	}
+
+	if (pvrhack)		
+	VectorScale(f->color, 1, color );  
+	else
 	VectorScale(f->color, f->drawIntensity * intensity, color);
 
-	// Calculations for fogging
+
+
+// Calculations for fogging
 	if(tr.world && f->fogNum > 0 && f->fogNum < tr.world->numfogs)
 	{
 		tess.numVertexes = 1;
@@ -395,13 +517,45 @@ void RB_RenderFlare( flare_t *f ) {
 			return;
 	}
 
+
+
 	iColor[0] = color[0] * fogFactors[0];
 	iColor[1] = color[1] * fogFactors[1];
 	iColor[2] = color[2] * fogFactors[2];
-	
-	RB_BeginSurface( tr.flareShader, f->fogNum ); // TODO: custom flare texture here 
-						// (it's definable in q3map, but nothing uses it)
+	if (pvrhack)
+	alphcal = f->drawIntensity * tr.identityLight * 255;	// Calculate alphas from intensity instead 
+	else
+	alphcal = 255;				// Don't mess with alpha.
 
+
+		
+
+	float halfer = 1;
+	if (f->ftype == 5 || f->ftype == 6 || f->ftype == 7 || f->ftype == 166){
+		RB_BeginSurface( tr.flareShaderAtlas, f->fogNum ); 
+		halfer = 0.5f;
+		}
+	else
+		{
+
+
+		if (r_flareQuality->integer)		// leilei - high quality flares get no depth testing
+		{
+			int index;
+			
+			for(index = 0; index <f->theshader->numUnfoggedPasses; index++)
+			{
+				f->theshader->stages[index]->adjustColorsForFog = ACFF_NONE;
+				f->theshader->stages[index]->stateBits |= GLS_DEPTHTEST_DISABLE;
+			}
+		}
+
+
+		RB_BeginSurface( f->theshader, f->fogNum ); 
+
+					
+		halfer = 1;
+	}
 
 	// FIXME: use quadstamp?
 	tess.xyz[tess.numVertexes][0] = f->windowX - size;
@@ -411,51 +565,51 @@ void RB_RenderFlare( flare_t *f ) {
 	tess.vertexColors[tess.numVertexes][0] = iColor[0];
 	tess.vertexColors[tess.numVertexes][1] = iColor[1];
 	tess.vertexColors[tess.numVertexes][2] = iColor[2];
-	tess.vertexColors[tess.numVertexes][3] = 255;
+	tess.vertexColors[tess.numVertexes][3] = alphcal;
 	tess.numVertexes++;
 
 	tess.xyz[tess.numVertexes][0] = f->windowX - size;
 	tess.xyz[tess.numVertexes][1] = f->windowY + size;
 	tess.texCoords[tess.numVertexes][0][0] = 0;
-	tess.texCoords[tess.numVertexes][0][1] = 1;
+	tess.texCoords[tess.numVertexes][0][1] = 1 * halfer;
 	tess.vertexColors[tess.numVertexes][0] = iColor[0];
 	tess.vertexColors[tess.numVertexes][1] = iColor[1];
 	tess.vertexColors[tess.numVertexes][2] = iColor[2];
-	tess.vertexColors[tess.numVertexes][3] = 255;
+	tess.vertexColors[tess.numVertexes][3] = alphcal;
 	tess.numVertexes++;
 
 	tess.xyz[tess.numVertexes][0] = f->windowX + size;
 	tess.xyz[tess.numVertexes][1] = f->windowY + size;
-	tess.texCoords[tess.numVertexes][0][0] = 1;
-	tess.texCoords[tess.numVertexes][0][1] = 1;
+	tess.texCoords[tess.numVertexes][0][0] = 1 * halfer;
+	tess.texCoords[tess.numVertexes][0][1] = 1 * halfer;
 	tess.vertexColors[tess.numVertexes][0] = iColor[0];
 	tess.vertexColors[tess.numVertexes][1] = iColor[1];
 	tess.vertexColors[tess.numVertexes][2] = iColor[2];
-	tess.vertexColors[tess.numVertexes][3] = 255;
+	tess.vertexColors[tess.numVertexes][3] = alphcal;
 	tess.numVertexes++;
 
 	tess.xyz[tess.numVertexes][0] = f->windowX + size;
 	tess.xyz[tess.numVertexes][1] = f->windowY - size;
-	tess.texCoords[tess.numVertexes][0][0] = 1;
+	tess.texCoords[tess.numVertexes][0][0] = 1 * halfer;
 	tess.texCoords[tess.numVertexes][0][1] = 0;
 	tess.vertexColors[tess.numVertexes][0] = iColor[0];
 	tess.vertexColors[tess.numVertexes][1] = iColor[1];
 	tess.vertexColors[tess.numVertexes][2] = iColor[2];
-	tess.vertexColors[tess.numVertexes][3] = 255;
+	tess.vertexColors[tess.numVertexes][3] = alphcal;
 	tess.numVertexes++;
-
+	
 	tess.indexes[tess.numIndexes++] = 0;
 	tess.indexes[tess.numIndexes++] = 1;
 	tess.indexes[tess.numIndexes++] = 2;
 	tess.indexes[tess.numIndexes++] = 0;
 	tess.indexes[tess.numIndexes++] = 2;
 	tess.indexes[tess.numIndexes++] = 3;
-
+	
 	ind+=4;
 	
 	// reflections -- tcpparena
 	
-	if(r_lensReflection1->integer){
+	if(f->ftype == 2 || f->ftype == 4){
 		
 		// renders sharp lens flare.
 		
@@ -557,8 +711,10 @@ void RB_RenderFlare( flare_t *f ) {
 			
 		}
 	}
-	
-	if(r_lensReflection2->integer){
+
+
+
+	if(f->ftype == 3 || f->ftype == 4){
 		
 		// renders fuzzy lens flare.
 		
@@ -578,7 +734,7 @@ void RB_RenderFlare( flare_t *f ) {
 		for(n=0;n<2;n++){
 			dx=(f->windowX-cx)*poses[n]+cx;
 			dy=(f->windowY-cy)*poses[n]+cy;
-			size2=sizes[n]*backEnd.viewParms.viewportWidth*.25f;
+			size2=sizes[n]*flaredsize2*.25f;
 			
 			brightness1[n]=(int)(brightness1[n]*r_lensReflectionBrightness->value);
 			brightness2[n]=(int)(brightness2[n]*r_lensReflectionBrightness->value);
@@ -591,7 +747,7 @@ void RB_RenderFlare( flare_t *f ) {
 			tess.vertexColors[tess.numVertexes][0] = (iColor[0]*brightness1[n])>>8;
 			tess.vertexColors[tess.numVertexes][1] = (iColor[1]*brightness2[n])>>8;
 			tess.vertexColors[tess.numVertexes][2] = (iColor[2]*brightness3[n])>>8;
-			tess.vertexColors[tess.numVertexes][3] = 255;
+			tess.vertexColors[tess.numVertexes][3] = alphcal;
 			tess.numVertexes++;
 			
 			tess.xyz[tess.numVertexes][0] = dx-size2;
@@ -601,7 +757,7 @@ void RB_RenderFlare( flare_t *f ) {
 			tess.vertexColors[tess.numVertexes][0] = (iColor[0]*brightness1[n])>>8;
 			tess.vertexColors[tess.numVertexes][1] = (iColor[1]*brightness2[n])>>8;
 			tess.vertexColors[tess.numVertexes][2] = (iColor[2]*brightness3[n])>>8;
-			tess.vertexColors[tess.numVertexes][3] = 255;
+			tess.vertexColors[tess.numVertexes][3] = alphcal;
 			tess.numVertexes++;
 			
 			tess.xyz[tess.numVertexes][0] = dx+size2;
@@ -611,7 +767,7 @@ void RB_RenderFlare( flare_t *f ) {
 			tess.vertexColors[tess.numVertexes][0] = (iColor[0]*brightness1[n])>>8;
 			tess.vertexColors[tess.numVertexes][1] = (iColor[1]*brightness2[n])>>8;
 			tess.vertexColors[tess.numVertexes][2] = (iColor[2]*brightness3[n])>>8;
-			tess.vertexColors[tess.numVertexes][3] = 255;
+			tess.vertexColors[tess.numVertexes][3] = alphcal;
 			tess.numVertexes++;
 			
 			tess.xyz[tess.numVertexes][0] = dx+size2;
@@ -621,7 +777,7 @@ void RB_RenderFlare( flare_t *f ) {
 			tess.vertexColors[tess.numVertexes][0] = (iColor[0]*brightness1[n])>>8;
 			tess.vertexColors[tess.numVertexes][1] = (iColor[1]*brightness2[n])>>8;
 			tess.vertexColors[tess.numVertexes][2] = (iColor[2]*brightness3[n])>>8;
-			tess.vertexColors[tess.numVertexes][3] = 255;
+			tess.vertexColors[tess.numVertexes][3] = alphcal;
 			tess.numVertexes++;
 		
 			tess.indexes[tess.numIndexes++] = 0+ind;
@@ -637,7 +793,221 @@ void RB_RenderFlare( flare_t *f ) {
 		}
 	}
 
+		float drak;
+
+	if(f->ftype == 5 || f->ftype == 6 || f->ftype == 7 || f->ftype == 166){
+		
+		// renders special atlas lens flare like fuzzy but not fuzzy 
+		int modess;
+		if (f->ftype == 6) modess = 1;		// mono rings
+		else if (f->ftype == 7 || f->ftype == 166) modess = 2;	// force normal colored rings
+		else	modess = 0;				// colorable colored rings
+		float cx, cy;
+		float dx, dy;
+		float size2;
+		float poses[]=	{-1.0f, -0.75f, -0.64f, -0.57f, -0.37f, -0.35f, -0.3f, 1.2f, -.21f, 0.15f, .38f, .56f, .52f, 0.6f, 1.2f, 1.37f};
+		float sizes[]=	{1.15f, 0.7f, 0.2f, 0.35f, 0.24f, .86f, .357f, 2.3f, 0.15f, 0.09f, 0.21f, 0.7f, 0.37f, 	0.23f, 0.3f, 1.2f};
+	        float atlases[]={4, 2, 1, 2, 2, 2, 2, 1, 1, 1, 2, 7, 8, 2, 3, 2};
+
+		float downsize1 = 0.25f;
+		float downsize2 = 0.25f;
+
+		int brightness1[]=	{16, 5, 6, 18, 18, 38, 18, 12, 	24, 24, 18, 3, 3, 0, 12, 12};		
+		int brightness2[]=	{16, 32, 8, 17, 17, 37, 17, 11, 28, 28, 17, 3, 3, 0, 12, 10};	
+		int brightness3[]=	{27, 3, 24, 0, 0, 17, 0, 4, 28, 28, 0, 	17, 12, 12, 10, 10};		
+
+
+		int n;
+		vec3_t	colarz;
+		cx=backEnd.viewParms.viewportX+(backEnd.viewParms.viewportWidth>>1);
+		cy=backEnd.viewParms.viewportY+(backEnd.viewParms.viewportHeight>>1);
+		
+		
+		for(n=0;n<16;n++){
+			dx=(f->windowX-cx)*poses[n]+cx;
+			dy=(f->windowY-cy)*poses[n]+cy;
+			size2=sizes[n]*flaredsize2*.25f;
+
+			drak = f->radius * 0.07;
+			if (atlases[n] == 1){ downsize1 = 1; downsize2 = 1;		};
+			if (atlases[n] == 3){ downsize1 = 1; downsize2 = -1;		};
+			if (atlases[n] == 4){ downsize1 = -1; downsize2 = -1;		};
+			if (atlases[n] == 2){ downsize1 = -1; downsize2 = 1;		};
+			
+
+			if (modess == 1){
+			brightness1[n] = brightness1[n] + brightness2[n] + brightness3[n] * 0.0100;
+			brightness2[n] = brightness1[n];  brightness3[n] = brightness1[n];
+			}
+			brightness1[n]=(int)(brightness1[n]*r_lensReflectionBrightness->value) * drak;
+			brightness2[n]=(int)(brightness2[n]*r_lensReflectionBrightness->value) * drak;
+			brightness3[n]=(int)(brightness3[n]*r_lensReflectionBrightness->value) * drak;
+
+			if (modess == 2){
+				iColor[0] = 32.0f; iColor[1] = 32.0f;    iColor[2] = 32.0f;
+			}
+
+			if (pvrhack){
+			if (modess == 2){
+			colarz[0] = ceil(iColor[0]*brightness1[n]);
+			colarz[1] = ceil(iColor[1]*brightness2[n]);
+			colarz[2] = ceil(iColor[2]*brightness3[n]);
+			}
+			else
+			{
+			colarz[0] = ceil(iColor[0]);
+			colarz[1] = ceil(iColor[1]);
+			colarz[2] = ceil(iColor[2]);
+			}
+
+			alphcal=r_lensReflectionBrightness->value * drak * 56;
+			}
+			else
+
+			{
+			colarz[0] = (iColor[0]*brightness1[n])>>8;
+			colarz[1] = (iColor[1]*brightness2[n])>>8;
+			colarz[2] = (iColor[2]*brightness3[n])>>8;
+			}
+			
+			tess.xyz[tess.numVertexes][0] = dx-size2;
+			tess.xyz[tess.numVertexes][1] = dy-size2;
+			tess.texCoords[tess.numVertexes][0][0] = 0.f;
+			tess.texCoords[tess.numVertexes][0][1] = 0.f;
+			tess.vertexColors[tess.numVertexes][0] = colarz[0];
+			tess.vertexColors[tess.numVertexes][1] = colarz[1];
+			tess.vertexColors[tess.numVertexes][2] = colarz[2];
+			tess.vertexColors[tess.numVertexes][3] = alphcal;
+			tess.numVertexes++;
+			
+			tess.xyz[tess.numVertexes][0] = dx-size2;
+			tess.xyz[tess.numVertexes][1] = dy+size2;
+			tess.texCoords[tess.numVertexes][0][0] = 0.f;
+			tess.texCoords[tess.numVertexes][0][1] = 0.5f  * downsize2;
+			tess.vertexColors[tess.numVertexes][0] = colarz[0];
+			tess.vertexColors[tess.numVertexes][1] = colarz[1];
+			tess.vertexColors[tess.numVertexes][2] = colarz[2];
+			tess.vertexColors[tess.numVertexes][3] = alphcal;
+			tess.numVertexes++;
+			
+			tess.xyz[tess.numVertexes][0] = dx+size2;
+			tess.xyz[tess.numVertexes][1] = dy+size2;
+			tess.texCoords[tess.numVertexes][0][0] = 0.5f  * downsize1;
+			tess.texCoords[tess.numVertexes][0][1] = 0.5f  * downsize2;
+			tess.vertexColors[tess.numVertexes][0] = colarz[0];
+			tess.vertexColors[tess.numVertexes][1] = colarz[1];
+			tess.vertexColors[tess.numVertexes][2] = colarz[2];
+			tess.vertexColors[tess.numVertexes][3] = alphcal;
+			tess.numVertexes++;
+			
+			tess.xyz[tess.numVertexes][0] = dx+size2;
+			tess.xyz[tess.numVertexes][1] = dy-size2;
+			tess.texCoords[tess.numVertexes][0][0] = 0.5f * downsize1;
+			tess.texCoords[tess.numVertexes][0][1] = 0.f;
+			tess.vertexColors[tess.numVertexes][0] = colarz[0];
+			tess.vertexColors[tess.numVertexes][1] = colarz[1];
+			tess.vertexColors[tess.numVertexes][2] = colarz[2];
+			tess.vertexColors[tess.numVertexes][3] = alphcal;
+			tess.numVertexes++;
+		
+		
+			tess.indexes[tess.numIndexes++] = 0+ind;
+			tess.indexes[tess.numIndexes++] = 1+ind;
+			tess.indexes[tess.numIndexes++] = 2+ind;
+			tess.indexes[tess.numIndexes++] = 0+ind;
+			tess.indexes[tess.numIndexes++] = 2+ind;
+			tess.indexes[tess.numIndexes++] = 3+ind;
+			
+			ind+=4;
+		
+			
+		}
+	}
+
+	if(f->ftype == 8 ){
+		
+		// renders anamorphic flare
+		// JUST LIKE TEH MOVEEZ!!!!!!!!!		
+		float cx, cy;
+		float dx, dy;
+		float size2;
+		float size3;
+		const float poses[]=	{0.9f, 1.0f, 1.08f};
+		const float sizes[]=	{1.2f, 6.0f, 4.0f};
+		const float sizes2[]=	{1.2f, 0.14f, 0.2f};
+		int brightness1[]=	{16, 8,  5};	// red
+		int brightness2[]=	{23, 21, 11};	// green
+		int brightness3[]=	{30, 52, 32};	// blue
+		int n;
+		cx=backEnd.viewParms.viewportX+(backEnd.viewParms.viewportWidth>>1);
+		cy=backEnd.viewParms.viewportY+(backEnd.viewParms.viewportHeight>>1);
+		
+			drak = f->radius * 0.02;
+		for(n=0;n<3;n++){
+			dx=(f->windowX-cx)*poses[n]+cx;
+			dy=(f->windowY-cy)*poses[n]+cy;
+			size2=sizes[n]*flaredsize2 * drak*.25f;
+			size3=sizes2[n]*flaredsize2 * (drak) *.25f;
+			
+			brightness1[n]=(int)(brightness1[n]*6 *r_lensReflectionBrightness->value);
+			brightness2[n]=(int)(brightness2[n]*6 *r_lensReflectionBrightness->value);
+			brightness3[n]=(int)(brightness3[n]*6 *r_lensReflectionBrightness->value);
+			
+			tess.xyz[tess.numVertexes][0] = dx-size2;
+			tess.xyz[tess.numVertexes][1] = dy-size3;
+			tess.texCoords[tess.numVertexes][0][0] = 0.f;
+			tess.texCoords[tess.numVertexes][0][1] = 0.f;
+			tess.vertexColors[tess.numVertexes][0] = (iColor[0]*brightness1[n])>>8;
+			tess.vertexColors[tess.numVertexes][1] = (iColor[1]*brightness2[n])>>8;
+			tess.vertexColors[tess.numVertexes][2] = (iColor[2]*brightness3[n])>>8;
+			tess.vertexColors[tess.numVertexes][3] = alphcal;
+			tess.numVertexes++;
+			
+			tess.xyz[tess.numVertexes][0] = dx-size2;
+			tess.xyz[tess.numVertexes][1] = dy+size3;
+			tess.texCoords[tess.numVertexes][0][0] = 0.f;
+			tess.texCoords[tess.numVertexes][0][1] = 1.f;
+			tess.vertexColors[tess.numVertexes][0] = (iColor[0]*brightness1[n])>>8;
+			tess.vertexColors[tess.numVertexes][1] = (iColor[1]*brightness2[n])>>8;
+			tess.vertexColors[tess.numVertexes][2] = (iColor[2]*brightness3[n])>>8;
+			tess.vertexColors[tess.numVertexes][3] = alphcal;
+			tess.numVertexes++;
+			
+			tess.xyz[tess.numVertexes][0] = dx+size2;
+			tess.xyz[tess.numVertexes][1] = dy+size3;
+			tess.texCoords[tess.numVertexes][0][0] = 1.f;
+			tess.texCoords[tess.numVertexes][0][1] = 1.f;
+			tess.vertexColors[tess.numVertexes][0] = (iColor[0]*brightness1[n])>>8;
+			tess.vertexColors[tess.numVertexes][1] = (iColor[1]*brightness2[n])>>8;
+			tess.vertexColors[tess.numVertexes][2] = (iColor[2]*brightness3[n])>>8;
+			tess.vertexColors[tess.numVertexes][3] = alphcal;
+			tess.numVertexes++;
+			
+			tess.xyz[tess.numVertexes][0] = dx+size2;
+			tess.xyz[tess.numVertexes][1] = dy-size3;
+			tess.texCoords[tess.numVertexes][0][0] = 1.f;
+			tess.texCoords[tess.numVertexes][0][1] = 0.f;
+			tess.vertexColors[tess.numVertexes][0] = (iColor[0]*brightness1[n])>>8;
+			tess.vertexColors[tess.numVertexes][1] = (iColor[1]*brightness2[n])>>8;
+			tess.vertexColors[tess.numVertexes][2] = (iColor[2]*brightness3[n])>>8;
+			tess.vertexColors[tess.numVertexes][3] = alphcal;
+			tess.numVertexes++;
+		
+			tess.indexes[tess.numIndexes++] = 0+ind;
+			tess.indexes[tess.numIndexes++] = 1+ind;
+			tess.indexes[tess.numIndexes++] = 2+ind;
+			tess.indexes[tess.numIndexes++] = 0+ind;
+			tess.indexes[tess.numIndexes++] = 2+ind;
+			tess.indexes[tess.numIndexes++] = 3+ind;
+			
+			ind+=4;
+		
+			
+		}
+	}
 	RB_EndSurface();
+
+
 }
 
 /*
@@ -661,7 +1031,7 @@ void RB_RenderFlares (void) {
 	flare_t		**prev;
 	qboolean	draw;
 
-	if ( !r_flares->integer ) {
+	if ( !r_flares->integer && !r_flaresDlight->integer ) {
 		return;
 	}
 
@@ -696,6 +1066,7 @@ void RB_RenderFlares (void) {
 		if ( f->frameSceneNum == backEnd.viewParms.frameSceneNum
 			&& f->inPortal == backEnd.viewParms.isPortal ) {
 			RB_TestFlare( f );
+
 			if ( f->drawIntensity ) {
 				draw = qtrue;
 			} else {
@@ -738,5 +1109,86 @@ void RB_RenderFlares (void) {
 	qglPopMatrix();
 	qglMatrixMode( GL_MODELVIEW );
 	qglPopMatrix();
+}
+
+
+
+void RB_DrawSunFlare( void ) {
+	float		size;
+	float		dist;
+	vec3_t		origin, vec1, vec2;
+	vec3_t		temp;
+	int	fetype;
+
+
+
+	if ( !backEnd.skyRenderedThisView ) {
+		return;
+	}
+	if ( !r_flareSun->integer ) {
+		return;
+	}
+
+	if ( backEnd.doneSunFlare)	// leilei - only do sun once
+		return;
+
+	fetype = r_flareSun->integer;
+
+	qglLoadMatrixf( backEnd.viewParms.world.modelMatrix );
+	qglTranslatef (backEnd.viewParms.or.origin[0], backEnd.viewParms.or.origin[1], backEnd.viewParms.or.origin[2]);
+
+	dist = 	backEnd.viewParms.zFar / 1.75;		// div sqrt(3)
+	size = dist * 0.4;
+
+	VectorScale( tr.sunDirection, dist, origin );
+	PerpendicularVector( vec1, tr.sunDirection );
+	CrossProduct( tr.sunDirection, vec1, vec2 );
+
+	VectorScale( vec1, size, vec1 );
+	VectorScale( vec2, size, vec2 );
+
+	// farthest depth range
+	qglDepthRange( 1.0, 1.0 );
+
+
+	{
+		vec3_t	coll;
+
+		coll[0]= 1.0;
+		coll[1]= 1.0;
+		coll[2]= 1.0;
+
+
+		coll[0]=tr.sunLight[0]/64;
+		coll[1]=tr.sunLight[1]/64;
+		coll[2]=tr.sunLight[2]/64;
+
+
+		int g;
+		for (g=0;g<3;g++)
+		if (coll[g] > 1) coll[g] = 1;
+
+		VectorCopy( origin, temp );
+		VectorSubtract( temp, vec1, temp );
+		VectorAdd( temp, vec2, temp );
+
+		VectorCopy( origin, sunorg );
+		VectorSubtract( sunorg, backEnd.viewParms.or.origin, sunorg );
+		VectorCopy( backEnd.viewParms.or.origin, sunorg );
+		VectorAdd( origin, sunorg, sunorg );
+
+		size = coll[0] + coll[1] + coll[2] * 805;
+
+		RB_AddFlare( (void *)NULL, 0, sunorg, coll, NULL, size, fetype, 1.0f, 2);
+
+
+	}
+
+	// back to normal depth range
+	qglDepthRange( 0.0, 1.0 );
+
+	backEnd.doneSunFlare = qtrue;
+
+
 }
 

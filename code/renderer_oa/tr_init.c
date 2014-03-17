@@ -177,6 +177,12 @@ cvar_t	*r_lensReflection1;
 cvar_t	*r_lensReflection2;
 cvar_t	*r_lensReflectionBrightness;
 
+// leilei
+
+cvar_t	*r_flareMethod;		// method of flare intensity
+cvar_t	*r_flareQuality;	// testing quality of the flares. 
+cvar_t	*r_flareSun;		// type of flare to use for the sun
+
 cvar_t	*r_specMode;
 cvar_t	*r_envMode;
 //cvar_t	*r_waveMode;
@@ -1160,8 +1166,6 @@ void R_Register( void )
 	r_maxpolys = ri.Cvar_Get( "r_maxpolys", va("%d", MAX_POLYS), 0);
 	r_maxpolyverts = ri.Cvar_Get( "r_maxpolyverts", va("%d", MAX_POLYVERTS), 0);
 
-	r_flaresDlight = ri.Cvar_Get( "r_flaresDlight", "0" , CVAR_ARCHIVE );	// dynamic light flares
-//	r_flaresSurfradii = ri.Cvar_Get( "r_flaresSurfradii", "0" , CVAR_ARCHIVE );     // surface radius adaptation (big flares for big surfaces)
 
 
 	r_envMode = ri.Cvar_Get( "r_envMode", "1" , CVAR_ARCHIVE ); 
@@ -1171,6 +1175,11 @@ void R_Register( void )
 	r_lensReflection1 = ri.Cvar_Get( "r_lensReflection1", "1" , CVAR_ARCHIVE);	// sharp reflection
 	r_lensReflection2 = ri.Cvar_Get( "r_lensReflection2", "0" , CVAR_ARCHIVE); // fuzzy reflection
 	r_lensReflectionBrightness = ri.Cvar_Get( "r_lensReflectionBrightness", "0.5" , CVAR_ARCHIVE);
+
+	r_flareQuality = ri.Cvar_Get( "r_flareQuality", "0" , CVAR_ARCHIVE);	// use fast flares for default
+	r_flareMethod = ri.Cvar_Get( "r_flareMethod", "0" , CVAR_ARCHIVE);	
+	r_flaresDlight = ri.Cvar_Get( "r_flaresDlight", "0" , CVAR_ARCHIVE );	// dynamic light flares 
+	r_flareSun = ri.Cvar_Get( "r_flareSun", "0" , CVAR_ARCHIVE);	// it's 0 because mappers expect 0.
 
 	// make sure all the commands added here are also
 	// removed in R_Shutdown

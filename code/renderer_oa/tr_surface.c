@@ -1213,13 +1213,71 @@ static void RB_SurfaceBad( surfaceType_t *surfType ) {
 	ri.Printf( PRINT_ALL, "Bad surface tesselated.\n" );
 }
 
+// leilei - fast flares
+void RB_AddAMuchWorseFlare( srfFlare_t *surf ) {
+	vec3_t		left, up;
+	float		radius;
+	byte		color[4];
+	vec3_t		dir;
+	vec3_t		origin;
+	float		d;
+
+	// calculate the xyz locations for the four corners
+	radius = 30;
+	VectorScale( backEnd.viewParms.or.axis[1], radius, left );
+	VectorScale( backEnd.viewParms.or.axis[2], radius, up );
+	if ( backEnd.viewParms.isMirror ) {
+		VectorSubtract( vec3_origin, left, left );
+	}
+	if (!r_flareQuality->integer)		// leilei - low quality flares get depth testing
+	{
+		int index;
+		
+		for(index = 0; index <surf->shadder->numUnfoggedPasses; index++)
+		{
+			surf->shadder->stages[index]->adjustColorsForFog = ACFF_NONE;
+			surf->shadder->stages[index]->stateBits = GLS_SRCBLEND_ONE | GLS_DSTBLEND_ONE; // leilei - depth fix hack
+		}
+	}
+	color[0] = color[1] = color[2] = color[3] = 255;
+
+	color[0] = surf->color[0] * 255;
+	color[1] = surf->color[1] * 255;
+	color[2] = surf->color[2] * 255;
+
+	VectorMA( surf->origin, 3, surf->normal, origin );
+	VectorSubtract( origin, backEnd.viewParms.or.origin, dir );
+	VectorNormalize( dir );
+	VectorMA( origin, -16, dir, origin );
+
+	d = -DotProduct( dir, surf->normal );
+	if ( d < 0 ) {
+		return;
+	}
+
+	color[0] *= d;
+	color[1] *= d;
+	color[2] *= d;
+
+
+	RB_AddQuadStamp( origin, left, up, color );
+}
+
+
+
 static void RB_SurfaceFlare(srfFlare_t *surf)
 {
 	if (r_flares->integer) {
-//		if (r_flaresSurfradii->integer)		
-//			RB_AddFlare(surf, tess.fogNum, surf->origin, surf->color, surf->normal, surf->normal[2] * 5);
-//		else
-			RB_AddFlare(surf, tess.fogNum, surf->origin, surf->color, surf->normal, 0);
+	
+		if (r_flareQuality->integer) {		// properly z-tested flares
+
+		RB_AddFlare(surf, tess.fogNum, surf->origin, surf->color, surf->normal, 146, r_flares->integer, 1.0f, 0);
+		}
+		else
+		{					// really lame sprite flares
+		RB_AddAMuchWorseFlare (surf);
+		}
+			
 	}
 }
 
