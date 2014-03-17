@@ -631,24 +631,20 @@ static void Upload32( unsigned *data,
 	scan = ((byte *)data);
 	samples = 3;
 
-	if( r_greyscale->integer )
+
+	if( r_greyscale->value )
 	{
+			// leilei - replaced with saturation processing
 		for ( i = 0; i < c; i++ )
 		{
-			byte luma = LUMA(scan[i*4], scan[i*4 + 1], scan[i*4 + 2]);
-			scan[i*4] = luma;
-			scan[i*4 + 1] = luma;
-			scan[i*4 + 2] = luma;
-		}
-	}
-	else if( r_greyscale->value )
-	{
-		for ( i = 0; i < c; i++ )
-		{
-			float luma = LUMA(scan[i*4], scan[i*4 + 1], scan[i*4 + 2]);
-			scan[i*4] = LERP(scan[i*4], luma, r_greyscale->value);
-			scan[i*4 + 1] = LERP(scan[i*4 + 1], luma, r_greyscale->value);
-			scan[i*4 + 2] = LERP(scan[i*4 + 2], luma, r_greyscale->value);
+				float saturated = (scan[i*4] * 0.333) + (scan[i*4 + 1] * 0.333) + (scan[i*4 + 2] * 0.333);
+				scan[i*4] 	= saturated + (scan[i*4] - saturated) 	  * (1-r_greyscale->value);
+				scan[i*4 + 1] 	= saturated + (scan[i*4 + 1] - saturated) * (1-r_greyscale->value);
+				scan[i*4 + 2] 	= saturated + (scan[i*4 + 2] - saturated) * (1-r_greyscale->value);
+	
+				if (scan[i*4]  		> 255) scan[i*4]      	= 255;
+				if (scan[i*4 + 1]  	> 255) scan[i*4 + 1]  	= 255;
+				if (scan[i*4 + 2]  	> 255) scan[i*4 + 2]  	= 255;
 		}
 	}
 
