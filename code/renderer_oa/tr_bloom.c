@@ -38,7 +38,8 @@ static cvar_t *r_bloom_dry;
 
 static cvar_t *r_bloom_reflection;		// LEILEI
 static cvar_t *r_bloom_sky_only;		// LEILEI
- cvar_t *r_film;
+cvar_t *r_film;
+extern int	force32upload;		
 
 int		fakeit = 0;
 /* 
@@ -227,14 +228,8 @@ static void R_Bloom_InitTextures( void )
 		return;
 	}
 
-	// LEILEI
-	// Disable bloom if we can't get a 32-bit texture
-	// disable blooms if we can't handle a texture of that size
-	if( r_texturebits->integer < 32	) {
-		ri.Cvar_Set( "r_bloom", "0" );
-		Com_Printf( S_COLOR_YELLOW"WARNING: 'R_InitBloomTextures' no support for 32-bit textures, effect disabled\n" );
-		return;
-	}
+	// leilei - let's not do that bloom disabling anymore
+	force32upload = 1;
 
 	data = ri.Hunk_AllocateTempMemory( bloom.screen.width * bloom.screen.height * 4 );
 	Com_Memset( data, 0, bloom.screen.width * bloom.screen.height * 4 );
@@ -247,6 +242,7 @@ static void R_Bloom_InitTextures( void )
 	bloom.effect2.texture = R_CreateImage( "***bloom effect texture 2***", data, bloom.effect.width, bloom.effect.height, qfalse, qfalse, GL_CLAMP_TO_EDGE  );
 	ri.Hunk_FreeTempMemory( data );
 	bloom.started = qtrue;
+	force32upload = 0;
 }
 
 /*
@@ -286,6 +282,8 @@ static void R_Postprocess_InitTextures( void )
 		return;
 	}
 
+	force32upload = 1;
+
 	data = ri.Hunk_AllocateTempMemory( postproc.screen.width * postproc.screen.height * 4 );
 	Com_Memset( data, 0, postproc.screen.width * postproc.screen.height * 4 );
 	postproc.screen.texture = R_CreateImage( "***postproc screen texture***", data, postproc.screen.width, postproc.screen.height, qfalse, qfalse, GL_CLAMP_TO_EDGE  );
@@ -293,14 +291,15 @@ static void R_Postprocess_InitTextures( void )
 	
 	// GLSL Depth Buffer
 
-	data = ri.Hunk_AllocateTempMemory( postproc.screen.width * postproc.screen.height *34);
-	Com_Memset( data, 0, postproc.screen.width * postproc.screen.height * 34 );
+	data = ri.Hunk_AllocateTempMemory( postproc.screen.width * postproc.screen.height *4);
+	Com_Memset( data, 0, postproc.screen.width * postproc.screen.height * 4 );
 	depthimage=1;
 	postproc.depth.texture = R_CreateImage( "***depthbuffer texture***",  data, postproc.screen.width, postproc.screen.height, qfalse, qfalse, GL_CLAMP_TO_EDGE   );
 	depthimage=0;
 	ri.Hunk_FreeTempMemory( data );
 
 	postproc.started = qtrue;
+	force32upload = 0;
 	
 }
 

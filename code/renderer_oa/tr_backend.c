@@ -224,6 +224,96 @@ void GL_TexEnv( int env )
 	}
 }
 
+extern cvar_t 	*r_mockvr;
+/*
+** GL_StatePVR
+**
+** A bit slimmed down
+** 
+*/
+void GL_StatePCX( unsigned long stateBits )
+{
+	unsigned long diff = stateBits ^ glState.glStateBits;
+
+
+	if ( !diff )
+	{
+		return;
+	}
+
+
+	//	
+	// check depthFunc bits
+	//
+	if ( diff & GLS_DEPTHFUNC_EQUAL )
+	{
+		if ( stateBits & GLS_DEPTHFUNC_EQUAL )
+		{
+			qglDepthFunc( GL_EQUAL );
+		}
+		else
+		{
+			qglDepthFunc( GL_LEQUAL );
+		}
+	}
+
+	//
+	// check blend bits
+	//
+	if ( diff & ( GLS_SRCBLEND_BITS | GLS_DSTBLEND_BITS ) )
+	{
+		GLenum srcFactor, dstFactor;
+
+		if ( stateBits & ( GLS_SRCBLEND_BITS | GLS_DSTBLEND_BITS ) )
+		{
+			srcFactor = GL_SRC_ALPHA; 
+			dstFactor = GL_ONE_MINUS_SRC_ALPHA;  // leilei - for pvr debug only!
+			
+			qglEnable( GL_BLEND );
+			qglBlendFunc( srcFactor, dstFactor );
+		}
+		else
+		{
+			qglDisable( GL_BLEND );
+		}
+	}
+	//
+	// check depthmask
+	//
+	if ( diff & GLS_DEPTHMASK_TRUE )
+	{
+		if ( stateBits & GLS_DEPTHMASK_TRUE )
+		{
+			qglDepthMask( GL_TRUE );
+		}
+		else
+		{
+			qglDepthMask( GL_FALSE );
+		}
+	}
+
+
+	//
+	// depthtest
+	//
+	if ( diff & GLS_DEPTHTEST_DISABLE )
+	{
+		if ( stateBits & GLS_DEPTHTEST_DISABLE )
+		{
+			qglDisable( GL_DEPTH_TEST );
+		}
+		else
+		{
+			qglEnable( GL_DEPTH_TEST );
+		}
+	}
+
+	glState.glStateBits = stateBits;
+}
+
+
+
+
 /*
 ** GL_State
 **
@@ -233,7 +323,9 @@ void GL_TexEnv( int env )
 void GL_State( unsigned long stateBits )
 {
 	unsigned long diff = stateBits ^ glState.glStateBits;
-
+	if (r_mockvr->integer){
+		GL_StatePCX (stateBits);
+		return;}
 	if ( !diff )
 	{
 		return;

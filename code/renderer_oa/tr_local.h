@@ -41,7 +41,7 @@ typedef unsigned int glIndex_t;
 #define SHADERNUM_BITS	14
 #define MAX_SHADERS		(1<<SHADERNUM_BITS)
 
-
+extern qboolean    palettedTextureSupport;	// leilei - paletted texture
 
 typedef struct dlight_s {
 	vec3_t	origin;
@@ -269,6 +269,11 @@ typedef struct {
 	int				videoMapHandle;
 	qboolean		isLightmap;
 	qboolean		isVideoMap;
+
+	// leilei - alphahack
+	
+	char			*texname;
+	int			alphahack;
 } textureBundle_t;
 
 #define NUM_TEXTURE_BUNDLES 8
@@ -1200,7 +1205,7 @@ extern	cvar_t	*r_lensReflection1;
 extern	cvar_t	*r_lensReflection2;
 extern	cvar_t	*r_lensReflectionBrightness;
 
-
+extern cvar_t	*r_ext_paletted_texture;		// leilei - Paletted Texture
 extern	cvar_t	*r_envMode;		
 extern	cvar_t	*r_specMode;		
 //extern	cvar_t	*r_waveMode;	

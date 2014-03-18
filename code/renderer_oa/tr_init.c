@@ -29,6 +29,7 @@ int         maxAnisotropy = 0;
 float       displayAspect = 0.0f;
 qboolean    vertexShaders = qfalse;
 qboolean	postprocess = qfalse;
+qboolean    palettedTextureSupport = qfalse;		// leilei - paletted textures
 char 		depthimage;
 
 glstate_t	glState;
@@ -98,6 +99,7 @@ cvar_t	*r_ext_texture_env_add;
 cvar_t	*r_ext_texture_filter_anisotropic;
 cvar_t	*r_ext_max_anisotropy;
 cvar_t	*r_ext_vertex_shader;
+cvar_t	*r_ext_paletted_texture;	// leilei - Paletted Texture
 cvar_t	*r_postprocess;
 
 cvar_t	*r_ignoreGLErrors;
@@ -189,6 +191,8 @@ cvar_t	*r_envMode;
 cvar_t	*r_flaresDlight;
 //cvar_t	*r_flaresSurfradii;
 cvar_t	*r_alternateBrightness;		// leilei - linux overbright fix
+cvar_t	*r_mockvr;		// Leilei - for debugging PVR only!
+
 
 /*
 ** InitOpenGL
@@ -1040,6 +1044,7 @@ void R_Register( void )
 	r_ext_texture_filter_anisotropic = ri.Cvar_Get( "r_ext_texture_filter_anisotropic",
 			"0", CVAR_ARCHIVE | CVAR_LATCH );
 	r_ext_max_anisotropy = ri.Cvar_Get( "r_ext_max_anisotropy", "2", CVAR_ARCHIVE | CVAR_LATCH );
+	r_ext_paletted_texture = ri.Cvar_Get( "r_ext_paletted_texture", "0", CVAR_ARCHIVE | CVAR_LATCH );	// leilei - paletted texture support
 
 	r_postprocess = ri.Cvar_Get( "r_postprocess", "none", CVAR_ARCHIVE|CVAR_LATCH );
 	r_ext_vertex_shader = ri.Cvar_Get( "r_ext_vertex_shader", "0", CVAR_ARCHIVE|CVAR_LATCH );
@@ -1182,6 +1187,8 @@ void R_Register( void )
 	r_flareMethod = ri.Cvar_Get( "r_flareMethod", "0" , CVAR_ARCHIVE);	
 	r_flaresDlight = ri.Cvar_Get( "r_flaresDlight", "0" , CVAR_ARCHIVE );	// dynamic light flares 
 	r_flareSun = ri.Cvar_Get( "r_flareSun", "0" , CVAR_ARCHIVE);	// it's 0 because mappers expect 0.
+
+	r_mockvr = ri.Cvar_Get( "r_mockvr", "0" , CVAR_ARCHIVE | CVAR_CHEAT);	
 
 	// make sure all the commands added here are also
 	// removed in R_Shutdown

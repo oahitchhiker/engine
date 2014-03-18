@@ -28,8 +28,239 @@ static unsigned char s_gammatable[256];
 int		gl_filter_min = GL_LINEAR_MIPMAP_NEAREST;
 int		gl_filter_max = GL_LINEAR;
 
+int		force32upload;		// leilei - hack to get bloom/post to always do 32bit texture
+int		detailhack;		// leilei - hack to fade detail textures, kill repeat patterns
+int		palettedformat = GL_COLOR_INDEX8_EXT;	// leilei - paletted texture support
+
+
 #define FILE_HASH_SIZE		1024
 static	image_t*		hashTable[FILE_HASH_SIZE];
+
+
+//
+// leilei - paletted texture support START
+//
+byte		*palettemain;		
+byte		palmap[32][32][32];		// 15bpp lookup table
+unsigned 	d_8to24table[256];  		// for non-palette supporting hardware
+
+HPALETTE	hPalette = 0;			// DirectDraw palette?
+
+qboolean	paletteability;			// If our hardware has paletted texture support...
+qboolean	paletteavailable;		// If we got a palette...
+qboolean	paletteenabled;			// If we wish to enable the 32-to-8 conversions (and 8-to-32 also)
+
+//
+// leilei - blending hack support
+//
+//
+//		Some cards just cannot use blending functions such as additive or subtractive.
+//	So to get around this, I try to turn them into alpha channels and then alpha blend them.
+//	Chipsets affected by this (That can run OA otherwise) are PowerVR PCX2 and Matrox Mystique / MGA-100A
+//
+//		Furthermore, this may also be useful for a software rasterizer by turning additives into
+//	1-bit alpha textures.
+//
+
+int		hackoperation;			// 0 - do nothing
+						// 1 - additive to alpha texture
+						// 2 - demote alpha texture if not alphaed on the edges
+						// 3 - subtractive to alpha texture
+						// 4 - modulate to alpha texture
+
+byte BestColor (int r, int g, int b, int start, int stop)
+{
+	int	i;
+	int	dr, dg, db;
+	int	bestdistortion, distortion;
+	int	berstcolor;
+	byte	*pal;
+
+//
+// let any color go to 0 as a last resort
+//
+	bestdistortion = 256*256*4;
+	berstcolor = 0;
+
+	pal = palettemain + start*3;
+	for (i=start ; i<= stop ; i++)
+	{
+		dr = r - (int)pal[0];
+		dg = g - (int)pal[1];
+		db = b - (int)pal[2];
+		pal += 3;
+		distortion = dr*dr + dg*dg + db*db;
+		if (distortion < bestdistortion)
+		{
+			if (!distortion)
+				return i;		// perfect match
+
+			bestdistortion = distortion;
+			berstcolor = i;
+		}
+	}
+	if (berstcolor)
+	//ri.Printf( PRINT_ALL, "returned %i\n", berstcolor );
+	return berstcolor;
+}
+
+// From QUAKE2, but modified to support a transparent color
+
+unsigned char paltable[1024]; 
+unsigned char paltablergb[768]; 
+
+void R_SetTexturePalette( unsigned palette[256])
+{
+	int i;
+
+	
+	{
+		for ( i = 0; i < 256; i++ )
+		{
+			paltable[i*4+0] = ( palette[i] >> 0 ) & 0xff;
+			paltable[i*4+1] = ( palette[i] >> 8 ) & 0xff;
+			paltable[i*4+2] = ( palette[i] >> 16 ) & 0xff;
+			paltable[i*4+3] = 0xFF;	// all of these colors will be opaque
+			paltablergb[i*3+0] = ( palette[i] >> 0 ) & 0xff;
+			paltablergb[i*3+1] = ( palette[i] >> 8 ) & 0xff;
+			paltablergb[i*3+2] = ( palette[i] >> 16 ) & 0xff;
+		}
+			paltable[255*4+3] = 0x00;	// EXCEPT DREADED INDEX 255!!!!
+
+	
+	}
+}
+
+// leilei - paletted texture
+extern GLvoid (APIENTRYP qglColorTableEXT)( GLint, GLint, GLint, GLint, GLint, const GLvoid *);
+//extern GLvoid (APIENTRYP qglColorTableSGI)( GLint, GLint, GLint, GLint, GLint, const GLvoid *);
+
+void R_PickTexturePalette(int alpha)
+{
+		qglEnable(GL_SHARED_TEXTURE_PALETTE_EXT);
+
+	if (alpha)
+		qglColorTableEXT( GL_SHARED_TEXTURE_PALETTE_EXT, GL_RGBA, 256,  GL_RGBA, GL_UNSIGNED_BYTE,  paltable );
+	else
+		qglColorTableEXT( GL_SHARED_TEXTURE_PALETTE_EXT, GL_RGB, 256,  GL_RGB, GL_UNSIGNED_BYTE,  paltablergb );
+
+		qglEnable(GL_SHARED_TEXTURE_PALETTE_EXT);
+}
+
+unsigned r_rawpalette[256];
+void R_SetPalette ( const unsigned char *palette)
+{
+	int		i;
+
+	byte *rp = ( byte * ) r_rawpalette;
+
+	if ( palette )
+	{
+		for ( i = 0; i < 256; i++ )
+		{
+			rp[i*4+0] = palette[i*3+0];
+			rp[i*4+1] = palette[i*3+1];
+			rp[i*4+2] = palette[i*3+2];
+			rp[i*4+3] = 0xff;
+		}
+		rp[255*4+3] = 0x00; // alpha?
+	}
+	else
+	{
+		for ( i = 0; i < 256; i++ )
+		{
+			rp[i*4+0] = d_8to24table[i] & 0xff;
+			rp[i*4+1] = ( d_8to24table[i] >> 8 ) & 0xff;
+			rp[i*4+2] = ( d_8to24table[i] >> 16 ) & 0xff;
+			rp[i*4+3] = 0xff;
+		}
+		rp[255*4+3] = 0x00; // alpha?
+	}
+	R_SetTexturePalette( r_rawpalette );
+
+
+}
+
+void R_InitPalette( void ) {
+
+	byte           *buff;
+	int             len;
+	int i, v;
+	ri.Printf( PRINT_ALL, "INIT PALETTE......\n");
+
+	len = ri.FS_ReadFile("gfx/palette.lmp", (void **)&buff);
+	if(!buff){
+
+
+	ri.Printf( PRINT_ALL, "PALLETE FALED :(!\n" );
+	paletteavailable = 0;	// Don't have a palette
+	paletteenabled   = 0;	// Don't do 8-bit textures
+		return;
+	}
+
+	palettemain = buff;
+	//mainpalette et = R_LoadDDSImageData(buff, name, bits, filterType, wrapType);
+	ri.Printf( PRINT_ALL, "PALETTE LOADDEEEED!!!!!!!!!!!!1\n" );
+	paletteavailable = 1;	// Do have a palette
+	//ri.FS_FreeFile(buff);
+	d_8to24table[255] &= LittleLong(0xffffff);	// 255 is transparent
+
+	if (palettedTextureSupport)
+		paletteability = 1;
+	else
+		paletteability = 0;
+
+
+	if (paletteability)		// load this palette for GL
+		{
+		qglEnable( GL_SHARED_TEXTURE_PALETTE_EXT );
+		R_SetTexturePalette( palettemain );
+		R_SetPalette(palettemain);
+
+		}
+
+	// 15bpp lookup, straight out of Engoo
+	{
+		int r, g, b, beastcolor;
+		ri.Printf( PRINT_ALL, "15bpp lookup generation.\n" );
+		for (r=0 ; r<256 ; r+=8)
+			{
+			ri.Printf( PRINT_ALL, "." );
+				for (g=0 ; g<256 ; g+=8)
+				{
+					for (b=0 ; b<256 ; b+=8)
+					{
+						beastcolor = BestColor (r, g, b, 0, 254);
+						palmap[r>>3][g>>3][b>>3] = beastcolor;
+					}
+				}
+			}
+	}
+
+
+	{
+	int re, ge, be;
+	for (i=0 ; i<256 ; i++)
+	{
+		re = palettemain[0];
+		ge = palettemain[1];
+		be = palettemain[2];
+		palettemain += 3;
+
+		v = (255<<24) + (re<<0) + (ge<<8) + (be<<16);
+		d_8to24table[i] = v;
+	}
+	d_8to24table[255] &= 0xffffff;	// 255 is transparent
+	d_8to24table[255] = 0xffffff;	// 255 is GODDAMN transparent
+	}
+
+}
+
+
+//
+// leilei - paletted texture support END
+//
+
 
 /*
 ** R_GammaCorrect
@@ -339,6 +570,154 @@ static void ResampleTexture( unsigned *in, int inwidth, int inheight, unsigned *
 	}
 }
 
+
+
+//
+// Darkplaces texture resampling with lerping
+// from Twilight/Darkplaces, code by LordHavoc (I AM ASSUMING)
+//
+
+static void Image_Resample32LerpLine (const unsigned char *in, unsigned char *out, int inwidth, int outwidth)
+{
+	int		j, xi, oldx = 0, f, fstep, endx, lerp;
+	fstep = (int) (inwidth*65536.0f/outwidth);
+
+
+	endx = (inwidth-1);
+	for (j = 0,f = 0;j < outwidth;j++, f += fstep)
+	{
+		xi = f >> 16;
+		if (xi != oldx)
+		{
+			in += (xi - oldx) * 4;
+			oldx = xi;
+		}
+		if (xi < endx)
+		{
+			lerp = f & 0xFFFF;
+			*out++ = (unsigned char) ((((in[4] - in[0]) * lerp) >> 16) + in[0]);
+			*out++ = (unsigned char) ((((in[5] - in[1]) * lerp) >> 16) + in[1]);
+			*out++ = (unsigned char) ((((in[6] - in[2]) * lerp) >> 16) + in[2]);
+			*out++ = (unsigned char) ((((in[7] - in[3]) * lerp) >> 16) + in[3]);
+		}
+		else // last pixel of the line has no pixel to lerp to
+		{
+			*out++ = in[0];
+			*out++ = in[1];
+			*out++ = in[2];
+			*out++ = in[3];
+		}
+	}
+}
+
+#define LERPBYTE(i) r = resamplerow1[i];out[i] = (unsigned char) ((((resamplerow2[i] - r) * lerp) >> 16) + r)
+static void Image_Resample32Lerp(const void *indata, int inwidth, int inheight, void *outdata, int outwidth, int outheight)
+{
+	int i, j, r, yi, oldy, f, fstep, lerp, endy = (inheight - 1), inwidth4 = inwidth*4, outwidth4 = outwidth*4;
+	unsigned char *out;
+	const unsigned char *inrow;
+	unsigned char *resamplerow1;
+	unsigned char *resamplerow2;
+	out = (unsigned char *)outdata;
+	fstep = (int) (inheight*65536.0f/outheight);
+
+	
+	resamplerow1 = ri.Hunk_AllocateTempMemory(outwidth*4*2);
+	resamplerow2 = resamplerow1 + outwidth*4;
+
+	inrow = (const unsigned char *)indata;
+	oldy = 0;
+	Image_Resample32LerpLine (inrow, resamplerow1, inwidth, outwidth);
+	Image_Resample32LerpLine (inrow + inwidth4, resamplerow2, inwidth, outwidth);
+	for (i = 0, f = 0;i < outheight;i++,f += fstep)
+	{
+		yi = f >> 16;
+		if (yi < endy)
+		{
+			lerp = f & 0xFFFF;
+			if (yi != oldy)
+			{
+				inrow = (unsigned char *)indata + inwidth4*yi;
+				if (yi == oldy+1)
+					memcpy(resamplerow1, resamplerow2, outwidth4);
+				else
+					Image_Resample32LerpLine (inrow, resamplerow1, inwidth, outwidth);
+				Image_Resample32LerpLine (inrow + inwidth4, resamplerow2, inwidth, outwidth);
+				oldy = yi;
+			}
+			j = outwidth - 4;
+			while(j >= 0)
+			{
+				LERPBYTE( 0);
+				LERPBYTE( 1);
+				LERPBYTE( 2);
+				LERPBYTE( 3);
+				LERPBYTE( 4);
+				LERPBYTE( 5);
+				LERPBYTE( 6);
+				LERPBYTE( 7);
+				LERPBYTE( 8);
+				LERPBYTE( 9);
+				LERPBYTE(10);
+				LERPBYTE(11);
+				LERPBYTE(12);
+				LERPBYTE(13);
+				LERPBYTE(14);
+				LERPBYTE(15);
+				out += 16;
+				resamplerow1 += 16;
+				resamplerow2 += 16;
+				j -= 4;
+			}
+			if (j & 2)
+			{
+				LERPBYTE( 0);
+				LERPBYTE( 1);
+				LERPBYTE( 2);
+				LERPBYTE( 3);
+				LERPBYTE( 4);
+				LERPBYTE( 5);
+				LERPBYTE( 6);
+				LERPBYTE( 7);
+				out += 8;
+				resamplerow1 += 8;
+				resamplerow2 += 8;
+			}
+			if (j & 1)
+			{
+				LERPBYTE( 0);
+				LERPBYTE( 1);
+				LERPBYTE( 2);
+				LERPBYTE( 3);
+				out += 4;
+				resamplerow1 += 4;
+				resamplerow2 += 4;
+			}
+			resamplerow1 -= outwidth4;
+			resamplerow2 -= outwidth4;
+		}
+		else
+		{
+			if (yi != oldy)
+			{
+				inrow = (unsigned char *)indata + inwidth4*yi;
+				if (yi == oldy+1)
+					memcpy(resamplerow1, resamplerow2, outwidth4);
+				else
+					Image_Resample32LerpLine (inrow, resamplerow1, inwidth, outwidth);
+				oldy = yi;
+			}
+			memcpy(out, resamplerow1, outwidth4);
+		}
+	}
+
+		ri.Hunk_FreeTempMemory( resamplerow1 );
+	resamplerow1 = NULL;
+	resamplerow2 = NULL;
+}
+
+
+
 /*
 ================
 R_LightScaleTexture
@@ -502,6 +881,37 @@ static void R_MipMap (byte *in, int width, int height) {
 }
 
 
+//
+// leilei - paletted texture support START
+//
+// This function came out of GLQuake
+// with modifications 
+
+static void R_MipMap8 (byte *in, int width, int height)
+{
+	int		i, j;
+	byte	*out, *at1, *at2, *at3, *at4;
+
+	height >>= 1;
+	out = in;
+
+	for (i=0 ; i<height ; i++, in+=width)
+	{
+		for (j=0 ; j<width ; j+=2, out+=1, in+=2)
+		{
+			at1 = in[0];
+			at2 = in[1];
+			at3 = in[width+0];
+			at4 = in[width+1];
+			out[0] = at1;
+		}
+	}
+
+}
+//
+// leilei - paletted texture support END
+//
+
 /*
 ==================
 R_BlendOverTexture
@@ -547,12 +957,53 @@ byte	mipBlendColors[16][4] = {
 
 
 /*
+==================
+R_BlendToGray
+
+leilei - Tries to fade mips to gray for detail texture pattern artifact stomping
+==================
+*/
+
+static void R_BlendToGray( byte *data, int pixelCount, int fadeto) {
+	int		i, j;
+	float 		gary = 127 * 0.5;
+	float		blended;
+	float		alphed, alpher;
+
+	if (fadeto < 1)
+		return;	//  we don't need to.
+
+	alphed = 1 / fadeto;
+	alpher = 1 - alphed;
+
+	fadeto += 1;
+
+	gary /= fadeto;
+
+	for ( i = 0 ; i < pixelCount ; i++, data+=4 ) {
+		for(j=0;j<3;j++){
+		
+			blended = (data[j] * alphed) + (127 * alpher);
+			data[j] = (int)blended;
+			
+			}
+
+
+	}
+}
+
+
+
+
+/*
 ===============
 Upload32
 
 ===============
 */
 extern qboolean charSet;
+int hqresample = 0;		// leilei - high quality texture resampling
+				// Currently 0 as there is an alignment issue I haven't fixed.
 static void Upload32( unsigned *data, 
 						  int width, int height, 
 						  qboolean mipmap, 
@@ -572,6 +1023,8 @@ static void Upload32( unsigned *data,
 	GLenum		temp_GLtype = GL_UNSIGNED_BYTE;
 	float		rMax = 0, gMax = 0, bMax = 0;
 
+
+
 	//
 	// convert to exact power of 2 sizes
 	//
@@ -583,14 +1036,20 @@ static void Upload32( unsigned *data,
 		scaled_width >>= 1;
 	if ( r_roundImagesDown->integer && scaled_height > height )
 		scaled_height >>= 1;
-
+	//scaled_width *= 1.5;
+	////scaled_height *= 1.5;
 	if ( scaled_width != width || scaled_height != height ) {
 		resampledBuffer = ri.Hunk_AllocateTempMemory( scaled_width * scaled_height * 4 );
+		if (hqresample)
+		Image_Resample32Lerp(data, width, height, resampledBuffer, scaled_width, scaled_height - 1);
+		else
 		ResampleTexture (data, width, height, resampledBuffer, scaled_width, scaled_height);
 		data = resampledBuffer;
 		width = scaled_width;
 		height = scaled_height;
 	}
+
+
 
 	//
 	// perform optional picmip operation
@@ -621,6 +1080,8 @@ static void Upload32( unsigned *data,
 		scaled_height >>= 1;
 	}
 
+	
+
 	scaledBuffer = ri.Hunk_AllocateTempMemory( sizeof( unsigned ) * scaled_width * scaled_height );
 
 	//
@@ -631,6 +1092,51 @@ static void Upload32( unsigned *data,
 	scan = ((byte *)data);
 	samples = 3;
 
+
+	if (hackoperation == 1)
+	{
+			// leilei - additive to alpha
+			for ( i = 0; i < c; i++ )
+				{
+					byte alfa = LUMA(scan[i*4], scan[i*4 + 1], scan[i*4 + 2]);
+					scan[i*4 + 3] = alfa;
+				}
+
+	}
+
+
+	else if(hackoperation == 3 )	// Subtractives
+	{
+		for ( i = 0; i < c; i++ )
+		{
+			byte alfa = LUMA(scan[i*4] * -1, scan[i*4 + 1] * -1, scan[i*4 + 2] * -1);
+			scan[i*4 + 3] = alfa;
+		}
+	}
+
+	else if(hackoperation == 4 )		// Multiplies
+	{
+		int yee;
+		int yer;
+		int yes;
+		int yeah;
+		int yo;
+		for ( i = 0; i < c; i++ )
+		{
+			yee = scan[i*4] - 127 * 1.18; // highlights
+			yer = scan[i*4] * -1 + 127 ; // darks
+			if (yee < 0) yee = 0;
+			if (yer < 0) yer = 0;
+			yer *= 1.5;
+			yee = 0;
+			yeah = yee + yer;
+			yo = 0;
+			scan[i*4] = yo;
+			scan[i*4 + 1] = yo;
+			scan[i*4 + 2] = yo;
+			scan[i*4 + 3] = yeah;
+		}
+	}
 
 	if( r_greyscale->value )
 	{
@@ -650,6 +1156,21 @@ static void Upload32( unsigned *data,
 
 	if(lightMap)
 	{
+		if( r_monolightmaps->value )
+		{
+			for ( i = 0; i < c; i++ )
+			{
+					float saturated = (scan[i*4] * 0.333) + (scan[i*4 + 1] * 0.333) + (scan[i*4 + 2] * 0.333);
+					scan[i*4] 	= saturated + (scan[i*4] - saturated) 	  * (1-r_monolightmaps->value);
+					scan[i*4 + 1] 	= saturated + (scan[i*4 + 1] - saturated) * (1-r_monolightmaps->value );
+					scan[i*4 + 2] 	= saturated + (scan[i*4 + 2] - saturated) * (1-r_monolightmaps->value );
+		
+					if (scan[i*4]  		> 255) scan[i*4]      	= 255;
+					if (scan[i*4 + 1]  	> 255) scan[i*4 + 1]  	= 255;
+					if (scan[i*4 + 2]  	> 255) scan[i*4 + 2]  	= 255;
+			}
+		}
+
 		if(r_greyscale->integer)
 			internalFormat = GL_LUMINANCE;
 		else if(r_monolightmaps->integer)
@@ -725,6 +1246,8 @@ static void Upload32( unsigned *data,
 				{
 					internalFormat = GL_RGB;
 				}
+					if (detailhack) internalFormat = GL_LUMINANCE; // leilei - use paletted mono format for detail textures
+					if (force32upload) internalFormat = GL_RGB8;   // leilei - gets bloom and postproc working on s3tc & 8bit & palettes
 			}
 		}
 		else if ( samples == 4 )
@@ -740,13 +1263,11 @@ static void Upload32( unsigned *data,
 			}
 			else
 			{
-/*
-// leilei - This was commented out, because bloom strictly needs GL_RGBA 
 				if ( glConfig.textureCompression == TC_S3TC_ARB )
 				{
 					internalFormat = GL_COMPRESSED_RGBA_S3TC_DXT5_EXT; // leilei - this was missing
 				}
-				else */
+				else 
 				if ( r_texturebits->integer == 16 )
 				{
 					internalFormat = GL_RGBA4;
@@ -771,6 +1292,7 @@ static void Upload32( unsigned *data,
 				{
 					internalFormat = GL_RGBA;
 				}
+					if (force32upload) internalFormat = GL_RGBA8;   // leilei - gets bloom and postproc working on s3tc & 8bit & palettes
 			}
 		}
 	}
@@ -839,6 +1361,11 @@ static void Upload32( unsigned *data,
 				R_BlendOverTexture( (byte *)scaledBuffer, scaled_width * scaled_height, mipBlendColors[miplevel] );
 			}
 
+			if (detailhack)		// leilei	- blend detail textures to gray to defeat pattern effects in distances
+			{
+				R_BlendToGray( (byte *)scaledBuffer, scaled_width * scaled_height, miplevel );
+			}
+
 			qglTexImage2D (GL_TEXTURE_2D, miplevel, internalFormat, scaled_width, scaled_height, 0, temp_GLformat, temp_GLtype, scaledBuffer );
 		}
 	}
@@ -878,7 +1405,319 @@ done:
 		ri.Hunk_FreeTempMemory( resampledBuffer );
 }
 
+//
+// leilei - paletted texture support START
+//
+static void Upload8( unsigned *data, 
+						  int width, int height, 
+						  qboolean mipmap, 
+						  qboolean picmip, 
+							qboolean lightMap,
+						  int *format, 
+						  int *pUploadWidth, int *pUploadHeight  )
+{
+	int			samples;
+	unsigned	*scaledBuffer = NULL;
+	unsigned	*resampledBuffer = NULL;
+	unsigned char	*palettedBuffer = NULL;
+	int			scaled_width, scaled_height;
+	int			i, c;
+	byte		*scan;
+	GLenum		internalFormat = GL_RGB;
+	GLenum		temp_GLformat = GL_RGBA;
+	GLenum		temp_GLtype = GL_UNSIGNED_BYTE;
+	int		texsizex, texsizey;	// leilei
+	int		superfactor = 1;
+	int		isalphaedrgba = 0;		// for cards that SCUK at it
+	//unsigned char	*data8;
+	
+	//
+	// convert to exact power of 2 sizes
+	//
+	for (scaled_width = 1 ; scaled_width < width ; scaled_width<<=1)
+		;
+	for (scaled_height = 1 ; scaled_height < height ; scaled_height<<=1)
+		;
+	if ( r_roundImagesDown->integer && scaled_width > width )
+		scaled_width >>= 1;
+	if ( r_roundImagesDown->integer && scaled_height > height )
+		scaled_height >>= 1;
 
+	scaled_width *= superfactor;
+	scaled_height *= superfactor;
+
+	if ( scaled_width != width || scaled_height != height ) {
+		resampledBuffer = ri.Hunk_AllocateTempMemory( scaled_width * scaled_height * 4 );
+		ResampleTexture (data, width, height, resampledBuffer, scaled_width, scaled_height);
+		data = resampledBuffer;
+		width = scaled_width;
+		height = scaled_height;
+	}
+
+	//
+	// perform optional picmip operation
+	//
+	if ( picmip ) {
+		scaled_width >>= r_picmip->integer;
+		scaled_height >>= r_picmip->integer;
+	}
+
+	//
+	// clamp to minimum size
+	//
+	if (scaled_width < 1) {
+		scaled_width = 1;
+	}
+	if (scaled_height < 1) {
+		scaled_height = 1;
+	}
+
+
+
+	//
+	// clamp to the current upper OpenGL limit
+	// scale both axis down equally so we don't have to
+	// deal with a half mip resampling
+	//
+	
+	texsizex = glConfig.maxTextureSize;
+	texsizey = glConfig.maxTextureSize;
+	
+
+//	if (r_mockvoodoo->integer){	// leilei
+//	texsizex = 256;	// 3dfx 
+//	texsizey = 256;	// 3dfx 
+//	}
+
+
+
+
+
+
+	while ( scaled_width > texsizex
+		|| scaled_height > texsizey ) {
+		scaled_width >>= 1;
+		scaled_height >>= 1;
+	}
+
+	scaledBuffer = ri.Hunk_AllocateTempMemory( sizeof( unsigned ) * scaled_width * scaled_height );
+
+	//
+	// scan the texture for each channel's max values
+	// and verify if the alpha channel is being used or not
+	//
+	c = width*height;
+	scan = ((byte *)data);
+	samples = 3;
+	// LEILEI - paletted texturing hack
+	int isalphaed=0;
+	// Check for an alpha
+
+	for ( i = 0; i < c; i++ )
+		{
+			int a;
+			a = scan[i*4 +3];
+			a *= 1.9;
+			a /= 255;
+			a *= 255;
+			if (!a){
+			isalphaed = 1;
+			}
+		}
+
+	if (paletteability)
+	 R_PickTexturePalette(1);
+
+	if (paletteability && !isalphaedrgba)				// Preparing for native upload
+	{
+
+	for ( i = 0; i < c; i++ )
+		{
+			int thecol;
+			int r, g, b, a;
+			r = scan[i*4];
+			g = scan[i*4 +1];
+			b = scan[i*4 +2];
+			a = scan[i*4 +3];
+			thecol = palmap[r>>3][g>>3][b>>3];
+			a *= 1.9;
+			a /= 255;
+			a *= 255;
+			if (!a){
+			thecol = 255; // transparent color
+			}
+			scan[i] = thecol;
+		}
+
+	}
+	else						// Preparing for simulated RGBA upload
+	{
+	for ( i = 0; i < c; i++ )
+		{
+			int thecol;
+			int r, g, b, a;
+			unsigned char *pix24;
+			r = scan[i*4];
+			g = scan[i*4 +1];
+			b = scan[i*4 +2];
+			a = scan[i*4 +3];
+			thecol = palmap[r>>3][g>>3][b>>3];
+			a *= 1.9;
+			a /= 255;
+			a *= 255;
+			
+			pix24 = (unsigned char *)&d_8to24table[thecol]; 
+			if (!a){
+			thecol = 255; // transparent color
+			samples = 4;
+			}
+			scan[i*4] = 	pix24[0];
+			scan[i*4+1] = 	pix24[1];
+			scan[i*4+2] = 	pix24[2];
+			scan[i*4+3] = 	a;
+
+
+		}
+	}
+
+
+
+	{
+
+		// select proper internal format
+		if ( samples == 3 )
+		{
+			internalFormat = GL_RGB;
+		}
+		else if ( samples == 4 )
+		{
+			internalFormat = GL_RGBA;
+		}
+	}
+
+	// copy or resample data as appropriate for first MIP level
+
+	
+
+
+	if ( ( scaled_width == width ) && 
+		( scaled_height == height ) ) {
+		if (!mipmap)
+		{
+	if (paletteability && !isalphaedrgba)	
+		qglTexImage2D( GL_TEXTURE_2D,  0,  palettedformat,	  scaled_width,	  scaled_height,  0,	  GL_COLOR_INDEX,  GL_UNSIGNED_BYTE,  data);
+			else
+			qglTexImage2D (GL_TEXTURE_2D, 0, internalFormat, scaled_width, scaled_height, 0, temp_GLformat, temp_GLtype, data);
+			*pUploadWidth = scaled_width;
+			*pUploadHeight = scaled_height;
+			*format = internalFormat;
+
+			goto done;
+		}
+	if (!paletteability || isalphaedrgba)	
+		Com_Memcpy (scaledBuffer, data, width*height*4);
+	else	Com_Memcpy (scaledBuffer, data, width*height);
+
+	}
+	else
+	{
+		// use the normal mip-mapping function to go down from here
+		while ( width > scaled_width || height > scaled_height ) {
+	if (paletteability && !isalphaedrgba)	
+			R_MipMap8( (byte *)data, width, height );
+		else
+			R_MipMap( (byte *)data, width, height );
+			width >>= 1;
+			height >>= 1;
+			if ( width < 1 ) {
+				width = 1;
+			}
+			if ( height < 1 ) {
+				height = 1;
+			}
+		}
+	if (!paletteability || isalphaedrgba)	
+		Com_Memcpy( scaledBuffer, data, width * height * 4 );
+	else	Com_Memcpy( scaledBuffer, data, width * height);
+	}
+
+
+	*pUploadWidth = scaled_width;
+	*pUploadHeight = scaled_height;
+	*format = internalFormat;
+
+
+	if (paletteability && !isalphaedrgba)	
+	qglTexImage2D( GL_TEXTURE_2D,  0,  palettedformat,	  scaled_width,	  scaled_height,  0,	  GL_COLOR_INDEX,  GL_UNSIGNED_BYTE,  scaledBuffer );
+		else
+	qglTexImage2D (GL_TEXTURE_2D, 0, internalFormat, scaled_width, scaled_height, 0, temp_GLformat, temp_GLtype, scaledBuffer );
+
+	if (mipmap)
+	{
+		int		miplevel;
+
+		miplevel = 0;
+		while (scaled_width > 1 || scaled_height > 1)
+		{
+	if (paletteability && !isalphaedrgba)
+			R_MipMap8( (byte *)scaledBuffer, scaled_width, scaled_height );
+		else
+			R_MipMap( (byte *)scaledBuffer, scaled_width, scaled_height );
+
+			scaled_width >>= 1;
+			scaled_height >>= 1;
+			if (scaled_width < 1)
+				scaled_width = 1;
+			if (scaled_height < 1)
+				scaled_height = 1;
+			miplevel++;
+
+
+	if (paletteability && !isalphaedrgba)
+		qglTexImage2D( GL_TEXTURE_2D,  miplevel, palettedformat,  scaled_width,  scaled_height,  0,  GL_COLOR_INDEX,  GL_UNSIGNED_BYTE, scaledBuffer );
+		else
+		qglTexImage2D (GL_TEXTURE_2D, miplevel, internalFormat, scaled_width, scaled_height, 0, temp_GLformat, temp_GLtype, scaledBuffer );
+
+		}
+	}
+done:
+
+	if (mipmap)
+	{
+		if ( textureFilterAnisotropic )
+			qglTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_MAX_ANISOTROPY_EXT,
+					(GLint)Com_Clamp( 1, maxAnisotropy, r_ext_max_anisotropy->integer ) );
+
+		qglTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, gl_filter_min);
+		qglTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, gl_filter_max);
+	}
+	else
+	{
+		if ( textureFilterAnisotropic )
+			qglTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_MAX_ANISOTROPY_EXT, 1 );
+
+		qglTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR );
+		qglTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR );
+	}
+
+//	if (glConfig.hardwareType == GLHW_SOFTWARE ) {	// leilei - software speedup
+//		qglTexParameterf( GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST );
+//		qglTexParameterf( GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST );
+//		}
+
+	GL_CheckErrors();
+
+	if ( scaledBuffer != 0 )
+		ri.Hunk_FreeTempMemory( scaledBuffer );
+	if ( resampledBuffer != 0 )
+		ri.Hunk_FreeTempMemory( resampledBuffer );
+	if ( palettedBuffer != 0 )
+		ri.Hunk_FreeTempMemory( palettedBuffer );
+}
+
+//
+// leilei - paletted texture support END
+//
 /*
 ================
 R_CreateImage
@@ -933,6 +1772,16 @@ image_t *R_CreateImage( const char *name, byte *pic, int width, int height,
 
 	GL_Bind(image);
 
+	if (paletteavailable && r_texturebits->integer == 8 && !isLightmap && !depthimage && !force32upload)
+	Upload8( (unsigned *)pic, image->width, image->height, 
+								image->flags & IMGFLAG_MIPMAP,
+								image->flags & IMGFLAG_PICMIP,
+								isLightmap,
+								&image->internalFormat,
+								&image->uploadWidth,
+								&image->uploadHeight );
+
+	else
 	Upload32( (unsigned *)pic, image->width, image->height, 
 								image->flags & IMGFLAG_MIPMAP,
 								image->flags & IMGFLAG_PICMIP,
@@ -1083,6 +1932,7 @@ image_t	*R_FindImageFile( const char *name, imgType_t type, imgFlags_t flags )
 		return NULL;
 	}
 
+	detailhack = 0;			
 	hash = generateHashValue(name);
 
 	//
@@ -1099,6 +1949,72 @@ image_t	*R_FindImageFile( const char *name, imgType_t type, imgFlags_t flags )
 			return image;
 		}
 	}
+
+	// leilei - Detail texture hack
+	//	    to kill artifacts of shimmer of pattern of terrible
+	if ( !Q_strncmp( name, "textures/detail/", 16 )  || !Q_strncmp( name, "gfx/fx/detail/", 14 ))  {
+		ri.Printf( PRINT_DEVELOPER, "DETAILHACK: %s - mips will be gray\n", name );
+		detailhack = 1;		// leilei - attempt to fade detail mips to gray, EXPECTS DST_COLOR/SRC_COLOR for this to work right
+		}
+
+	//
+	// load the pic from disk
+	//
+	R_LoadImage( name, &pic, &width, &height );
+	if ( pic == NULL ) {
+		return NULL;
+	}
+
+	image = R_CreateImage( ( char * ) name, pic, width, height, type, flags, 0 );
+	ri.Free( pic );
+	return image;
+}
+
+
+
+/*
+===============
+R_FindImageFileIfItsThere
+
+leilei
+Finds the given image and does not load it.
+==============
+*/
+image_t	*R_FindImageFileIfItsThere( const char *name, imgType_t type, imgFlags_t flags )
+{
+	image_t	*image;
+	int		width, height;
+	byte	*pic;
+	long	hash;
+
+	if (!name) {
+		return NULL;
+	}
+
+	detailhack = 0;			
+	hash = generateHashValue(name);
+
+	//
+	// see if the image is already loaded
+	//
+	for (image=hashTable[hash]; image; image=image->next) {
+		if ( !strcmp( name, image->imgName ) ) {
+			// the white image can be used with any set of parms, but other mismatches are errors
+			if ( strcmp( name, "*white" ) ) {
+				if ( image->flags != flags ) {
+					ri.Printf( PRINT_DEVELOPER, "WARNING: reused image %s with mixed flags (%i vs %i)\n", name, image->flags, flags );
+				}
+			}
+			return image;
+		}
+	}
+
+	// leilei - Detail texture hack
+	//	    to kill artifacts of shimmer of pattern of terrible
+	if ( !Q_strncmp( name, "textures/detail/", 16 )  || !Q_strncmp( name, "gfx/fx/detail/", 14 ))  {
+		ri.Printf( PRINT_DEVELOPER, "DETAILHACK: %s - mips will be gray\n", name );
+		detailhack = 1;		// leilei - attempt to fade detail mips to gray, EXPECTS DST_COLOR/SRC_COLOR for this to work right
+		}
 
 	//
 	// load the pic from disk
@@ -1287,10 +2203,12 @@ void R_CreateBuiltinImages( void ) {
 	int		x,y;
 	byte	data[DEFAULT_SIZE][DEFAULT_SIZE][4];
 
+	hackoperation = 0;
 	R_CreateDefaultImage();
 
 	// we use a solid white image instead of disabling texturing
 	Com_Memset( data, 255, sizeof( data ) );
+
 	tr.whiteImage = R_CreateImage("*white", (byte *)data, 8, 8, IMGTYPE_COLORALPHA, IMGFLAG_NONE, 0);
 
 	// with overbright bits active, we need an image which is some fraction of full color,
@@ -1371,7 +2289,9 @@ void R_SetColorMappings( void ) {
 
 	g = r_gamma->value;
 
-	shift = tr.overbrightBits;
+	if (!r_alternateBrightness->integer)	// leilei - don't do the shift to the brightness when we do alternate. This allows
+	shift = tr.overbrightBits;		// hardware gamma to work (if available) since we can't do alternate gamma via blends
+	else shift = 0;	// don't
 
 	for ( i = 0; i < 256; i++ ) {
 		if ( g == 1 ) {
@@ -1399,7 +2319,6 @@ void R_SetColorMappings( void ) {
 
 	if ( glConfig.deviceSupportsGamma )
 	{
-		if(!r_alternateBrightness->integer)
 		GLimp_SetGamma( s_gammatable, s_gammatable, s_gammatable );
 	}
 }
@@ -1413,6 +2332,10 @@ void	R_InitImages( void ) {
 	Com_Memset(hashTable, 0, sizeof(hashTable));
 	// build brightness translation tables
 	R_SetColorMappings();
+
+	// leilei - paletted texture support
+	//if (r_texturebits->integer == 8)
+	R_InitPalette();
 
 	// create default texture and white texture
 	R_CreateBuiltinImages();

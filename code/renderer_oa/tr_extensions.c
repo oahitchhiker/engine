@@ -103,6 +103,11 @@ GLvoid (APIENTRYP qglGetVertexAttribfvARB) (GLuint index, GLenum pname, GLfloat 
 GLvoid (APIENTRYP qglGetVertexAttribivARB) (GLuint index, GLenum pname, GLint *params);
 GLvoid (APIENTRYP qglGetVertexAttribPointervARB) (GLuint index, GLenum pname, GLvoid **pointer);
 
+// leilei - paletted texture
+GLvoid (APIENTRYP qglColorTableEXT)( GLint, GLint, GLint, GLint, GLint, const GLvoid *);
+GLvoid (APIENTRYP qglColorTableSGI)( GLint, GLint, GLint, GLint, GLint, const GLvoid *);
+
+
 /** From renderer_opengl2 (v28) */
 static qboolean GLimp_HaveExtension(const char *ext)
 {
@@ -223,6 +228,31 @@ void GLimp_InitExtraExtensions()
 		ri.Printf( PRINT_ALL, "...GL_ARB_vertex_shader not found\n" );
 	}
 
+	// leilei - paletted texturing
+	palettedTextureSupport = qfalse;
+	if ( GLimp_HaveExtension( "GL_EXT_paletted_texture" ) )
+	{
+		if ( r_ext_paletted_texture->integer ) {
+			//qglCompressedTexImage2DARB = (GLvoid (APIENTRYP)(GLenum, GLint, GLenum, GLsizei, GLsizei, GLint, GLsizei, const GLvoid *)) SDL_GL_GetProcAddress("glCompressedTexImage2DARB");
+			qglColorTableEXT = (GLvoid (APIENTRYP)(GLint, GLint, GLint, GLint, GLint, const GLvoid *)) SDL_GL_GetProcAddress("glColorTableEXT");
+			// SGI
+
+			qglColorTableSGI = (GLvoid (APIENTRYP)(GLint, GLint, GLint, GLint, GLint, const GLvoid *)) SDL_GL_GetProcAddress("glColorTableSGI");
+			//qglColorTableEXT = ( void ( APIENTRY * ) ( int, int, int, int, int, const void * ) ) qwglGetProcAddress( "glColorTableEXT" );
+			{
+				ri.Printf( PRINT_ALL, "...using GL_EXT_paletted_texture\n");
+				palettedTextureSupport = qtrue;
+			}
+		}
+		else
+		{
+			ri.Printf( PRINT_ALL, "...ignoring GL_EXT_paletted_texture\n" );
+		}
+	}
+	else
+	{
+		ri.Printf( PRINT_ALL, "...GL_EXT_paletted_texture not found\n" );
+	}
     // XXX This is likely too late to check the com_abnormalExit cvar
     if( ri.Cvar_VariableIntegerValue( "com_abnormalExit" ) )
     {
