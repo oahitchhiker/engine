@@ -44,8 +44,6 @@ byte		*palettemain;
 byte		palmap[32][32][32];		// 15bpp lookup table
 unsigned 	d_8to24table[256];  		// for non-palette supporting hardware
 
-HPALETTE	hPalette = 0;			// DirectDraw palette?
-
 qboolean	paletteability;			// If our hardware has paletted texture support...
 qboolean	paletteavailable;		// If we got a palette...
 qboolean	paletteenabled;			// If we wish to enable the 32-to-8 conversions (and 8-to-32 also)
