@@ -203,7 +203,7 @@ void R_InitPalette( void ) {
 	ri.Printf( PRINT_ALL, "PALETTE LOADDEEEED!!!!!!!!!!!!1\n" );
 	paletteavailable = 1;	// Do have a palette
 	//ri.FS_FreeFile(buff);
-	d_8to24table[255] &= LittleLong(0xffffff);	// 255 is transparent
+
 
 	if (palettedTextureSupport)
 		paletteability = 1;
@@ -230,7 +230,7 @@ void R_InitPalette( void ) {
 				{
 					for (b=0 ; b<256 ; b+=8)
 					{
-						beastcolor = BestColor (r, g, b, 0, 254);
+						beastcolor = BestColor (r, g, b, 1, 254);
 						palmap[r>>3][g>>3][b>>3] = beastcolor;
 					}
 				}
@@ -250,8 +250,6 @@ void R_InitPalette( void ) {
 		v = (255<<24) + (re<<0) + (ge<<8) + (be<<16);
 		d_8to24table[i] = v;
 	}
-	d_8to24table[255] &= 0xffffff;	// 255 is transparent
-	d_8to24table[255] = 0xffffff;	// 255 is GODDAMN transparent
 	}
 
 }
@@ -1562,6 +1560,8 @@ static void Upload8( unsigned *data,
 			b = scan[i*4 +2];
 			a = scan[i*4 +3];
 			thecol = palmap[r>>3][g>>3][b>>3];
+		
+
 			a *= 1.9;
 			a /= 255;
 			a *= 255;
@@ -2130,7 +2130,7 @@ static void R_CreateFogImage( void ) {
 	byte	*data;
 	float	d;
 	float	borderColor[4];
-
+	force32upload = 1;		// leilei - paletted fog fix
 	data = ri.Hunk_AllocateTempMemory( FOG_S * FOG_T * 4 );
 
 	// S is distance, T is depth
@@ -2156,6 +2156,7 @@ static void R_CreateFogImage( void ) {
 	borderColor[3] = 1;
 
 	qglTexParameterfv( GL_TEXTURE_2D, GL_TEXTURE_BORDER_COLOR, borderColor );
+	force32upload = 0;		// leilei - paletted fog fix
 }
 
 /*
@@ -2334,7 +2335,7 @@ void	R_InitImages( void ) {
 	R_SetColorMappings();
 
 	// leilei - paletted texture support
-	//if (r_texturebits->integer == 8)
+	if (r_texturebits->integer == 8)
 	R_InitPalette();
 
 	// create default texture and white texture
