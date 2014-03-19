@@ -2041,5 +2041,5 @@ void R_PostprocessingInit(void);
 void R_BrightScreen( void );
 void R_AltBrightnessInit( void );
 void R_FilmScreen( void );	//	leilei - film effect
-
+extern int softwaremode;
 #endif //TR_LOCAL_H

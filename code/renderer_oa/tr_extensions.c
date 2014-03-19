@@ -107,6 +107,19 @@ GLvoid (APIENTRYP qglGetVertexAttribPointervARB) (GLuint index, GLenum pname, GL
 GLvoid (APIENTRYP qglColorTableEXT)( GLint, GLint, GLint, GLint, GLint, const GLvoid *);
 GLvoid (APIENTRYP qglColorTableSGI)( GLint, GLint, GLint, GLint, GLint, const GLvoid *);
 
+/*
+typedef enum {
+	GLHW_GENERIC,			// where everthing works the way it should
+	GLHW_3DFX_2D3D,			// Voodoo Banshee or Voodoo3, relevant since if this is
+							// the hardware type then there can NOT exist a secondary
+							// display adapter
+	GLHW_RIVA128,			// where you can't interpolate alpha
+	GLHW_RAGEPRO,			// where you can't modulate alpha on alpha textures
+	GLHW_PERMEDIA2			// where you don't have src*dst
+} glHardwareType2_t;
+*/
+
+int	softwaremode;	// leilei - detect for software mode
 
 /** From renderer_opengl2 (v28) */
 static qboolean GLimp_HaveExtension(const char *ext)
@@ -260,4 +273,73 @@ void GLimp_InitExtraExtensions()
         ri.Cvar_Set( "r_ext_vertex_shader", "0");
     }
 
+
+	// Vendor-specific graphics fixes because we need it for these cards
+	char	buf[1024];
+
+// get our config strings
+	Q_strncpyz( glConfig.vendor_string, (char *) qglGetString (GL_VENDOR), sizeof( glConfig.vendor_string ) );
+	Q_strncpyz( glConfig.renderer_string, (char *) qglGetString (GL_RENDERER), sizeof( glConfig.renderer_string ) );
+	if (*glConfig.renderer_string && glConfig.renderer_string[strlen(glConfig.renderer_string) - 1] == '\n')
+		glConfig.renderer_string[strlen(glConfig.renderer_string) - 1] = 0;
+	Q_strncpyz( glConfig.version_string, (char *) qglGetString (GL_VERSION), sizeof( glConfig.version_string ) );
+	Q_strncpyz( glConfig.extensions_string, (char *) qglGetString (GL_EXTENSIONS), sizeof( glConfig.extensions_string ) );
+
+
+
+	Q_strncpyz( buf, glConfig.renderer_string, sizeof(buf) );
+	Q_strlwr( buf );
+
+
+	//
+	// this is where hardware specific workarounds that should be
+	// detected/initialized every startup should go.
+	//
+	if ( strstr( buf, "banshee" ) || strstr( buf, "voodoo3" ) )
+	{
+		glConfig.hardwareType = GLHW_3DFX_2D3D;
+	}
+	// VOODOO GRAPHICS w/ 2MB
+	else if ( strstr( buf, "voodoo graphics/1 tmu/2 mb" ) )
+	{
+	}
+	else if ( strstr( buf, "glzicd" ) )
+	{
+	}
+	else if ( strstr( buf, "rage pro" ) || strstr( buf, "Rage Pro" ) || strstr( buf, "ragepro" ) )
+	{
+		glConfig.hardwareType = GLHW_RAGEPRO;
+	}
+	else if ( strstr( buf, "rage 128" ) )
+	{
+	}
+	else if ( strstr( buf, "permedia2" ) )
+	{
+		glConfig.hardwareType = GLHW_PERMEDIA2;
+	}
+	else if ( strstr( buf, "sis" ) )		// unfortunately onboard SiS is a bit craptastic so give it permedia fallback as well
+	{
+		glConfig.hardwareType = GLHW_PERMEDIA2;
+	}
+	else if ( strstr( buf, "powervr" ) )
+	{
+	//	glConfig.hardwareType = GLHW_PCX2;
+	}
+	else if ( strstr( buf, "generic" ) ||  strstr( buf, "brian" ) ||  strstr( buf, "paul" ) ||  strstr( buf, "GDI" ) )	 // software mode opengl needs speedup tricks
+	{
+		//glConfig.hardwareType = GLHW_SOFTWARE;
+	//	ri.Cvar_Set( "r_texturemode", "GL_NEAREST" );
+	//	ri.Cvar_Set( "r_picmip", "2" );
+	//	ri.Cvar_Set( "r_detailtextures", "0" );
+	//	ri.Cvar_Set( "r_primitives", "2" );
+	//	ri.Cvar_Get( "r_picmip", "0", CVAR_ARCHIVE | CVAR_LATCH );
+		softwaremode = 1;
+	}
+	else if ( strstr( buf, "riva 128" ) )
+	{
+		glConfig.hardwareType = GLHW_RIVA128;
+	}
+	else if ( strstr( buf, "riva tnt " ) )
+	{
+	}
 }
