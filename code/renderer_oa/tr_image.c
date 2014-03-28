@@ -367,6 +367,7 @@ int R_SumOfUsedImages( void ) {
 	return total;
 }
 
+
 /*
 ===============
 R_ImageList_f
@@ -1018,6 +1019,7 @@ static void Upload32( unsigned *data,
 	GLenum		temp_GLformat = GL_RGBA;
 	GLenum		temp_GLtype = GL_UNSIGNED_BYTE;
 	float		rMax = 0, gMax = 0, bMax = 0;
+	int		texsizex, texsizey;
 
 
 
@@ -1046,6 +1048,15 @@ static void Upload32( unsigned *data,
 	}
 
 
+	texsizex = glConfig.maxTextureSize;
+	texsizey = glConfig.maxTextureSize;
+	
+
+	if (r_leifx->integer && !force32upload){	// leilei
+	texsizex = 256;	// 3dfx 
+	texsizey = 256;	// 3dfx 
+	}
+
 
 	//
 	// perform optional picmip operation
@@ -1054,6 +1065,8 @@ static void Upload32( unsigned *data,
 		scaled_width >>= r_picmip->integer;
 		scaled_height >>= r_picmip->integer;
 	}
+
+
 
 	//
 	// clamp to minimum size
@@ -1065,18 +1078,21 @@ static void Upload32( unsigned *data,
 		scaled_height = 1;
 	}
 
+
+
 	//
 	// clamp to the current upper OpenGL limit
 	// scale both axis down equally so we don't have to
 	// deal with a half mip resampling
 	//
-	while ( scaled_width > glConfig.maxTextureSize
-		|| scaled_height > glConfig.maxTextureSize ) {
+	while ( scaled_width > texsizex
+		|| scaled_height > texsizey ) {
 		scaled_width >>= 1;
 		scaled_height >>= 1;
 	}
 
 	
+
 
 	scaledBuffer = ri.Hunk_AllocateTempMemory( sizeof( unsigned ) * scaled_width * scaled_height );
 
@@ -1244,6 +1260,7 @@ static void Upload32( unsigned *data,
 				}
 					if (detailhack) internalFormat = GL_LUMINANCE; // leilei - use paletted mono format for detail textures
 					if (force32upload) internalFormat = GL_RGB8;   // leilei - gets bloom and postproc working on s3tc & 8bit & palettes
+					if (r_leifx->integer && !force32upload) internalFormat = GL_RGB5;
 			}
 		}
 		else if ( samples == 4 )
@@ -1289,6 +1306,7 @@ static void Upload32( unsigned *data,
 					internalFormat = GL_RGBA;
 				}
 					if (force32upload) internalFormat = GL_RGBA8;   // leilei - gets bloom and postproc working on s3tc & 8bit & palettes
+					if (r_leifx->integer && !force32upload) internalFormat = GL_RGBA4;
 			}
 		}
 	}
@@ -1484,10 +1502,10 @@ static void Upload8( unsigned *data,
 	texsizey = glConfig.maxTextureSize;
 	
 
-//	if (r_mockvoodoo->integer){	// leilei
-//	texsizex = 256;	// 3dfx 
-//	texsizey = 256;	// 3dfx 
-//	}
+	if (r_leifx->integer && !force32upload){	// leilei
+	texsizex = 256;	// 3dfx 
+	texsizey = 256;	// 3dfx 
+	}
 
 
 

@@ -827,7 +827,14 @@ typedef struct {
 	GLfloat			u_zFar;
 	
 //End Postprocess Vars	
-	
+
+
+//	leilei - addition (HACK!)	
+
+	GLint			u_Normal;
+	vec3_t			v_Normal;
+
+
 	
 } glslProgram_t;
 
@@ -968,6 +975,7 @@ typedef struct {
 	qboolean	vertexes2D;		// shader needs to be finished
 	qboolean	doneBloom;		// done bloom this frame
 	qboolean	donepostproc;		// done postprocess this frame
+	qboolean	doneleifx;		// leilei - done leifxing this frame
 	qboolean	doneAltBrightness;	// leilei - done alternate brightness this frame
 	qboolean	doneFilm;		// leilei - done film filtering this frame
 	qboolean	doneSun;		// leilei - done drawing a sun
@@ -1022,6 +1030,10 @@ typedef struct {
 	qhandle_t				lightmappedMultitextureProgram;
 	qhandle_t				skyProgram;
 	qhandle_t				postprocessingProgram;
+
+	qhandle_t				leiFXDitherProgram;	// leilei
+	qhandle_t				leiFXGammaProgram;	// leilei
+	qhandle_t				leiFXFilterProgram;	// leilei
 
 	int						numPrograms;
 	glslProgram_t			*programs[MAX_PROGRAMS];
@@ -1089,6 +1101,7 @@ extern glstate_t	glState;		// outside of TR since it shouldn't be cleared during
 
 extern qboolean  vertexShaders;
 extern qboolean  postprocess;
+extern int	 leifxmode;	// leilei - leifx
 extern char		 depthimage;
 
 //
@@ -1214,6 +1227,8 @@ extern	cvar_t	*r_flaresDlight;
 //extern	cvar_t	*r_flaresSurfradii;
 
 extern cvar_t	*r_alternateBrightness;		// leilei - alternate brightness
+
+extern cvar_t	*r_leifx;		// Leilei - leifx nostalgia filter
 
 //====================================================================
 
@@ -2042,4 +2057,5 @@ void R_BrightScreen( void );
 void R_AltBrightnessInit( void );
 void R_FilmScreen( void );	//	leilei - film effect
 extern int softwaremode;
+extern int leifxmode;
 #endif //TR_LOCAL_H

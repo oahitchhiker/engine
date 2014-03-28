@@ -192,6 +192,11 @@ cvar_t	*r_flaresDlight;
 //cvar_t	*r_flaresSurfradii;
 cvar_t	*r_alternateBrightness;		// leilei - linux overbright fix
 cvar_t	*r_mockvr;		// Leilei - for debugging PVR only!
+cvar_t	*r_leifx;		// Leilei - leifx nostalgia filter
+
+cvar_t	*r_slowness;		// Leilei - the cvar that slows everything down. use with caution.
+cvar_t	*r_slowness_cpu;		// Leilei
+cvar_t	*r_slowness_gpu;		// Leilei
 
 
 /*
@@ -309,7 +314,20 @@ vidmode_t r_vidModes[] =
 	{ "Mode  8: 1280x1024",		1280,	1024,	1 },
 	{ "Mode  9: 1600x1200",		1600,	1200,	1 },
 	{ "Mode 10: 2048x1536",		2048,	1536,	1 },
-	{ "Mode 11: 856x480 (wide)",856,	480,	1 }
+	{ "Mode 11: 856x480",856,	480,	1 },
+	{ "Mode 12: 1280x720",		1280,	720,	1 },
+	{ "Mode 13: 1280x768",		1280,	768,	1 },
+	{ "Mode 14: 1280x800",		1280,	800,	1 },
+	{ "Mode 15: 1280x960",		1280,	960,	1 },
+	{ "Mode 16: 1360x768",		1360,	768,	1 },
+	{ "Mode 17: 1366x768",		1366,	768,	1 }, // yes there are some out there on that extra 6
+	{ "Mode 18: 1360x1024",		1360,	1024,	1 },
+	{ "Mode 19: 1400x1050",		1400,	1050,	1 },
+	{ "Mode 20: 1400x900",		1400,	900,	1 },
+	{ "Mode 21: 1600x900",		1600,	900,	1 },
+	{ "Mode 22: 1680x1050",		1680,	1050,	1 },
+	{ "Mode 23: 1920x1080",		1920,	1080,	1 },
+	{ "Mode 24: 1920x1440",		1920,	1440,	1 }
 };
 static int	s_numVidModes = ARRAY_LEN( r_vidModes );
 
@@ -1188,7 +1206,12 @@ void R_Register( void )
 	r_flaresDlight = ri.Cvar_Get( "r_flaresDlight", "0" , CVAR_ARCHIVE );	// dynamic light flares 
 	r_flareSun = ri.Cvar_Get( "r_flareSun", "0" , CVAR_ARCHIVE);	// it's 0 because mappers expect 0.
 
+
 	r_mockvr = ri.Cvar_Get( "r_mockvr", "0" , CVAR_ARCHIVE | CVAR_CHEAT);	
+	r_leifx = ri.Cvar_Get( "r_leifx", "0" , CVAR_ARCHIVE | CVAR_LATCH);	
+	r_slowness = ri.Cvar_Get( "r_slowness", "0" , CVAR_ARCHIVE);	// it's 0 because you want it to be the fastest possible by default.
+	r_slowness_cpu = ri.Cvar_Get( "r_slowness_cpu", "300" , CVAR_ARCHIVE);	// it's 0 because you want it to be the fastest possible by default.
+	r_slowness_gpu = ri.Cvar_Get( "r_slowness_gpu", "96" , CVAR_ARCHIVE);	// it's 0 because you want it to be the fastest possible by default.
 
 	// make sure all the commands added here are also
 	// removed in R_Shutdown
@@ -1245,6 +1268,7 @@ static glslProgram_t *R_GLSL_AllocProgram(void) {
 	program->u_Texture7						= -1;
 	program->u_Time							= -1;
 	program->u_ViewOrigin					= -1;
+	program->u_Normal					= -1;
 
 	tr.programs[tr.numPrograms] = program;
 	tr.numPrograms++;
@@ -1281,8 +1305,8 @@ void R_GLSL_Init(void) {
 
 	/* load default programs */
 	tr.skipProgram = RE_GLSL_RegisterProgram("skip", (const char *)NULL, 0, (const char *)NULL, 0);
-	tr.defaultProgram = 0;
-/*	Q_strncpyz(programVertexObjects[0], "glsl/generic_vp.glsl", sizeof(programVertexObjects[0]));
+	//tr.defaultProgram = 0;
+	Q_strncpyz(programVertexObjects[0], "glsl/generic_vp.glsl", sizeof(programVertexObjects[0]));
 	Q_strncpyz(programFragmentObjects[0], "glsl/generic_fp.glsl", sizeof(programFragmentObjects[0]));
 	Q_strncpyz(programFragmentObjects[1], "glsl/texturing.glsl", sizeof(programFragmentObjects[1]));
 	tr.defaultProgram = RE_GLSL_RegisterProgram("generic", (const char *)programVertexObjects, 1, (const char *)programFragmentObjects, 2);
@@ -1298,7 +1322,22 @@ void R_GLSL_Init(void) {
 	Q_strncpyz(programVertexObjects[0], "glsl/sky_vp.glsl", sizeof(programVertexObjects[0]));
 	Q_strncpyz(programFragmentObjects[0], "glsl/sky_fp.glsl", sizeof(programFragmentObjects[0]));
 	tr.skyProgram = RE_GLSL_RegisterProgram("sky", (const char *)programVertexObjects, 1, (const char *)programFragmentObjects, 1);
-*/
+
+
+
+	Q_strncpyz(programVertexObjects[0], "glsl/leifx_dither_vp.glsl", sizeof(programVertexObjects[0]));
+	Q_strncpyz(programFragmentObjects[0], "glsl/leifx_dither_fp.glsl", sizeof(programFragmentObjects[0]));
+	tr.leiFXDitherProgram = RE_GLSL_RegisterProgram("leifx_dither", (const char *)programVertexObjects, 1, (const char *)programFragmentObjects, 1);
+
+	Q_strncpyz(programVertexObjects[0], "glsl/leifx_gamma_vp.glsl", sizeof(programVertexObjects[0]));
+	Q_strncpyz(programFragmentObjects[0], "glsl/leifx_gamma_fp.glsl", sizeof(programFragmentObjects[0]));
+	tr.leiFXGammaProgram = RE_GLSL_RegisterProgram("leifx_gamma", (const char *)programVertexObjects, 1, (const char *)programFragmentObjects, 1);
+
+	Q_strncpyz(programVertexObjects[0], "glsl/leifx_filter_vp.glsl", sizeof(programVertexObjects[0]));
+	Q_strncpyz(programFragmentObjects[0], "glsl/leifx_filter_fp.glsl", sizeof(programFragmentObjects[0]));
+	tr.leiFXFilterProgram = RE_GLSL_RegisterProgram("leifx_filter", (const char *)programVertexObjects, 1, (const char *)programFragmentObjects, 1);
+
+
 
 	if (strcmp( (const char *)r_postprocess->string, "none" )) 
 		{

@@ -1367,6 +1367,168 @@ static void RB_CalcDiffuseColor_scalar( unsigned char *colors )
 	}
 }
 
+
+// leilei - some slower, but bolder way of lighting
+// i sure hope gcc unrolls this.
+static void RB_CalcDiffuseColor_alternative( unsigned char *colors )
+{
+	int				i, j;
+	float			*v, *normal;
+	float			incoming;
+	float			incoming2;
+	trRefEntity_t	*ent;
+	int				ambientLightInt;
+	vec3_t			ambientLight;
+	vec3_t			ambDir;
+	vec3_t			lightDir;
+	vec3_t			directedLight;
+	int				numVertexes;
+	ent = backEnd.currentEntity;
+	float ilength;
+	int d, l, b;
+	vec3_t viewer, reflected;
+	ambientLightInt = ent->ambientLightInt;
+	VectorCopy( ent->ambientLight, ambientLight );
+	VectorCopy( ent->directedLight, directedLight );
+	VectorCopy( ent->lightDir, lightDir );
+	VectorCopy( ent->lightDir, ambDir );
+	VectorCopy( lightOrigin, ambDir );
+	VectorNormalizeFast( ambDir );
+	
+	// crappy sun shine effect
+
+	if(backEnd.doneSunFlare == qtrue)
+		{
+			VectorCopy( tr.sunDirection, ambDir );
+			ambientLight[0] = tr.sunLight[0];
+			ambientLight[1] = tr.sunLight[1];
+			ambientLight[2] = tr.sunLight[2];
+			VectorNormalizeFast( ambDir );
+		}
+
+	v = tess.xyz[0];
+	normal = tess.normal[0];
+
+	numVertexes = tess.numVertexes;
+	for (i = 0 ; i < numVertexes ; i++, v += 4, normal += 4) {
+		incoming = DotProduct (normal, lightDir) * 0.6;
+		incoming2 = DotProduct (normal, ambDir) * 2;
+		if (incoming < 0) incoming = 0;
+		if (incoming2 < 0) incoming2 *= -0.7; // invert for fake rim effect
+		if (incoming2 < 0.9f) incoming2 = 0.9f; // clamp out black
+/*
+		// add specular to ambient incoming
+		{
+
+			VectorSubtract( lightOrigin, v, ambDir );
+			ilength = Q_rsqrt( DotProduct( ambDir, ambDir ) );
+			VectorNormalizeFast( ambDir );
+	
+			// calculate the specular color
+			d = DotProduct (normal, ambDir);
+		//	d *= ilength;
+	
+			// we don't optimize for the d < 0 case since this tends to
+			// cause visual artifacts such as faceted "snapping"
+			reflected[0] = normal[0]*2*d - ambDir[0];
+			reflected[1] = normal[1]*2*d - ambDir[1];
+			reflected[2] = normal[2]*2*d - ambDir[2];
+	
+			VectorSubtract (backEnd.or.viewOrigin, v, viewer);
+			//ilength = Q_rsqrt( DotProduct( viewer, viewer ) );
+			l = DotProduct (reflected, viewer);
+			l *= ilength;
+	
+			if (l < 0) {
+				b = 0;
+				l = 0;
+			} else {
+				l = l*l;
+				l = l*l;
+			}
+	
+
+
+
+		}
+		incoming2 *= l;
+*/
+		j = ri.ftol(ambientLight[0] * incoming2) + ri.ftol(incoming * directedLight[0]);
+		if ( j > 255 ) {
+			j = 255;
+		}
+		colors[i*4+0] = j;
+
+		j = ri.ftol(ambientLight[1] * incoming2) + ri.ftol(incoming * directedLight[1]);
+		if ( j > 255 ) {
+			j = 255;
+		}
+		colors[i*4+1] = j;
+
+		j = ri.ftol(ambientLight[2] * incoming2) + ri.ftol(incoming * directedLight[2]);
+		if ( j > 255 ) {
+			j = 255;
+		}
+		colors[i*4+2] = j;
+
+		colors[i*4+3] = 255;
+	}
+}
+
+// simple faster one without a direction of any kind, should be similar to q2/hl
+static void RB_CalcDiffuseColor_lame( unsigned char *colors )
+{
+	int				i, j;
+	float			*v, *normal;
+	float			incoming;
+	trRefEntity_t	*ent;
+	int				ambientLightInt;
+	vec3_t			ambientLight;
+	vec3_t			lightDir;
+	vec3_t			directedLight;
+	int				numVertexes;
+	ent = backEnd.currentEntity;
+	ambientLightInt = ent->ambientLightInt;
+	VectorCopy( ent->ambientLight, ambientLight );
+	VectorCopy( ent->directedLight, directedLight );
+
+
+	lightDir[0] = 0;
+	lightDir[1] = 0;
+	lightDir[2] = 1;
+
+	v = tess.xyz[0];
+	normal = tess.normal[0];
+
+	numVertexes = tess.numVertexes;
+	for (i = 0 ; i < numVertexes ; i++, v += 4, normal += 4) {
+		incoming = DotProduct (normal, lightDir);
+		if ( incoming <= 0 ) {
+			*(int *)&colors[i*4] = ambientLightInt;
+			continue;
+		} 
+		j = ri.ftol(ambientLight[0] + incoming * directedLight[0]);
+		if ( j > 255 ) {
+			j = 255;
+		}
+		colors[i*4+0] = j;
+
+		j = ri.ftol(ambientLight[1] + incoming * directedLight[1]);
+		if ( j > 255 ) {
+			j = 255;
+		}
+		colors[i*4+1] = j;
+
+		j = ri.ftol(ambientLight[2] + incoming * directedLight[2]);
+		if ( j > 255 ) {
+			j = 255;
+		}
+		colors[i*4+2] = j;
+		colors[i*4+3] = 255;
+	}
+}
+
+
 void RB_CalcDiffuseColor( unsigned char *colors )
 {
 #if idppc_altivec
@@ -1377,6 +1539,10 @@ void RB_CalcDiffuseColor( unsigned char *colors )
 	}
 #endif
 	RB_CalcDiffuseColor_scalar( colors );
+	//RB_CalcDiffuseColor_alternative( colors );
+	//RB_CalcDiffuseColor_lame( colors );
+
+
 }
 
 /*

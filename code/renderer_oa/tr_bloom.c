@@ -40,7 +40,7 @@ static cvar_t *r_bloom_reflection;		// LEILEI
 static cvar_t *r_bloom_sky_only;		// LEILEI
 cvar_t *r_film;
 extern int	force32upload;		
-
+int		leifxmode;
 int		fakeit = 0;
 /* 
 ============================================================================== 
@@ -253,7 +253,7 @@ R_Postprocess_InitTextures
 static void R_Postprocess_InitTextures( void )
 {
 	byte	*data;
-
+	force32upload = 1;
 	// find closer power of 2 to screen size 
 	for (postproc.screen.width = 1;postproc.screen.width< glConfig.vidWidth;postproc.screen.width *= 2);
 	for (postproc.screen.height = 1;postproc.screen.height < glConfig.vidHeight;postproc.screen.height *= 2);
@@ -646,9 +646,20 @@ Restore the temporary framebuffer section we used with the backup texture
 */
 static void R_Bloom_RestoreScreen_Postprocessed( void ) {
 	glslProgram_t	*program;
+
+	if (leifxmode)
+	{
+	if (leifxmode == 1){ if (vertexShaders) R_GLSL_UseProgram(tr.leiFXDitherProgram); program=tr.programs[tr.leiFXDitherProgram];}
+	if (leifxmode == 2){ if (vertexShaders) R_GLSL_UseProgram(tr.leiFXGammaProgram); program=tr.programs[tr.leiFXGammaProgram];}
+	if (leifxmode == 3){ if (vertexShaders) R_GLSL_UseProgram(tr.leiFXFilterProgram); program=tr.programs[tr.leiFXFilterProgram];}
+	
+	}
+	else
+	{
 	if (vertexShaders) R_GLSL_UseProgram(tr.postprocessingProgram);
 	// Feed GLSL postprocess program
 	program=tr.programs[tr.postprocessingProgram];
+	}
 	if (program->u_ScreenSizeX > -1) R_GLSL_SetUniform_u_ScreenSizeX(program, glConfig.vidWidth);
 
 	if (program->u_ScreenSizeY > -1) R_GLSL_SetUniform_u_ScreenSizeY(program, glConfig.vidHeight);
@@ -669,6 +680,7 @@ static void R_Bloom_RestoreScreen_Postprocessed( void ) {
 			postproc.screen.readW,postproc.screen.readH );
 	if (vertexShaders) R_GLSL_UseProgram(0);
 	GL_SelectTexture(0);
+
 }
 
 /*
@@ -855,6 +867,132 @@ void R_PostprocessScreen( void )
 	R_Postprocess_BackupScreen();
 	//Redraw texture using GLSL program
 	R_Bloom_RestoreScreen_Postprocessed();
+}
+
+
+static void ID_INLINE R_LeiFX_Pointless_Quad( int width, int height, float texX, float texY, float texWidth, float texHeight ) {
+	int x = 0;
+	int y = 0;
+	x = 0;
+	y += glConfig.vidHeight - height;
+	width += x;
+	height += y;
+	
+	texWidth += texX;
+	texHeight += texY;
+
+	qglBegin( GL_QUADS );							
+	qglTexCoord2f(	texX,						texHeight	);	
+	qglVertex2f(	x,							y	);
+
+	qglTexCoord2f(	texX,						texY	);				
+	qglVertex2f(	x,							height	);	
+
+	qglTexCoord2f(	texWidth,					texY	);				
+	qglVertex2f(	width,						height	);	
+
+	qglTexCoord2f(	texWidth,					texHeight	);	
+	qglVertex2f(	width,						y	);				
+	qglEnd ();
+}
+
+void R_LeiFX_Stupid_Hack (void)
+{
+	GL_State( GLS_DEPTHTEST_DISABLE | GLS_SRCBLEND_DST_COLOR | GLS_DSTBLEND_SRC_COLOR);
+	GL_Bind( tr.whiteImage );
+	GL_Cull( CT_TWO_SIDED );
+
+	qglColor4f( 1, 1, 1, 1 );
+	R_LeiFX_Pointless_Quad( 0, 0, 0, 0, 1, 1 );
+
+}
+void R_LeiFXPostprocessDitherScreen( void )
+{
+	if( !r_leifx->integer)
+		return;
+	if ( backEnd.doneleifx)
+		return;
+	if ( !backEnd.doneSurfaces )
+		return;
+//	backEnd.doneleifx = qtrue;
+	if( !postproc.started ) {
+		force32upload = 1;
+		R_Postprocess_InitTextures();
+		if( !postproc.started )
+			return;
+	}
+
+	if ( !backEnd.projection2D )
+		RB_SetGL2D();
+
+//	postprocess = 1;
+
+	leifxmode = 1;
+	
+	// The stupidest hack in america
+	R_LeiFX_Stupid_Hack();
+
+
+	if (r_leifx->integer > 1){
+		leifxmode = 1;			// reduct and dither - 1 pass
+		R_Postprocess_BackupScreen();
+		R_Bloom_RestoreScreen_Postprocessed();
+		}
+
+		force32upload = 0;	
+	
+}
+
+
+void R_LeiFXPostprocessFilterScreen( void )
+{
+	if( !r_leifx->integer)
+		return;
+	if ( backEnd.doneleifx)
+		return;
+	if ( !backEnd.doneSurfaces )
+		return;
+	if( !postproc.started ) {
+		force32upload = 1;
+		R_Postprocess_InitTextures();
+		if( !postproc.started )
+			return;
+	}
+
+	if ( !backEnd.projection2D )
+		RB_SetGL2D();
+		force32upload = 1;
+
+//	postprocess = 1;
+
+	if (r_leifx->integer == 3){
+		leifxmode = 2;			// gamma - 1 pass
+	// The stupidest hack in america
+	R_LeiFX_Stupid_Hack();
+		R_Postprocess_BackupScreen();
+		R_Bloom_RestoreScreen_Postprocessed();
+		}
+	if (r_leifx->integer > 3){
+		leifxmode = 3;			// filter - 4 pass
+	// The stupidest hack in america
+	R_LeiFX_Stupid_Hack();
+		R_Postprocess_BackupScreen();
+		R_Bloom_RestoreScreen_Postprocessed();
+		R_Postprocess_BackupScreen();
+		R_Bloom_RestoreScreen_Postprocessed();
+		R_Postprocess_BackupScreen();
+		R_Bloom_RestoreScreen_Postprocessed();
+		R_Postprocess_BackupScreen();
+		R_Bloom_RestoreScreen_Postprocessed();
+		leifxmode = 2;	
+		R_Postprocess_BackupScreen();
+		R_Bloom_RestoreScreen_Postprocessed();
+		}
+	backEnd.doneleifx = qtrue;
+
+			force32upload = 0;
+	
+
 }
 
 void R_BloomInit( void ) {

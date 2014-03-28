@@ -24,7 +24,6 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 backEndData_t	*backEndData;
 backEndState_t	backEnd;
 
-
 static float	s_flipMatrix[16] = {
 	// convert from our coordinate system (looking down X)
 	// to OpenGL's coordinate system (looking down -Z)
@@ -60,7 +59,8 @@ void GL_Bind( image_t *image ) {
 		qglBindTexture (GL_TEXTURE_2D, texnum);
 	}
 }
-
+void R_LeiFXPostprocessDitherScreen( void );
+void R_LeiFXPostprocessFilterScreen( void );
 /*
 ** GL_SelectTexture
 */
@@ -1435,6 +1435,13 @@ const void *RB_ClearDepth(const void *data)
 	return (const void *)(cmd + 1);
 }
 
+
+extern cvar_t	*r_slowness;  // leilei - experimental variable slowness
+extern cvar_t	*r_slowness_cpu;  // leilei - experimental variable slowness
+extern cvar_t	*r_slowness_gpu;  // leilei - experimental variable slowness
+
+
+
 /*
 =============
 RB_SwapBuffers
@@ -1453,6 +1460,13 @@ const void	*RB_SwapBuffers( const void *data ) {
 	if ( r_showImages->integer ) {
 		RB_ShowImages();
 	}
+
+	if (r_ext_vertex_shader->integer){		// leilei - leifx filters
+	R_LeiFXPostprocessDitherScreen();
+	R_LeiFXPostprocessFilterScreen();
+	}
+
+
 
 	R_BrightScreen();		// leilei - alternate brightness - do it here so we hit evereything
 
@@ -1491,10 +1505,36 @@ const void	*RB_SwapBuffers( const void *data ) {
 	backEnd.donepostproc = qfalse;
 	backEnd.doneAltBrightness = qfalse;
 	backEnd.doneFilm = qfalse;
+	backEnd.doneleifx = qfalse;
 	backEnd.doneSurfaces = qfalse;
 	backEnd.doneSun	     = qfalse;
 	backEnd.doneSunFlare = qfalse;
-	
+
+	// leilei - artificial slowness (mapper debug) - this might be windows only
+#ifdef _WIN32
+	if (r_slowness->integer > 2){
+		// Should be roughly equiv to a P2 300 at value 1.0 (target system)
+		float cpuspeed = r_slowness_cpu->value;
+		float gpuspeed = r_slowness_gpu->value;
+
+		if (cpuspeed < 1) cpuspeed = 1;
+		if (gpuspeed < 1) gpuspeed = 1;	// avoid div0
+
+		float slowit = (float)(((float)(backEnd.pc.c_surfaces) / 16) + ((float)backEnd.pc.c_vertexes / 64) + 5400.0f);
+		slowit /= cpuspeed;	// yeah it's the cpu
+		float blowit = ((float)(backEnd.pc.c_surfaces / 32) + (backEnd.pc.c_indexes / 1324 * (float)(glConfig.vidWidth * glConfig.vidHeight / 1100)));
+		blowit /= gpuspeed;	// yeah it's the gpu
+
+		if (blowit > slowit) 			slowit = blowit; // GPU bottleneck
+		else if (slowit > blowit) 		blowit = slowit; // CPU bottlebeck
+
+		if (slowit > 8500) slowit = 8500; // but not too much?
+			Sleep(slowit); // FORCE A SLEEP!! HAHAHAHA!!!
+
+		}
+#endif
+
+
 	return (const void *)(cmd + 1);
 }
 
@@ -1517,6 +1557,7 @@ void RB_ExecuteRenderCommands( const void *data ) {
 			break;
 		case RC_STRETCH_PIC:
 			//Check if it's time for BLOOM!
+			leifxmode = 0;
 			R_PostprocessScreen();
 			R_BloomScreen();
 			R_FilmScreen();
@@ -1531,6 +1572,7 @@ void RB_ExecuteRenderCommands( const void *data ) {
 			break;
 		case RC_SWAP_BUFFERS:
 			//Check if it's time for BLOOM!
+			leifxmode = 0;
 			R_PostprocessScreen();
 			R_BloomScreen();
 			R_FilmScreen();
