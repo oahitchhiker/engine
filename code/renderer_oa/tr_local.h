@@ -1093,6 +1093,13 @@ typedef struct {
 	float					sawToothTable[FUNCTABLE_SIZE];
 	float					inverseSawToothTable[FUNCTABLE_SIZE];
 	float					fogTable[FOG_TABLE_SIZE];
+
+	shader_t				*placeholderTextureShader;	// leilei - for map textures
+	shader_t				*placeholderModelShader;	// leilei - for models
+	shader_t				*placeholderShader;		// leilei - for anything else
+	qboolean				placeholderTextureAvail;
+	qboolean				placeholderModelAvail;
+	qboolean				placeholderAvail;
 } trGlobals_t;
 
 extern backEndState_t	backEnd;

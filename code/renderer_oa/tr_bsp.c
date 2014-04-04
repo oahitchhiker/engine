@@ -291,6 +291,20 @@ static shader_t *ShaderForShaderNum( int shaderNum, int lightmapNum ) {
 
 	// if the shader had errors, just use default shader
 	if ( shader->defaultShader ) {
+
+
+		// leilei - placeholder hack
+		if (tr.placeholderTextureAvail == 1 && !Q_strncmp( dsh->shader, "textures", 8 ))
+		{
+	//	return tr.placeholderTextureShader;
+		shader = R_FindShader( "placeholder_texture", lightmapNum, qtrue );
+		return shader;
+		}
+		else if (tr.placeholderModelAvail == 1 && !Q_strncmp( dsh->shader, "models", 6 ))
+		{
+		return tr.placeholderModelShader;
+		}
+
 		return tr.defaultShader;
 	}
 

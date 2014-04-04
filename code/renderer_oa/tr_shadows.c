@@ -268,6 +268,7 @@ void RB_ShadowFinish( void ) {
 	if ( glConfig.stencilBits < 4 ) {
 		return;
 	}
+
 	qglEnable( GL_STENCIL_TEST );
 	qglStencilFunc( GL_NOTEQUAL, 0, 255 );
 
@@ -293,8 +294,9 @@ void RB_ShadowFinish( void ) {
 
 	qglColor4f(1,1,1,1);
 	qglDisable( GL_STENCIL_TEST );
-}
 
+
+}
 
 /*
 =================

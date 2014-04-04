@@ -131,7 +131,6 @@ void R_SetTexturePalette( unsigned palette[256])
 
 // leilei - paletted texture
 extern GLvoid (APIENTRYP qglColorTableEXT)( GLint, GLint, GLint, GLint, GLint, const GLvoid *);
-//extern GLvoid (APIENTRYP qglColorTableSGI)( GLint, GLint, GLint, GLint, GLint, const GLvoid *);
 
 void R_PickTexturePalette(int alpha)
 {
@@ -197,11 +196,8 @@ void R_InitPalette( void ) {
 	}
 
 	palettemain = buff;
-	//mainpalette et = R_LoadDDSImageData(buff, name, bits, filterType, wrapType);
 	ri.Printf( PRINT_ALL, "PALETTE LOADDEEEED!!!!!!!!!!!!1\n" );
 	paletteavailable = 1;	// Do have a palette
-	//ri.FS_FreeFile(buff);
-
 
 	if (palettedTextureSupport)
 		paletteability = 1;

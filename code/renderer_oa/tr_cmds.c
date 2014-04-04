@@ -21,12 +21,16 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 */
 #include "tr_local.h"
 
+
 /*
 =====================
 R_PerformanceCounters
 =====================
 */
 void R_PerformanceCounters( void ) {
+
+
+
 	if ( !r_speeds->integer ) {
 		// clear the counters even if we aren't printing
 		Com_Memset( &tr.pc, 0, sizeof( tr.pc ) );
@@ -88,7 +92,10 @@ void R_IssueRenderCommands( qboolean runPerformanceCounters ) {
 
 	if ( runPerformanceCounters ) {
 		R_PerformanceCounters();
+
+
 	}
+
 
 	// actually start the commands going
 	if ( !r_skipBackEnd->integer ) {

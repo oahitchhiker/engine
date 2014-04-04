@@ -469,6 +469,7 @@ void R_RemapShader(const char *shaderName, const char *newShaderName, const char
 	sh = R_FindShaderByName( shaderName );
 	if (sh == NULL || sh == tr.defaultShader) {
 		h = RE_RegisterShaderLightMap(shaderName, 0);
+		
 		sh = R_GetShaderByHandle(h);
 	}
 	if (sh == NULL || sh == tr.defaultShader) {
@@ -4032,6 +4033,7 @@ shader_t *R_FindShaderByName( const char *name ) {
 	shader_t	*sh;
 
 	if ( (name==NULL) || (name[0] == 0) ) {
+
 		return tr.defaultShader;
 	}
 
@@ -4053,6 +4055,7 @@ shader_t *R_FindShaderByName( const char *name ) {
 		}
 	}
 
+	
 	return tr.defaultShader;
 }
 
@@ -4713,6 +4716,14 @@ static void CreateInternalShaders( void ) {
 }
 
 static void CreateExternalShaders( void ) {
+
+	// leilei - placeholder shaders
+	tr.placeholderTextureAvail = 0;
+	tr.placeholderModelAvail = 0;
+	tr.placeholderAvail = 0;
+
+
+
 	tr.projectionShadowShader = R_FindShader( "projectionShadow", LIGHTMAP_NONE, qtrue );
 	tr.flareShader = R_FindShader( "flareShader", LIGHTMAP_NONE, qtrue );
 	tr.flareShaderAtlas = R_FindShader( "flareShaderAtlas", LIGHTMAP_NONE, qtrue );	// leilei - lens reflection
@@ -4744,6 +4755,17 @@ static void CreateExternalShaders( void ) {
 
 
 	tr.sunShader = R_FindShader( "sun", LIGHTMAP_NONE, qtrue );
+
+//	leilei - placeholder shaders
+	tr.placeholderTextureShader = R_FindShader( "placeholder_texture", LIGHTMAP_NONE, qtrue );
+	tr.placeholderModelShader = R_FindShader( "placeholder_model", LIGHTMAP_NONE, qtrue );
+	tr.placeholderShader = R_FindShader( "placeholder_model", LIGHTMAP_NONE, qtrue );
+
+	if(!tr.placeholderTextureShader->defaultShader) 	tr.placeholderTextureAvail = 1;
+	if(!tr.placeholderModelShader->defaultShader) 		tr.placeholderModelAvail = 1;
+	if(!tr.placeholderShader->defaultShader) 		tr.placeholderAvail = 1;
+
+
 }
 
 /*
