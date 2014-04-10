@@ -652,6 +652,8 @@ static void R_Bloom_RestoreScreen_Postprocessed( void ) {
 	if (leifxmode == 1){ if (vertexShaders) R_GLSL_UseProgram(tr.leiFXDitherProgram); program=tr.programs[tr.leiFXDitherProgram];}
 	if (leifxmode == 2){ if (vertexShaders) R_GLSL_UseProgram(tr.leiFXGammaProgram); program=tr.programs[tr.leiFXGammaProgram];}
 	if (leifxmode == 3){ if (vertexShaders) R_GLSL_UseProgram(tr.leiFXFilterProgram); program=tr.programs[tr.leiFXFilterProgram];}
+	if (leifxmode == 888){ if (vertexShaders) R_GLSL_UseProgram(tr.animeProgram); program=tr.programs[tr.animeProgram];}
+	if (leifxmode == 999){ if (vertexShaders) R_GLSL_UseProgram(tr.animeFilmProgram); program=tr.programs[tr.animeFilmProgram];}
 	
 	}
 	else
@@ -994,6 +996,44 @@ void R_LeiFXPostprocessFilterScreen( void )
 	
 
 }
+
+
+
+void R_AnimeScreen( void )
+{
+	if( !r_anime->integer)
+		return;
+	if ( backEnd.doneanime)
+		return;
+	if ( !backEnd.doneSurfaces )
+		return;
+	if( !postproc.started ) {
+		force32upload = 1;
+		R_Postprocess_InitTextures();
+		if( !postproc.started )
+			return;
+	}
+
+	if ( !backEnd.projection2D )
+	RB_SetGL2D();
+
+	force32upload = 1;
+
+	leifxmode = 888;			// anime effect - outlines, desat, bloom and other crap to go with it
+	R_LeiFX_Stupid_Hack();
+	R_Postprocess_BackupScreen();
+	R_Bloom_RestoreScreen_Postprocessed();
+	leifxmode = 999;			// film effect - to blur things slightly, and add some grain and chroma stuff
+        R_LeiFX_Stupid_Hack();
+	R_Postprocess_BackupScreen();
+	R_Bloom_RestoreScreen_Postprocessed();
+	backEnd.doneanime = qtrue;
+
+			force32upload = 0;
+	
+
+}
+
 
 void R_BloomInit( void ) {
 	memset( &bloom, 0, sizeof( bloom ));

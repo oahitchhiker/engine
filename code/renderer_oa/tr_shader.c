@@ -894,6 +894,13 @@ static void ParseTexMod( char *_text, shaderStage_t *stage )
 		
 		tmi->type = TMOD_STRETCH;
 	}
+	else if ( !Q_stricmp( token, "lightscale" ) )
+	{
+		token = COM_ParseExt( text, qfalse );
+	
+		tmi->type = TMOD_LIGHTSCALE;
+	}
+
 	//
 	// transform
 	//
@@ -2499,6 +2506,14 @@ static qboolean ParseStage( shaderStage_t *stage, char **text )
 			{
 				stage->rgbGen = CGEN_LIGHTING_DYNAMIC;
 			}
+			else if ( !Q_stricmp( token, "flatAmbient" ) )
+			{
+				stage->rgbGen = CGEN_LIGHTING_FLAT_AMBIENT;
+			}
+			else if ( !Q_stricmp( token, "flatDirect" ) )
+			{
+				stage->rgbGen = CGEN_LIGHTING_FLAT_DIRECT;
+			}
 			else if ( !Q_stricmp( token, "oneMinusVertex" ) )
 			{
 				stage->rgbGen = CGEN_ONE_MINUS_VERTEX;
@@ -2595,6 +2610,10 @@ static qboolean ParseStage( shaderStage_t *stage, char **text )
 			else if ( !Q_stricmp( token, "cel" ) )
 			{
 				stage->bundle[0].tcGen = TCGEN_ENVIRONMENT_CELSHADE_MAPPED;
+			}
+			else if ( !Q_stricmp( token, "celshading" ) )		// leilei - my technique is different
+			{
+				stage->bundle[0].tcGen = TCGEN_ENVIRONMENT_CELSHADE_LEILEI;
 			}
 			else if ( !Q_stricmp( token, "lightmap" ) )
 			{
@@ -4378,6 +4397,8 @@ qhandle_t RE_RegisterShaderLightMap( const char *name, int lightmapIndex ) {
 }
 
 
+
+
 /* 
 ====================
 RE_RegisterShader
@@ -4396,6 +4417,8 @@ qhandle_t RE_RegisterShader( const char *name ) {
 		ri.Printf( PRINT_ALL, "Shader name exceeds MAX_QPATH\n" );
 		return 0;
 	}
+
+
 
 	sh = R_FindShader( name, LIGHTMAP_2D, qtrue );
 

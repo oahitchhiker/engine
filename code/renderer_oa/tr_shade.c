@@ -884,6 +884,30 @@ static void ComputeColors( shaderStage_t *pStage )
 		case CGEN_LIGHTING_DYNAMIC:
 			RB_CalcDynamicColor( ( unsigned char * ) tess.svars.colors );
 			break;
+		case CGEN_LIGHTING_FLAT_AMBIENT:
+			RB_CalcFlatAmbient( ( unsigned char * ) tess.svars.colors );
+			if(r_monolightmaps->integer)
+			{
+				int scale;
+				for(i = 0; i < tess.numVertexes; i++)
+				{
+					scale = LUMA(tess.svars.colors[i][0], tess.svars.colors[i][1], tess.svars.colors[i][2]);
+		 			tess.svars.colors[i][0] = tess.svars.colors[i][1] = tess.svars.colors[i][2] = scale;
+				}
+			}
+			break;
+		case CGEN_LIGHTING_FLAT_DIRECT:
+			RB_CalcFlatDirect( ( unsigned char * ) tess.svars.colors );
+			if(r_monolightmaps->integer)
+			{
+				int scale;
+				for(i = 0; i < tess.numVertexes; i++)
+				{
+					scale = LUMA(tess.svars.colors[i][0], tess.svars.colors[i][1], tess.svars.colors[i][2]);
+		 			tess.svars.colors[i][0] = tess.svars.colors[i][1] = tess.svars.colors[i][2] = scale;
+				}
+			}
+			break;
 		case CGEN_EXACT_VERTEX:
 			Com_Memcpy( tess.svars.colors, tess.vertexColors, tess.numVertexes * sizeof( tess.vertexColors[0] ) );
 			break;
@@ -1126,7 +1150,7 @@ static void ComputeTexCoords( shaderStage_t *pStage ) {
 				RB_CalcEnvironmentTexCoordsNew( ( float * ) tess.svars.texcoords[b] ); 
 			} // new dancing one
 			else if ( r_envMode->integer == 2 ) { 
-				RB_CalcEnvironmentTexCoordsHW(); 
+				RB_CalcEnvironmentTexCoordsJO( ( float * ) tess.svars.texcoords[b] ); 
 			} // odin's
 			else { 
 				RB_CalcEnvironmentTexCoords( ( float * ) tess.svars.texcoords[b] ); 
@@ -1134,6 +1158,9 @@ static void ComputeTexCoords( shaderStage_t *pStage ) {
 			break;
 		case TCGEN_ENVIRONMENT_CELSHADE_MAPPED:
 			RB_CalcEnvironmentCelShadeTexCoords( ( float * ) tess.svars.texcoords[b] );
+			break;
+		case TCGEN_ENVIRONMENT_CELSHADE_LEILEI:
+			RB_CalcCelTexCoords( ( float * ) tess.svars.texcoords[b] );
 			break;
 		case TCGEN_BAD:
 			return;
@@ -1172,6 +1199,10 @@ static void ComputeTexCoords( shaderStage_t *pStage ) {
 			case TMOD_STRETCH:
 				RB_CalcStretchTexCoords( &pStage->bundle[b].texMods[tm].wave, 
 						               ( float * ) tess.svars.texcoords[b] );
+				break;
+
+			case TMOD_LIGHTSCALE:
+				RB_CalcLightscaleTexCoords( ( float * ) tess.svars.texcoords[b] );
 				break;
 
 			case TMOD_TRANSFORM:

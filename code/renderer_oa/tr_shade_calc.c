@@ -104,6 +104,42 @@ void RB_CalcStretchTexCoords( const waveForm_t *wf, float *st )
 	RB_CalcTransformTexCoords( &tmi, st );
 }
 
+
+// leilei - this is for celshading
+void RB_CalcLightscaleTexCoords(float *st )
+{
+	float p;
+	texModInfo_t tmi;
+	float light = 1.0f;
+	float ilength;
+	vec3_t		lightDir;
+	vec3_t		ambientLight;
+	vec3_t		directedLight;
+	VectorCopy( backEnd.currentEntity->ambientLight, ambientLight );
+	VectorCopy( backEnd.currentEntity->directedLight, directedLight );
+	VectorCopy( backEnd.currentEntity->lightDir, lightDir );
+	//light = DotProduct (directedLight, lightDir);
+	light = ((directedLight[0] + directedLight[1] + directedLight[2]) * 0.333) / 255;
+	if (light > 1)
+		light = 1.0f;
+
+	p = 1.0f - (light * 0.7f);
+
+	tmi.matrix[0][0] = p;
+	tmi.matrix[1][0] = 0;
+	tmi.translate[0] = 0.5f - 0.5f * p;
+
+	tmi.matrix[0][1] = 0;
+	tmi.matrix[1][1] = p;
+	tmi.translate[1] = 0.5f - 0.5f * p;
+
+	RB_CalcTransformTexCoords( &tmi, st );
+}
+
+
+
+
+
 /*
 ====================================================================
 
@@ -991,11 +1027,122 @@ void RB_CalcEnvironmentTexCoordsHW()
 	qglEnable(GL_TEXTURE_GEN_R);
 }
 
+
+/*
+** RB_CalcEnvironmentTexCoordsJO
+	from JediOutcast source
+*/
+void RB_CalcEnvironmentTexCoordsJO( float *st ) 
+{
+	int			i;
+	float		*v, *normal;
+	vec3_t		viewer;
+	float		d;
+
+	v = tess.xyz[0];
+	normal = tess.normal[0];
+
+	if (backEnd.currentEntity && backEnd.currentEntity->e.renderfx&RF_FIRST_PERSON)	//this is a view model so we must use world lights instead of vieworg
+	{
+		for (i = 0 ; i < tess.numVertexes ; i++, v += 4, normal += 4, st += 2 ) 
+		{
+			d = DotProduct (normal, backEnd.currentEntity->lightDir);
+			st[0] = normal[0]*d - backEnd.currentEntity->lightDir[0];
+			st[1] = normal[1]*d - backEnd.currentEntity->lightDir[1];
+		}
+	} else {	//the normal way
+		for (i = 0 ; i < tess.numVertexes ; i++, v += 4, normal += 4, st += 2 ) 
+		{
+			VectorSubtract (backEnd.or.viewOrigin, v, viewer);
+			VectorNormalizeFast (viewer);
+
+			d = DotProduct (normal, viewer);
+			st[0] = normal[0]*d - 0.5*viewer[0];
+			st[1] = normal[1]*d - 0.5*viewer[1];
+		}
+	}
+}
+
+
+
+
+/*
+** RB_CalcCelTexCoords
+	Butchered from JediOutcast source, note that this is not the same method as ZEQ2.
+*/
+void RB_CalcCelTexCoords( float *st ) 
+{
+	int			i;
+	float		*v, *normal;
+	vec3_t		viewer, reflected, lightdir, directedLight, lightdured;
+	float		d, l, p;
+
+
+	v = tess.xyz[0];
+	normal = tess.normal[0];
+
+	VectorCopy(backEnd.currentEntity->lightDir, lightdir);
+	VectorCopy(backEnd.currentEntity->directedLight, directedLight);
+	float light = (directedLight[0] + directedLight[1] + directedLight[2] / 3);
+//	if (light > 1)
+//		light = 1.0f;
+
+	//p = 0.9f - (light * 0.9f);
+	p = 1.0f - (light / 255);
+
+
+
+//	for (i = 0 ; i < tess.numVertexes ; i++, v += 4, normal += 4, st += 2 ) 
+//	{
+//			
+//			d = DotProduct (normal, backEnd.currentEntity->lightDir);
+//			st[0] = normal[0]*d - backEnd.currentEntity->lightDir[0];
+//			st[1] = normal[1]*d - backEnd.currentEntity->lightDir[1];
+//	}
+
+	for (i = 0 ; i < tess.numVertexes ; i++, v += 4, normal += 4, st += 2 ) 
+	{
+		VectorSubtract (backEnd.or.viewOrigin, v, viewer);
+		VectorNormalizeFast (viewer);
+
+		d = DotProduct (normal, viewer);
+
+		l = DotProduct (normal, backEnd.currentEntity->lightDir);
+
+		if (d < 0)d = 0;
+		if (l < 0)l = 0;
+		//if (d > 1)d = 1;
+		//if (l > 1)l = 1;
+
+
+		if (d < p)d = p;
+		if (l < p)l = p;
+
+		reflected[0] = normal[0]*1*(d+l) - (viewer[0] + lightdir[0] );
+		reflected[1] = normal[1]*1*(d+l) - (viewer[1] + lightdir[1] );
+		reflected[2] = normal[2]*1*(d+l) - (viewer[2] + lightdir[2] );
+
+	//	reflected[0] = normal[0]*2*l - lightdir[0];
+	//	reflected[1] = normal[1]*2*l - lightdir[1];
+	//	reflected[2] = normal[2]*2*l - lightdir[2];
+
+
+		st[0] = 0.5 + reflected[1] * 0.5;
+		st[1] = 0.5 - reflected[2] * 0.5;
+
+	}
+}
+
+
+
 /*
 ** RB_CalcEnvironmentCelShadeTexCoords
 **
 ** RiO; celshade 1D environment map
 */
+
+
+
 
 void RB_CalcEnvironmentCelShadeTexCoords( float *st ) 
 {
@@ -1612,3 +1759,113 @@ void RB_CalcDynamicColor( unsigned char *colors )
 		colors[i*4+3] = dynamic[3];
 	}
 }
+
+
+// leilei celsperiment
+
+
+void RB_CalcFlatAmbient( unsigned char *colors )
+{
+	int				i, j;
+	float			*v, *normal;
+	float			incoming;
+	trRefEntity_t	*ent;
+	int				ambientLightInt;
+	vec3_t			ambientLight;
+	vec3_t			lightDir;
+	vec3_t			directedLight;
+	int				numVertexes;
+	ent = backEnd.currentEntity;
+	ambientLightInt = ent->ambientLightInt;
+	VectorCopy( ent->ambientLight, ambientLight );
+	//VectorCopy( ent->directedLight, directedLight );
+
+
+	lightDir[0] = 0;
+	lightDir[1] = 0;
+	lightDir[2] = 1;
+
+	v = tess.xyz[0];
+	normal = tess.normal[0];
+
+	numVertexes = tess.numVertexes;
+	for (i = 0 ; i < numVertexes ; i++, v += 4, normal += 4) {
+		j = ri.ftol(ambientLight[0]);
+		if ( j > 255 ) {
+			j = 255;
+		}
+		colors[i*4+0] = j;
+
+		j = ri.ftol(ambientLight[1]);
+		if ( j > 255 ) {
+			j = 255;
+		}
+		colors[i*4+1] = j;
+
+		j = ri.ftol(ambientLight[2]);
+		if ( j > 255 ) {
+			j = 255;
+		}
+		colors[i*4+2] = j;
+		colors[i*4+3] = 255;
+	}
+}
+
+
+void RB_CalcFlatDirect( unsigned char *colors )
+{
+	int				i, j;
+	float			*v, *normal;
+	float			incoming;
+	trRefEntity_t	*ent;
+	int				ambientLightInt;
+	vec3_t			ambientLight;
+	vec3_t			lightDir;
+	vec3_t			directedLight;
+	int				numVertexes;
+	ent = backEnd.currentEntity;
+	ambientLightInt = ent->ambientLightInt;
+	VectorCopy( ent->ambientLight, ambientLight );
+	VectorCopy( ent->directedLight, directedLight );
+	
+
+
+	directedLight[0] -= ambientLight[0];
+	directedLight[1] -= ambientLight[1];
+	directedLight[2] -= ambientLight[2];
+
+	if (directedLight[0] < 0) directedLight[0] = 0;	
+	if (directedLight[1] < 0) directedLight[1] = 0;
+	if (directedLight[2] < 0) directedLight[2] = 0;
+
+	lightDir[0] = 0;
+	lightDir[1] = 0;
+	lightDir[2] = 1;
+
+	v = tess.xyz[0];
+	normal = tess.normal[0];
+
+	numVertexes = tess.numVertexes;
+	for (i = 0 ; i < numVertexes ; i++, v += 4, normal += 4) {
+		j = ri.ftol(directedLight[0]);
+		if ( j > 255 ) {
+			j = 255;
+		}
+		colors[i*4+0] = j;
+
+		j = ri.ftol(directedLight[1]);
+		if ( j > 255 ) {
+			j = 255;
+		}
+		colors[i*4+1] = j;
+
+		j = ri.ftol(directedLight[2]);
+		if ( j > 255 ) {
+			j = 255;
+		}
+		colors[i*4+2] = j;
+		colors[i*4+3] = 255;
+	}
+}
+
+

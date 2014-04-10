@@ -193,6 +193,8 @@ cvar_t	*r_flaresDlight;
 cvar_t	*r_alternateBrightness;		// leilei - linux overbright fix
 cvar_t	*r_mockvr;		// Leilei - for debugging PVR only!
 cvar_t	*r_leifx;		// Leilei - leifx nostalgia filter
+cvar_t	*r_anime;		// Leilei - anime filter
+cvar_t	*r_leidebug;		// Leilei - debug
 
 cvar_t	*r_slowness;		// Leilei - the cvar that slows everything down. use with caution.
 cvar_t	*r_slowness_cpu;		// Leilei
@@ -1209,6 +1211,9 @@ void R_Register( void )
 
 	r_mockvr = ri.Cvar_Get( "r_mockvr", "0" , CVAR_ARCHIVE | CVAR_CHEAT);	
 	r_leifx = ri.Cvar_Get( "r_leifx", "0" , CVAR_ARCHIVE | CVAR_LATCH);	
+
+	r_anime = ri.Cvar_Get( "r_anime", "0" , CVAR_ARCHIVE | CVAR_LATCH);	
+	r_leidebug = ri.Cvar_Get( "r_leidebug", "0" , CVAR_CHEAT);	
 	r_slowness = ri.Cvar_Get( "r_slowness", "0" , CVAR_ARCHIVE);	// it's 0 because you want it to be the fastest possible by default.
 	r_slowness_cpu = ri.Cvar_Get( "r_slowness_cpu", "300" , CVAR_ARCHIVE);	// it's 0 because you want it to be the fastest possible by default.
 	r_slowness_gpu = ri.Cvar_Get( "r_slowness_gpu", "96" , CVAR_ARCHIVE);	// it's 0 because you want it to be the fastest possible by default.
@@ -1323,6 +1328,15 @@ void R_GLSL_Init(void) {
 	Q_strncpyz(programFragmentObjects[0], "glsl/sky_fp.glsl", sizeof(programFragmentObjects[0]));
 	tr.skyProgram = RE_GLSL_RegisterProgram("sky", (const char *)programVertexObjects, 1, (const char *)programFragmentObjects, 1);
 
+
+
+	Q_strncpyz(programVertexObjects[0], "glsl/anime_vp.glsl", sizeof(programVertexObjects[0]));
+	Q_strncpyz(programFragmentObjects[0], "glsl/anime_fp.glsl", sizeof(programFragmentObjects[0]));
+	tr.animeProgram = RE_GLSL_RegisterProgram("anime", (const char *)programVertexObjects, 1, (const char *)programFragmentObjects, 1);
+
+	Q_strncpyz(programVertexObjects[0], "glsl/anime_film_vp.glsl", sizeof(programVertexObjects[0]));
+	Q_strncpyz(programFragmentObjects[0], "glsl/anime_film_fp.glsl", sizeof(programFragmentObjects[0]));
+	tr.animeFilmProgram = RE_GLSL_RegisterProgram("anime_film", (const char *)programVertexObjects, 1, (const char *)programFragmentObjects, 1);
 
 
 	Q_strncpyz(programVertexObjects[0], "glsl/leifx_dither_vp.glsl", sizeof(programVertexObjects[0]));

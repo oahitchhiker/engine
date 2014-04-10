@@ -170,6 +170,8 @@ typedef enum {
 	CGEN_LIGHTING_DIFFUSE,
 	CGEN_LIGHTING_UNIFORM,
 	CGEN_LIGHTING_DYNAMIC,
+	CGEN_LIGHTING_FLAT_AMBIENT,		// leilei - cel hack
+	CGEN_LIGHTING_FLAT_DIRECT,
 	CGEN_FOG,				// standard fog
 	CGEN_CONST				// fixed color
 } colorGen_t;
@@ -181,6 +183,7 @@ typedef enum {
 	TCGEN_TEXTURE,
 	TCGEN_ENVIRONMENT_MAPPED,
 	TCGEN_ENVIRONMENT_CELSHADE_MAPPED,
+	TCGEN_ENVIRONMENT_CELSHADE_LEILEI,	// leilei - cel hack
 	TCGEN_FOG,
 	TCGEN_VECTOR			// S and T from world coordinates
 } texCoordGen_t;
@@ -210,6 +213,7 @@ typedef enum {
 	TMOD_SCROLL,
 	TMOD_SCALE,
 	TMOD_STRETCH,
+	TMOD_LIGHTSCALE,		// leilei - cel hack
 	TMOD_ROTATE,
 	TMOD_ENTITY_TRANSLATE
 } texMod_t;
@@ -976,6 +980,7 @@ typedef struct {
 	qboolean	doneBloom;		// done bloom this frame
 	qboolean	donepostproc;		// done postprocess this frame
 	qboolean	doneleifx;		// leilei - done leifxing this frame
+	qboolean	doneanime;		// leilei - done animeing this frame
 	qboolean	doneAltBrightness;	// leilei - done alternate brightness this frame
 	qboolean	doneFilm;		// leilei - done film filtering this frame
 	qboolean	doneSun;		// leilei - done drawing a sun
@@ -1034,6 +1039,8 @@ typedef struct {
 	qhandle_t				leiFXDitherProgram;	// leilei
 	qhandle_t				leiFXGammaProgram;	// leilei
 	qhandle_t				leiFXFilterProgram;	// leilei
+	qhandle_t				animeProgram;	// leilei
+	qhandle_t				animeFilmProgram;	// leilei
 
 	int						numPrograms;
 	glslProgram_t			*programs[MAX_PROGRAMS];
@@ -1235,7 +1242,10 @@ extern	cvar_t	*r_flaresDlight;
 
 extern cvar_t	*r_alternateBrightness;		// leilei - alternate brightness
 
-extern cvar_t	*r_leifx;		// Leilei - leifx nostalgia filter
+extern cvar_t	*r_leifx;	// Leilei - leifx nostalgia filter
+
+extern cvar_t	*r_anime;	// Leilei - anime filter
+extern cvar_t	*r_leidebug;	// Leilei - debug only!
 
 //====================================================================
 
@@ -1870,6 +1880,8 @@ void	R_TransformClipToWindow( const vec4_t clip, const viewParms_t *view, vec4_t
 void	RB_DeformTessGeometry( void );
 
 void	RB_CalcEnvironmentTexCoords( float *dstTexCoords );
+void	RB_CalcCelTexCoords( float *dstTexCoords );		// leilei - cel hack
+void	RB_CalcEnvironmentTexCoordsJO( float *dstTexCoords );	// leilei
 void	RB_CalcEnvironmentCelShadeTexCoords( float *dstTexCoords );
 void	RB_CalcEnvironmentTexCoordsNew( float *dstTexCoords );
 void	RB_CalcEnvironmentTexCoordsHW(void);
@@ -1887,6 +1899,7 @@ void	RB_CalcWaveColor( const waveForm_t *wf, unsigned char *dstColors );
 void	RB_CalcAlphaFromEntity( unsigned char *dstColors );
 void	RB_CalcAlphaFromOneMinusEntity( unsigned char *dstColors );
 void	RB_CalcStretchTexCoords( const waveForm_t *wf, float *texCoords );
+void	RB_CalcLightscaleTexCoords( float *texCoords );
 void	RB_CalcColorFromEntity( unsigned char *dstColors );
 void	RB_CalcColorFromOneMinusEntity( unsigned char *dstColors );
 void	RB_CalcSpecularAlpha( unsigned char *alphas );
@@ -1894,6 +1907,9 @@ void	RB_CalcSpecularAlphaNew( unsigned char *alphas );
 void	RB_CalcDiffuseColor( unsigned char *colors );
 void	RB_CalcUniformColor( unsigned char *colors );
 void	RB_CalcDynamicColor( unsigned char *colors );
+
+void	RB_CalcFlatAmbient( unsigned char *colors ); // leilei - cel hack
+void	RB_CalcFlatDirect( unsigned char *colors ); // leilei - cel hack
 
 /*
 =============================================================
@@ -2054,6 +2070,7 @@ void RE_TakeVideoFrame( int width, int height,
 //Bloom Stuff
 void R_BloomInit( void );
 void R_BloomScreen( void );
+void R_AnimeScreen( void );
 
 // Postprocessing
 void R_PostprocessScreen( void );

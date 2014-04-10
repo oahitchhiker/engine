@@ -61,6 +61,8 @@ void GL_Bind( image_t *image ) {
 }
 void R_LeiFXPostprocessDitherScreen( void );
 void R_LeiFXPostprocessFilterScreen( void );
+
+
 /*
 ** GL_SelectTexture
 */
@@ -1506,6 +1508,7 @@ const void	*RB_SwapBuffers( const void *data ) {
 	backEnd.doneAltBrightness = qfalse;
 	backEnd.doneFilm = qfalse;
 	backEnd.doneleifx = qfalse;
+	backEnd.doneanime = qfalse;
 	backEnd.doneSurfaces = qfalse;
 	backEnd.doneSun	     = qfalse;
 	backEnd.doneSunFlare = qfalse;
@@ -1561,7 +1564,7 @@ void RB_ExecuteRenderCommands( const void *data ) {
 			R_PostprocessScreen();
 			R_BloomScreen();
 			R_FilmScreen();
-	
+			R_AnimeScreen();
 			data = RB_StretchPic( data );
 			break;
 		case RC_DRAW_SURFS:
@@ -1576,7 +1579,7 @@ void RB_ExecuteRenderCommands( const void *data ) {
 			R_PostprocessScreen();
 			R_BloomScreen();
 			R_FilmScreen();
-
+			R_AnimeScreen();
 
 			data = RB_SwapBuffers( data );
 			break;
