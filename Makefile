@@ -229,6 +229,7 @@ SDIR=$(MOUNT_DIR)/server
 RCOMMONDIR=$(MOUNT_DIR)/renderercommon
 RGL1DIR=$(MOUNT_DIR)/renderergl1
 RGL2DIR=$(MOUNT_DIR)/renderergl2
+RSOFTDIR=$(MOUNT_DIR)/renderersoft
 ROADIR=$(MOUNT_DIR)/renderer_oa
 CMDIR=$(MOUNT_DIR)/qcommon
 SDLDIR=$(MOUNT_DIR)/sdl
@@ -935,12 +936,14 @@ ifneq ($(BUILD_CLIENT),0)
   ifneq ($(USE_RENDERER_DLOPEN),0)
     TARGETS += $(B)/$(CLIENTBIN)$(FULLBINEXT) $(B)/renderer_openarena1_$(SHLIBNAME)
     TARGETS += $(B)/renderer_opengl1_$(SHLIBNAME)
+    TARGETS += $(B)/renderer_software_$(SHLIBNAME)
     ifneq ($(BUILD_RENDERER_OPENGL2), 0)
       TARGETS += $(B)/renderer_opengl2_$(SHLIBNAME)
     endif
   else
     TARGETS += $(B)/$(CLIENTBIN)$(FULLBINEXT)
     TARGETS += $(B)/$(CLIENTBIN)_opengl1$(FULLBINEXT)
+    TARGETS += $(B)/$(CLIENTBIN)_software$(FULLBINEXT)
     ifneq ($(BUILD_RENDERER_OPENGL2), 0)
       TARGETS += $(B)/$(CLIENTBIN)_opengl2$(FULLBINEXT)
     endif
@@ -1288,6 +1291,7 @@ makedirs:
 	@if [ ! -d $(B)/renderergl2 ];then $(MKDIR) $(B)/renderergl2;fi
 	@if [ ! -d $(B)/renderergl2/glsl ];then $(MKDIR) $(B)/renderergl2/glsl;fi
 	@if [ ! -d $(B)/renderer_oa ];then $(MKDIR) $(B)/renderer_oa;fi
+	@if [ ! -d $(B)/renderersoft ];then $(MKDIR) $(B)/renderersoft;fi
 	@if [ ! -d $(B)/ded ];then $(MKDIR) $(B)/ded;fi
 	@if [ ! -d $(B)/$(BASEGAME) ];then $(MKDIR) $(B)/$(BASEGAME);fi
 	@if [ ! -d $(B)/$(BASEGAME)/cgame ];then $(MKDIR) $(B)/$(BASEGAME)/cgame;fi
@@ -1740,6 +1744,46 @@ Q3ROBJ = \
   $(B)/renderergl1/sdl_gamma.o \
   $(B)/renderergl1/sdl_glimp.o
 
+
+Q3RSOFTOBJ = \
+ $(B)/renderer_oa/tr_animation.o \
+  $(B)/renderer_oa/tr_backend.o \
+  $(B)/renderer_oa/tr_bsp.o \
+  $(B)/renderer_oa/tr_cmds.o \
+  $(B)/renderer_oa/tr_curve.o \
+  $(B)/renderer_oa/tr_flares.o \
+  $(B)/renderer_oa/tr_font.o \
+  $(B)/renderer_oa/tr_image.o \
+  $(B)/renderer_oa/tr_image_png.o \
+  $(B)/renderer_oa/tr_image_jpg.o \
+  $(B)/renderer_oa/tr_image_bmp.o \
+  $(B)/renderer_oa/tr_image_tga.o \
+  $(B)/renderer_oa/tr_image_pcx.o \
+  $(B)/renderer_oa/tr_init.o \
+  $(B)/renderer_oa/tr_light.o \
+  $(B)/renderer_oa/tr_main.o \
+  $(B)/renderer_oa/tr_marks.o \
+  $(B)/renderer_oa/tr_mesh.o \
+  $(B)/renderer_oa/tr_model.o \
+  $(B)/renderer_oa/tr_model_iqm.o \
+  $(B)/renderer_oa/tr_noise.o \
+  $(B)/renderer_oa/tr_scene.o \
+  $(B)/renderer_oa/tr_shade.o \
+  $(B)/renderer_oa/tr_shade_calc.o \
+  $(B)/renderer_oa/tr_shader.o \
+  $(B)/renderer_oa/tr_shadows.o \
+  $(B)/renderer_oa/tr_sky.o \
+  $(B)/renderer_oa/tr_surface.o \
+  $(B)/renderer_oa/tr_world.o \
+  \
+  $(B)/renderer_oa/tr_bloom.o \
+  $(B)/renderer_oa/tr_extensions.o \
+  \
+  $(B)/renderersoft/sdl_gamma.o \
+  $(B)/renderersoft/sdl_glimp.o
+
+
+
 ifneq ($(USE_RENDERER_DLOPEN), 0)
   Q3ROBJ += \
     $(B)/renderergl1/q_shared.o \
@@ -1758,6 +1802,13 @@ ifneq ($(USE_RENDERER_DLOPEN), 0)
     $(B)/renderergl1/puff.o \
     $(B)/renderergl1/q_math.o \
     $(B)/renderergl1/tr_subs.o
+
+  Q3RSOFTOBJ += \
+    $(B)/renderergl1/q_shared.o \
+    $(B)/renderergl1/puff.o \
+    $(B)/renderergl1/q_math.o \
+    $(B)/renderergl1/tr_subs.o
+
 endif
 
 ifneq ($(USE_INTERNAL_JPEG),0)
@@ -2092,6 +2143,12 @@ $(B)/renderer_openarena1_$(SHLIBNAME): $(Q3ROAOBJ) $(JPGOBJ)
 	$(Q)$(CC) $(CFLAGS) $(SHLIBLDFLAGS) -o $@ $(Q3ROAOBJ) $(JPGOBJ) \
 		$(THREAD_LIBS) $(LIBSDLMAIN) $(RENDERER_LIBS) $(LIBS)
 
+$(B)/renderer_software_$(SHLIBNAME): $(Q3RSOFTOBJ) $(JPGOBJ)
+	$(echo_cmd) "LD $@"
+	$(Q)$(CC) $(CFLAGS) $(SHLIBLDFLAGS) -o $@ $(Q3RSOFTOBJ) $(JPGOBJ) \
+		$(THREAD_LIBS) $(LIBSDLMAIN) $(RENDERER_LIBS) $(LIBS)
+
+
 else
 $(B)/$(CLIENTBIN)$(FULLBINEXT): $(Q3OBJ) $(Q3ROAOBJ) $(JPGOBJ) $(LIBSDLMAIN)
 	$(echo_cmd) "LD $@"
@@ -2109,6 +2166,12 @@ $(B)/$(CLIENTBIN)_opengl1$(FULLBINEXT): $(Q3OBJ) $(Q3ROBJ) $(JPGOBJ) $(LIBSDLMAI
 	$(echo_cmd) "LD $@"
 	$(Q)$(CC) $(CLIENT_CFLAGS) $(CFLAGS) $(CLIENT_LDFLAGS) $(LDFLAGS) \
 		-o $@ $(Q3OBJ) $(Q3ROBJ) $(JPGOBJ) \
+		$(LIBSDLMAIN) $(CLIENT_LIBS) $(RENDERER_LIBS) $(LIBS)
+
+$(B)/$(CLIENTBIN)_software$(FULLBINEXT): $(Q3OBJ) $(Q3RSOFTOBJ) $(JPGOBJ) $(LIBSDLMAIN)
+	$(echo_cmd) "LD $@"
+	$(Q)$(CC) $(CLIENT_CFLAGS) $(CFLAGS) $(CLIENT_LDFLAGS) $(LDFLAGS) \
+		-o $@ $(Q3OBJ) $(Q3RSOFTOBJ) $(JPGOBJ) \
 		$(LIBSDLMAIN) $(CLIENT_LIBS) $(RENDERER_LIBS) $(LIBS)
 endif
 
@@ -2631,6 +2694,22 @@ $(B)/renderer_oa/%.o: $(ROADIR)/%.c
 $(B)/renderer_oa/%.o: $(RCOMMONDIR)/%.c
 	$(DO_REF_CC)
 
+$(B)/renderersoft/%.o: $(CMDIR)/%.c
+	$(DO_REF_CC)
+
+$(B)/renderersoft/%.o: $(SDLDIR)/%.c
+	$(DO_REF_CC)
+
+$(B)/renderersoft/%.o: $(JPDIR)/%.c
+	$(DO_REF_CC)
+
+$(B)/renderersoft/%.o: $(RCOMMONDIR)/%.c
+	$(DO_REF_CC)
+
+$(B)/renderersoft/%.o: $(RSOFTDIR)/%.c
+	$(DO_REF_CC)
+
+
 $(B)/ded/%.o: $(ASMDIR)/%.s
 	$(DO_AS)
 
@@ -2754,7 +2833,7 @@ $(B)/$(MISSIONPACK)/qcommon/%.asm: $(CMDIR)/%.c $(Q3LCC)
 # MISC
 #############################################################################
 
-OBJ = $(Q3OBJ) $(Q3ROBJ) $(Q3R2OBJ) $(Q3ROAOBJ) $(Q3DOBJ) $(JPGOBJ) \
+OBJ = $(Q3OBJ) $(Q3ROBJ) $(Q3R2OBJ) $(Q3ROAOBJ) $(Q3RSOFTOBJ) $(Q3DOBJ) $(JPGOBJ) \
   $(MPGOBJ) $(Q3GOBJ) $(Q3CGOBJ) $(MPCGOBJ) $(Q3UIOBJ) $(MPUIOBJ) \
   $(MPGVMOBJ) $(Q3GVMOBJ) $(Q3CGVMOBJ) $(MPCGVMOBJ) $(Q3UIVMOBJ) $(MPUIVMOBJ)
 TOOLSOBJ = $(LBURGOBJ) $(Q3CPPOBJ) $(Q3RCCOBJ) $(Q3LCCOBJ) $(Q3ASMOBJ)
@@ -2776,12 +2855,14 @@ ifneq ($(BUILD_CLIENT),0)
 	$(INSTALL) $(STRIP_FLAG) -m 0755 $(BR)/$(CLIENTBIN)$(FULLBINEXT) $(COPYBINDIR)/$(CLIENTBIN)$(FULLBINEXT)
   ifneq ($(USE_RENDERER_DLOPEN),0)
 	$(INSTALL) $(STRIP_FLAG) -m 0755 $(BR)/renderer_opengl1_$(SHLIBNAME) $(COPYBINDIR)/renderer_opengl1_$(SHLIBNAME)
+	$(INSTALL) $(STRIP_FLAG) -m 0755 $(BR)/renderer_software_$(SHLIBNAME) $(COPYBINDIR)/renderer_software_$(SHLIBNAME)
 	$(INSTALL) $(STRIP_FLAG) -m 0755 $(BR)/renderer_openarena1_$(SHLIBNAME) $(COPYBINDIR)/renderer_openarena1_$(SHLIBNAME)
     ifneq ($(BUILD_RENDERER_OPENGL2),0)
 	$(INSTALL) $(STRIP_FLAG) -m 0755 $(BR)/renderer_opengl2_$(SHLIBNAME) $(COPYBINDIR)/renderer_opengl2_$(SHLIBNAME)
     endif
   else
 	$(INSTALL) $(STRIP_FLAG) -m 0755 $(BR)/$(CLIENTBIN)_opengl1$(FULLBINEXT) $(COPYBINDIR)/$(CLIENTBIN)_opengl1$(FULLBINEXT)
+	$(INSTALL) $(STRIP_FLAG) -m 0755 $(BR)/$(CLIENTBIN)_software$(FULLBINEXT) $(COPYBINDIR)/$(CLIENTBIN)_software$(FULLBINEXT)
     ifneq ($(BUILD_RENDERER_OPENGL2),0)
 	$(INSTALL) $(STRIP_FLAG) -m 0755 $(BR)/$(CLIENTBIN)_opengl2$(FULLBINEXT) $(COPYBINDIR)/$(CLIENTBIN)_opengl2$(FULLBINEXT)
     endif
