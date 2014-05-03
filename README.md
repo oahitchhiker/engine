@@ -84,7 +84,6 @@ $ ./openarena.x86_64 +set cl_renderer opengl2
 * Potential GLSL debugging fix that was made available after 0.8.8 release
     - Need to find a link to this.  Is this real?
 * Fix Ogg Vorbis music looping hitching bug.
-* Module player for music as an alternative to streams (.mod, .it, .xm and .s3m formats)
 * Software rendering module based on TinyGL, optimized for performance.
 * Direct3D7 rendering module.  7 particularly, for compatibility with more legacy graphics chipsets and underperforming onboard video chipsets without a good OpenGL driver. 
 * Restore Win9X support (Regressions are in PSAPI and the TCP stack)
@@ -128,11 +127,15 @@ $ ./openarena.x86_64 +set cl_renderer opengl2
 
 * Widescreen horizontal expansion support
 * Paletted texturing support, for the few older cards that support the paletted texture extensions (3dfx)
-* Many changes to the flares code - sun flares, support for custom flare shaders, a lower quality flare option (huge frametate jump on oa_pvomit), additional lens reflection effects, configurable lens reflection types for dynamic lights, sun or map lights
+* Many changes to the flares code - sun flares, support for custom flare shaders, a lower quality flare option (huge framerate jump on oa_pvomit), additional lens reflection effects, configurable lens reflection types for dynamic lights, sun or map lights
 * Brightness by blended quad, allowing overbrights to work in a window without the need for a fragment shader
 * More postprocessing effects, including a multipass shader effect for simulating the looks of a popular 1996 3d card
 * Slowness feature to simulate the rough speed of a typical 6th generation computer setup by default (common 1998 computers), potentially useful for content producers looking to optimize their stuff
 
+
+## client changes ##
+
+* Module player for music as an alternative to streams (.mod, .it, .xm and .s3m formats). Uses the libxmp library.
 
 
 # ioquake3 README #

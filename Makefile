@@ -172,6 +172,10 @@ ifndef USE_CODEC_VORBIS
 USE_CODEC_VORBIS=0
 endif
 
+ifndef USE_CODEC_XMP
+USE_CODEC_XMP=1
+endif
+
 ifndef USE_CODEC_OPUS
 USE_CODEC_OPUS=1
 endif
@@ -1000,6 +1004,12 @@ ifeq ($(USE_CODEC_VORBIS),1)
   NEED_OGG=1
 endif
 
+ifeq ($(USE_CODEC_XMP),1)
+  CLIENT_CFLAGS += -DUSE_CODEC_XMP
+  CLIENT_LIBS += -lxmp
+  NEED_OGG=1
+endif
+
 ifeq ($(USE_CODEC_OPUS),1)
   CLIENT_CFLAGS += -DUSE_CODEC_OPUS
   ifeq ($(USE_INTERNAL_OPUS),1)
@@ -1534,6 +1544,7 @@ Q3OBJ = \
   $(B)/client/snd_codec_wav.o \
   $(B)/client/snd_codec_ogg.o \
   $(B)/client/snd_codec_opus.o \
+  $(B)/client/snd_codec_xmp.o \
   \
   $(B)/client/qal.o \
   $(B)/client/snd_openal.o \

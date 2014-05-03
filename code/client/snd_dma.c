@@ -33,6 +33,9 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 #include "snd_codec.h"
 #include "client.h"
 
+// leilei - mod playabck support
+
+
 void S_Update_( void );
 void S_Base_StopAllSounds(void);
 void S_Base_StopBackgroundTrack( void );
@@ -54,6 +57,8 @@ static char		s_backgroundLoop[MAX_QPATH];
 channel_t   s_channels[MAX_CHANNELS];
 channel_t   loop_channels[MAX_CHANNELS];
 int			numLoopChannels;
+
+int			samplingrate;	// leilei - for snd_xmp
 
 static int	s_soundStarted;
 static		qboolean	s_soundMuted;
@@ -1198,6 +1203,9 @@ qboolean S_ScanChannelStarts( void ) {
 	return newSamples;
 }
 
+
+
+
 /*
 ============
 S_Update
@@ -1325,6 +1333,7 @@ void S_Update_(void) {
 		sane = 11;			// 85hz
 	}
 
+	samplingrate = dma.speed;
 	ma = s_mixahead->value * dma.speed;
 	op = s_mixPreStep->value + sane*dma.speed*0.01;
 
@@ -1403,6 +1412,7 @@ static void S_OpenBackgroundStream( const char *filename ) {
 		Com_Printf(S_COLOR_YELLOW "WARNING: music file %s is not 22k stereo\n", filename );
 	}
 }
+
 
 /*
 ======================

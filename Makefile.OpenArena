@@ -18,8 +18,13 @@ VERSION=1.36+0.8.8
 USE_CODEC_VORBIS=1
 USE_CODEC_OPUS=0
 
+USE_CODEC_XMP=1
+
+# Can't use CURL on my system atm
+USE_CURL=0
+
 # This doesn't work with OpenArena yet
-BUILD_RENDERER_OPENGL2=0
+BUILD_RENDERER_OPENGL2=1
 # You can disable the renderer libraries and build in the OA renderer by default
 USE_RENDERER_DLOPEN=1
 

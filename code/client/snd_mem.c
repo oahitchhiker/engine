@@ -220,6 +220,8 @@ qboolean S_LoadSound( sfx_t *sfx )
 	if(!data)
 		return qfalse;
 
+	// leilei - don't be so paranoid about these
+#if 	0
 	if ( info.width == 1 ) {
 		Com_DPrintf(S_COLOR_YELLOW "WARNING: %s is a 8 bit audio file\n", sfx->soundName);
 	}
@@ -227,7 +229,7 @@ qboolean S_LoadSound( sfx_t *sfx )
 	if ( info.rate != 22050 ) {
 		Com_DPrintf(S_COLOR_YELLOW "WARNING: %s is not a 22kHz audio file\n", sfx->soundName);
 	}
-
+#endif
 	samples = Hunk_AllocateTempMemory(info.channels * info.samples * sizeof(short) * 2);
 
 	sfx->lastTimeUsed = Com_Milliseconds()+1;

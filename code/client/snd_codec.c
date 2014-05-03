@@ -124,6 +124,14 @@ void S_CodecInit()
 {
 	codecs = NULL;
 
+#ifdef USE_CODEC_XMP
+	S_CodecRegister(&xmp_codec);
+	S_CodecRegister(&xmp_mod_codec);
+	S_CodecRegister(&xmp_s3m_codec);
+	S_CodecRegister(&xmp_xm_codec);
+	S_CodecRegister(&xmp_it_codec);
+#endif
+
 #ifdef USE_CODEC_OPUS
 	S_CodecRegister(&opus_codec);
 #endif
