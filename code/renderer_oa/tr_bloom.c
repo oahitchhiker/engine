@@ -666,7 +666,7 @@ static void R_Bloom_RestoreScreen_Postprocessed( void ) {
 
 	if (program->u_ScreenSizeY > -1) R_GLSL_SetUniform_u_ScreenSizeY(program, glConfig.vidHeight);
 
-	if (program->u_ScreenToNextPixelX > -1) R_GLSL_SetUniform_u_ScreenToNextPixelX(program, 0.00125);
+	if (program->u_ScreenToNextPixelX > -1) R_GLSL_SetUniform_u_ScreenToNextPixelX(program, (float)1.0/(float)glConfig.vidWidth);
 
 	if (program->u_ScreenToNextPixelY > -1) R_GLSL_SetUniform_u_ScreenToNextPixelY(program, (float)1.0/(float)glConfig.vidHeight);
 
