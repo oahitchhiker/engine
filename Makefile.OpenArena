@@ -24,7 +24,7 @@ USE_CODEC_XMP=1
 USE_CURL=0
 
 # This doesn't work with OpenArena yet
-BUILD_RENDERER_OPENGL2=1
+BUILD_RENDERER_OPENGL2=0
 # You can disable the renderer libraries and build in the OA renderer by default
 USE_RENDERER_DLOPEN=1
 

@@ -133,6 +133,9 @@ static void R_SetupEntityLightingGrid( trRefEntity_t *ent ) {
 	vec3_t	direction;
 	float	totalFactor;
 
+
+
+
 	if ( ent->e.renderfx & RF_LIGHTING_ORIGIN ) {
 		// seperate lightOrigins are needed so an object that is
 		// sinking into the ground can still be lit, and so
@@ -145,6 +148,8 @@ static void R_SetupEntityLightingGrid( trRefEntity_t *ent ) {
 	VectorSubtract( lightOrigin, tr.world->lightGridOrigin, lightOrigin );
 	for ( i = 0 ; i < 3 ; i++ ) {
 		float	v;
+		float	vA, vB, vC, vD;
+
 
 		v = lightOrigin[i]*tr.world->lightGridInverseSize[i];
 		pos[i] = floor( v );
@@ -154,6 +159,9 @@ static void R_SetupEntityLightingGrid( trRefEntity_t *ent ) {
 		} else if ( pos[i] >= tr.world->lightGridBounds[i] - 1 ) {
 			pos[i] = tr.world->lightGridBounds[i] - 1;
 		}
+
+
+		
 	}
 
 	VectorClear( ent->ambientLight );
@@ -240,6 +248,292 @@ static void R_SetupEntityLightingGrid( trRefEntity_t *ent ) {
 	VectorScale( ent->directedLight, r_directedScale->value, ent->directedLight );
 
 	VectorNormalize2( direction, ent->lightDir );
+
+	
+}
+
+
+static void R_SetupEntityLightingGrid_crazy( trRefEntity_t *ent ) {
+	vec3_t	lightOrigin;
+	int		pos[3];
+	int		i, j;
+	byte	*gridData;
+	float	frac[3];
+	int		gridStep[3];
+	vec3_t	direction;
+	float	totalFactor;
+
+
+	byte	*gridDataA;
+	
+	float	fracA[3];
+	float	fracB[3];
+	float	fracC[3];
+	float	fracD[3];
+	int		posA[3];
+	int		posB[3];
+	int		posC[3];
+	int		posD[3];
+	vec3_t	failed;
+
+	int lightdist = 128;
+
+	lightdist = r_leidebug->integer;
+
+	failed[0] = 666;
+	failed[1] = 666;
+	failed[2] = 666;
+
+	int failA, failB, failC, failD = 0;
+	vec3_t	lightOriginA;
+	vec3_t	lightOriginB;
+	vec3_t	lightOriginC;
+	vec3_t	lightOriginD;
+	vec3_t	directionA;
+	vec3_t	directionB;
+	vec3_t	directionC;
+	vec3_t	directionD;
+
+	qboolean shadey = qfalse;
+
+	//
+	// leilei - lighting hack
+	//
+	//  Try to sample the lightgrid from four different positions
+	//  so we can add in four more lights to the model
+
+	vec3_t		dirr;
+	VectorSubtract( lightOrigin, backEnd.viewParms.or.origin, dirr );
+	//VectorCopy(backEnd.viewParms.or.orign, dirr);
+	VectorNormalize( dirr );
+//	VectorMA( lightOrigin, lightdist, dirr, lightOriginA );
+//	lightOriginA[0] = dirr[0] * lightdist;
+//	lightOriginA[1] = dirr[1] * lightdist;
+//	lightOriginA[2] = dirr[2] * lightdist;
+
+	// Reverse the light direction to check
+
+	VectorSubtract( ent->lightDir, lightOrigin, dirr );
+	VectorNormalize( dirr );
+
+	lightOriginA[0] = lightOrigin[0] - (dirr[0] * lightdist);
+	lightOriginA[1] = lightOrigin[1] - (dirr[1] * lightdist);
+	lightOriginA[2] = lightOrigin[2] - (dirr[2] * lightdist);
+
+	lightOriginB[0] = lightdist;
+	lightOriginB[1] = lightdist;
+	lightOriginC[2] = -lightdist;
+	lightOriginD[2] = lightdist;
+
+
+	if ( ent->e.renderfx & RF_LIGHTING_ORIGIN ) {
+		// seperate lightOrigins are needed so an object that is
+		// sinking into the ground can still be lit, and so
+		// multi-part models can be lit identically
+		VectorCopy( ent->e.lightingOrigin, lightOrigin );
+	} else {
+		VectorCopy( ent->e.origin, lightOrigin );
+	}
+
+
+
+	VectorSubtract( lightOrigin, tr.world->lightGridOrigin, lightOrigin );
+
+
+	//VectorAdd( lightOrigin, lightOriginA, lightOriginA );
+	VectorAdd( lightOrigin, lightOriginB, lightOriginB );
+	VectorAdd( lightOrigin, lightOriginC, lightOriginC );
+	VectorAdd( lightOrigin, lightOriginD, lightOriginD );
+	
+
+	for ( i = 0 ; i < 3 ; i++ ) {
+		float	v;
+		float	vA, vB, vC, vD;
+
+
+		v = lightOrigin[i]*tr.world->lightGridInverseSize[i];
+		pos[i] = floor( v );
+		frac[i] = v - pos[i];
+		if ( pos[i] < 0 ) {
+			pos[i] = 0;
+		} else if ( pos[i] >= tr.world->lightGridBounds[i] - 1 ) {
+			pos[i] = tr.world->lightGridBounds[i] - 1;
+		}
+
+
+		vA = lightOriginA[i]*tr.world->lightGridInverseSize[i];
+		posA[i] = floor( vA );
+		fracA[i] = vA - posA[i];
+		if ( posA[i] < 0 ) {
+			posA[i] = 0;
+		} else if ( posA[i] >= tr.world->lightGridBounds[i] - 1 ) {
+			posA[i] = tr.world->lightGridBounds[i] - 1;
+		}
+		vB = lightOriginB[i]*tr.world->lightGridInverseSize[i];
+		posB[i] = floor( vB );
+		fracB[i] = vB - posB[i];
+		if ( posB[i] < 0 ) {
+			posB[i] = 0;
+		} else if ( posB[i] >= tr.world->lightGridBounds[i] - 1 ) {
+			posB[i] = tr.world->lightGridBounds[i] - 1;
+		}
+		vC = lightOriginC[i]*tr.world->lightGridInverseSize[i];
+		posC[i] = floor( vC );
+		fracC[i] = vC - posC[i];
+		if ( posC[i] < 0 ) {
+			posC[i] = 0;
+		} else if ( posC[i] >= tr.world->lightGridBounds[i] - 1 ) {
+			posC[i] = tr.world->lightGridBounds[i] - 1;
+		}
+		vD = lightOriginD[i]*tr.world->lightGridInverseSize[i];
+		posD[i] = floor( vD );
+		fracD[i] = vD - posD[i];
+		if ( pos[i] < 0 ) {
+			posD[i] = 0;
+		} else if ( posD[i] >= tr.world->lightGridBounds[i] - 1 ) {
+			posD[i] = tr.world->lightGridBounds[i] - 1;
+		}
+
+		
+	}
+
+	VectorClear( ent->ambientLight );
+	VectorClear( ent->directedLight );
+	VectorClear( ent->dynamicLight );
+	VectorClear( direction );
+
+	// leilei - lighting hack
+
+	VectorClear( ent->directedLightA );
+	
+
+	assert( tr.world->lightGridData ); // NULL with -nolight maps
+
+	// trilerp the light value
+	gridStep[0] = 8;
+	gridStep[1] = 8 * tr.world->lightGridBounds[0];
+	gridStep[2] = 8 * tr.world->lightGridBounds[0] * tr.world->lightGridBounds[1];
+	gridData = tr.world->lightGridData + pos[0] * gridStep[0]
+		+ pos[1] * gridStep[1] + pos[2] * gridStep[2];
+
+	gridDataA = tr.world->lightGridData + posA[0] * gridStep[0]
+		+ posA[1] * gridStep[1] + posA[2] * gridStep[2];
+
+	
+
+	totalFactor = 0;
+	for ( i = 0 ; i < 8 ; i++ ) {
+		float	factor;
+		float	factorA;
+		float	factorB;
+		float	factorC;
+		float	factorD;
+		byte	*data;
+
+		byte	*dataA;
+		int		lat, lng;
+		vec3_t	normal;
+		#if idppc
+		float d0, d1, d2, d3, d4, d5;
+		#endif
+		factor = 1.0;
+		factorA = 1.0;
+		factorB = 1.0;
+		factorC = 1.0;
+		factorD = 1.0;
+		data = gridData;
+
+		dataA = gridDataA;
+		for ( j = 0 ; j < 3 ; j++ ) {
+			if ( i & (1<<j) ) {
+				factor *= frac[j];
+				factorA *= fracA[j];
+				factorB *= fracB[j];
+				factorC *= fracC[j];
+				factorD *= fracD[j];
+				data += gridStep[j];
+				dataA += gridStep[j];
+			} else {
+				factor *= (1.0f - frac[j]);
+				factorA *= (1.0f - fracA[j]);
+				factorB *= (1.0f - fracB[j]);
+				factorC *= (1.0f - fracC[j]);
+				factorD *= (1.0f - fracD[j]);
+			}
+		}
+
+		if ( !(dataA[0]+dataA[1]+dataA[2]) ) {
+			failA = 1;	// try to fallback on an actual light we have
+		}
+		
+		if ( !(data[0]+data[1]+data[2]) ) {
+			continue;	// ignore samples in walls
+		}
+
+		totalFactor += factor;
+	// idpcc stripped out for now as i can't test that.
+		ent->ambientLight[0] += factor * data[0];
+		ent->ambientLight[1] += factor * data[1];
+		ent->ambientLight[2] += factor * data[2];
+
+		ent->directedLight[0] += factor * data[3];
+		ent->directedLight[1] += factor * data[4];
+		ent->directedLight[2] += factor * data[5];
+
+		ent->directedLightA[0] += factorA * dataA[3];
+		ent->directedLightA[1] += factorA * dataA[4];
+		ent->directedLightA[2] += factorA * dataA[5];
+
+		
+
+		lat = data[7];
+		lng = data[6];
+		lat *= (FUNCTABLE_SIZE/256);
+		lng *= (FUNCTABLE_SIZE/256);
+
+		// decode X as cos( lat ) * sin( long )
+		// decode Y as sin( lat ) * sin( long )
+		// decode Z as cos( long )
+
+		normal[0] = tr.sinTable[(lat+(FUNCTABLE_SIZE/4))&FUNCTABLE_MASK] * tr.sinTable[lng];
+		normal[1] = tr.sinTable[lat] * tr.sinTable[lng];
+		normal[2] = tr.sinTable[(lng+(FUNCTABLE_SIZE/4))&FUNCTABLE_MASK];
+
+		VectorMA( direction, factor, normal, direction );
+
+		VectorMA( directionA, factorA, normal, directionA );
+		VectorMA( directionB, factorB, normal, directionB );
+		VectorMA( directionC, factorC, normal, directionC );
+		VectorMA( directionD, factorD, normal, directionD );
+	}
+
+	if ( totalFactor > 0 && totalFactor < 0.99 ) {
+		totalFactor = 1.0f / totalFactor;
+		VectorScale( ent->ambientLight, totalFactor, ent->ambientLight );
+		VectorScale( ent->directedLight, totalFactor, ent->directedLight );
+
+		VectorScale( ent->directedLightA, totalFactor, ent->directedLightA );
+		
+	}
+
+	VectorScale( ent->ambientLight, r_ambientScale->value, ent->ambientLight );
+	VectorScale( ent->directedLight, r_directedScale->value, ent->directedLight );
+
+	VectorNormalize2( direction, ent->lightDir );
+
+	
+	VectorNormalize2( directionA, ent->lightDirA );
+	
+	
+
+/*	if (failA){
+		VectorCopy(failed, ent->lightDirA);
+		VectorCopy(failed, ent->directedLightA);
+		}
+	
+*/
+
+
 }
 
 
@@ -294,11 +588,14 @@ void R_SetupEntityLighting( const trRefdef_t *refdef, trRefEntity_t *ent ) {
 	float			d;
 	vec3_t			lightDir;
 	vec3_t			lightOrigin;
-
+	qboolean		crazy;
 	// lighting calculations 
 	if ( ent->lightingCalculated ) {
 		return;
 	}
+
+		if (r_shadeMode->integer == 6)
+			crazy =qtrue;
 	ent->lightingCalculated = qtrue;
 
 	//
@@ -316,6 +613,9 @@ void R_SetupEntityLighting( const trRefdef_t *refdef, trRefEntity_t *ent ) {
 	// if NOWORLDMODEL, only use dynamic lights (menu system, etc)
 	if ( !(refdef->rdflags & RDF_NOWORLDMODEL ) 
 		&& tr.world->lightGridData ) {
+		if (crazy)
+		R_SetupEntityLightingGrid_crazy( ent );
+		else
 		R_SetupEntityLightingGrid( ent );
 	} else {
 		ent->ambientLight[0] = ent->ambientLight[1] = 

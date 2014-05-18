@@ -62,6 +62,8 @@ typedef struct image_s {
 	imgFlags_t  flags;
 
 	struct image_s*	next;
+
+	qboolean			maptexture;	// leilei - map texture listing hack
 } image_t;
 
 // any change in the LIGHTMAP_* defines here MUST be reflected in

@@ -27,6 +27,10 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 #endif
 
 
+
+
+
+
 #define	WAVEVALUE( table, base, amplitude, phase, freq )  ((base) + table[ ri.ftol( ( ( (phase) + tess.shaderTime * (freq) ) * FUNCTABLE_SIZE ) ) & FUNCTABLE_MASK ] * (amplitude))
 
 static float *TableForFunc( genFunc_t func ) 
@@ -1084,21 +1088,7 @@ void RB_CalcCelTexCoords( float *st )
 	VectorCopy(backEnd.currentEntity->lightDir, lightdir);
 	VectorCopy(backEnd.currentEntity->directedLight, directedLight);
 	float light = (directedLight[0] + directedLight[1] + directedLight[2] / 3);
-//	if (light > 1)
-//		light = 1.0f;
-
-	//p = 0.9f - (light * 0.9f);
 	p = 1.0f - (light / 255);
-
-
-
-//	for (i = 0 ; i < tess.numVertexes ; i++, v += 4, normal += 4, st += 2 ) 
-//	{
-//			
-//			d = DotProduct (normal, backEnd.currentEntity->lightDir);
-//			st[0] = normal[0]*d - backEnd.currentEntity->lightDir[0];
-//			st[1] = normal[1]*d - backEnd.currentEntity->lightDir[1];
-//	}
 
 	for (i = 0 ; i < tess.numVertexes ; i++, v += 4, normal += 4, st += 2 ) 
 	{
@@ -1111,9 +1101,6 @@ void RB_CalcCelTexCoords( float *st )
 
 		if (d < 0)d = 0;
 		if (l < 0)l = 0;
-		//if (d > 1)d = 1;
-		//if (l > 1)l = 1;
-
 
 		if (d < p)d = p;
 		if (l < p)l = p;
@@ -1121,11 +1108,6 @@ void RB_CalcCelTexCoords( float *st )
 		reflected[0] = normal[0]*1*(d+l) - (viewer[0] + lightdir[0] );
 		reflected[1] = normal[1]*1*(d+l) - (viewer[1] + lightdir[1] );
 		reflected[2] = normal[2]*1*(d+l) - (viewer[2] + lightdir[2] );
-
-	//	reflected[0] = normal[0]*2*l - lightdir[0];
-	//	reflected[1] = normal[1]*2*l - lightdir[1];
-	//	reflected[2] = normal[2]*2*l - lightdir[2];
-
 
 		st[0] = 0.5 + reflected[1] * 0.5;
 		st[1] = 0.5 - reflected[2] * 0.5;
@@ -1515,6 +1497,108 @@ static void RB_CalcDiffuseColor_scalar( unsigned char *colors )
 }
 
 
+// leilei - use FIVE (!) lighting points. Very expensive!
+static void RB_CalcDiffuseColor_crazy( unsigned char *colors )
+{
+	int				i, j, jA;
+	float			*v, *normal;
+	float			incoming, incomingA, incomingB, incomingC, incomingD;
+	trRefEntity_t	*ent;
+	int				ambientLightInt;
+	vec3_t			ambientLight;
+	vec3_t			lightDir, lightDirA;
+	vec3_t			directedLight, directedLightA;
+	int				numVertexes;
+	ent = backEnd.currentEntity;
+	ambientLightInt = ent->ambientLightInt;
+	VectorCopy( ent->ambientLight, ambientLight );
+	VectorCopy( ent->directedLight, directedLight );
+	VectorCopy( ent->lightDir, lightDir );
+
+	VectorCopy( ent->directedLightA, directedLightA );
+	VectorCopy( ent->lightDirA, lightDirA );
+
+
+	// Actually, in reality, I disabled B, C and D as I figured out a more sane way to do things.
+/*
+	// debug light positions
+	{
+	vec3_t	temp;
+	vec3_t	temp2;
+
+
+	AnglesToAxis(lightDirA, temp);
+	AnglesToAxis(lightDir, temp2);
+
+	GL_Bind( tr.whiteImage );
+	qglColor3f (1,1,1);
+	qglDepthRange( 0, 0 );	// never occluded
+	GL_State( GLS_POLYMODE_LINE | GLS_DEPTHMASK_TRUE );
+	qglBegin (GL_LINES);
+	qglVertex3fv (temp);
+	qglVertex3fv (temp2);
+	qglEnd ();
+	qglDepthRange( 0, 1 );
+	}
+
+*/
+	if (lightDirA[0] == 666){
+	VectorCopy( ent->directedLight, directedLightA );
+	VectorCopy( ent->lightDir, lightDirA );
+	}
+
+
+		
+
+	int eg;
+
+	for (eg=0; eg<3;eg++){
+		//ambientLight[eg]  /= 3;
+		directedLight[eg]  *= 0.5f;
+		directedLightA[eg]  *= 0.5f;
+		}
+
+	v = tess.xyz[0];
+	normal = tess.normal[0];
+
+	numVertexes = tess.numVertexes;
+	for (i = 0 ; i < numVertexes ; i++, v += 4, normal += 4) {
+		incoming = DotProduct (normal, lightDir);
+		incomingA = DotProduct (normal, lightDirA);
+
+		if ( incomingA <= 0 ) {	VectorCopy(directedLight, directedLightA); incomingA = incoming;	} 
+		if ( incoming <= 0 ) {
+			*(int *)&colors[i*4] = ambientLightInt;
+			continue;
+		} 
+		j = ri.ftol(ambientLight[0] + (incoming * directedLight[0]));
+
+		jA = ri.ftol(ambientLight[0] + (incomingA * directedLightA[0]));
+		if ( j > 255 ) { j = 255; }
+		if ( jA > 255 ) { jA = 255; }
+		colors[i*4+0] = (j + jA) /2;
+
+		j = ri.ftol(ambientLight[1] + (incoming * directedLight[1]));
+		jA = ri.ftol(ambientLight[1] + (incomingA * directedLightA[1]));
+		if ( j > 255 ) {
+			j = 255;
+		}
+		if ( jA > 255 ) { jA = 255; }
+		colors[i*4+1] = (j + jA) /2;
+
+		j = ri.ftol(ambientLight[2] + (incoming * directedLight[2]));
+		jA = ri.ftol(ambientLight[2] + (incomingA * directedLightA[2]));
+		if ( j > 255 ) {
+			j = 255;
+		}
+		if ( jA > 255 ) { jA = 255; }
+		colors[i*4+2] = (j + jA) /2;
+		colors[i*4+3] = 255;
+	}
+}
+
+
+
 // leilei - some slower, but bolder way of lighting
 // i sure hope gcc unrolls this.
 static void RB_CalcDiffuseColor_alternative( unsigned char *colors )
@@ -1541,17 +1625,6 @@ static void RB_CalcDiffuseColor_alternative( unsigned char *colors )
 	VectorCopy( ent->lightDir, ambDir );
 	VectorCopy( lightOrigin, ambDir );
 	VectorNormalizeFast( ambDir );
-	
-	// crappy sun shine effect
-
-	if(backEnd.doneSunFlare == qtrue)
-		{
-			VectorCopy( tr.sunDirection, ambDir );
-			ambientLight[0] = tr.sunLight[0];
-			ambientLight[1] = tr.sunLight[1];
-			ambientLight[2] = tr.sunLight[2];
-			VectorNormalizeFast( ambDir );
-		}
 
 	v = tess.xyz[0];
 	normal = tess.normal[0];
@@ -1563,7 +1636,7 @@ static void RB_CalcDiffuseColor_alternative( unsigned char *colors )
 		if (incoming < 0) incoming = 0;
 		if (incoming2 < 0) incoming2 *= -0.7; // invert for fake rim effect
 		if (incoming2 < 0.9f) incoming2 = 0.9f; // clamp out black
-/*
+
 		// add specular to ambient incoming
 		{
 
@@ -1599,7 +1672,7 @@ static void RB_CalcDiffuseColor_alternative( unsigned char *colors )
 
 		}
 		incoming2 *= l;
-*/
+
 		j = ri.ftol(ambientLight[0] * incoming2) + ri.ftol(incoming * directedLight[0]);
 		if ( j > 255 ) {
 			j = 255;
@@ -1613,6 +1686,106 @@ static void RB_CalcDiffuseColor_alternative( unsigned char *colors )
 		colors[i*4+1] = j;
 
 		j = ri.ftol(ambientLight[2] * incoming2) + ri.ftol(incoming * directedLight[2]);
+		if ( j > 255 ) {
+			j = 255;
+		}
+		colors[i*4+2] = j;
+
+		colors[i*4+3] = 255;
+	}
+}
+
+
+
+
+static void RB_CalcDiffuseColor_crazyew( unsigned char *colors )
+{
+	int				i, j;
+	float			*v, *normal;
+	float			incoming;
+	float			incoming2;
+	trRefEntity_t	*ent;
+	int				ambientLightInt;
+	vec3_t			ambientLight;
+	vec3_t			ambDir;
+	vec3_t			lightDir, lightDirA, lightDirB;
+	vec3_t			directedLight, directedLightA;
+	int				numVertexes;
+	ent = backEnd.currentEntity;
+	float ilength;
+	int d, l, b;
+	vec3_t viewer, reflected;
+	ambientLightInt = ent->ambientLightInt;
+	VectorCopy( ent->ambientLight, ambientLight );
+	VectorCopy( ent->directedLight, directedLight );
+	VectorCopy( ent->directedLightA, directedLightA );
+	VectorCopy( ent->lightDir, lightDir );
+	VectorCopy( ent->lightDirA, lightDirA );
+	//VectorCopy( lightOrigin, lightDirB );
+	VectorNormalizeFast( lightDirB );
+
+	v = tess.xyz[0];
+	normal = tess.normal[0];
+
+	numVertexes = tess.numVertexes;
+	for (i = 0 ; i < numVertexes ; i++, v += 4, normal += 4) {
+		incoming = DotProduct (normal, lightDir) * 0.8;
+	//	incoming2 = DotProduct (normal, lightDirA) * 2;
+		if (incoming < 0) incoming = 0;
+	//	if (incoming2 < 0) incoming2 *= -0.7; // invert for fake rim effect
+	//	if (incoming2 < 0.9f) incoming2 = 0.9f; // clamp out black
+
+		// add specular to ambient incoming
+		{
+
+			VectorCopy( backEnd.currentEntity->lightDir, lightDir );
+			//ilength = Q_rsqrt( DotProduct( ambDir, ambDir ) );
+			VectorNormalizeFast( ambDir );
+	
+			// calculate the specular color
+			d = DotProduct (normal, ambDir);
+		//	d *= ilength;
+	
+			// we don't optimize for the d < 0 case since this tends to
+			// cause visual artifacts such as faceted "snapping"
+			reflected[0] = normal[0]*2*d - lightDir[0];
+			reflected[1] = normal[1]*2*d - lightDir[1];
+			reflected[2] = normal[2]*2*d - lightDir[2];
+	
+			VectorSubtract (backEnd.or.viewOrigin, v, viewer);
+			ilength = Q_rsqrt( DotProduct( viewer, viewer ) );
+			l = DotProduct (reflected, viewer);
+			l *= ilength;
+	
+			if (l < 0) {
+				b = 0;
+				l = 0;
+			} else {
+				l = l*l;
+				l = l*l;
+			}
+	
+
+
+
+		}
+		incoming2 += l;
+
+		j = ri.ftol(ambientLight[0]) + ri.ftol(incoming * directedLight[0]) + ri.ftol(incoming2 * directedLightA[0]);
+
+		if ( j > 255 ) {
+			j = 255;
+		}
+		colors[i*4+0] = j;
+
+		j = ri.ftol(ambientLight[1]) + ri.ftol(incoming * directedLight[1]) + ri.ftol(incoming2 * directedLightA[1]);
+
+		if ( j > 255 ) {
+			j = 255;
+		}
+		colors[i*4+1] = j;
+
+		j = ri.ftol(ambientLight[2]) + ri.ftol(incoming * directedLight[2]) + ri.ftol(incoming2 * directedLightA[2]);
 		if ( j > 255 ) {
 			j = 255;
 		}
@@ -1685,10 +1858,15 @@ void RB_CalcDiffuseColor( unsigned char *colors )
 		return;
 	}
 #endif
-	RB_CalcDiffuseColor_scalar( colors );
-	//RB_CalcDiffuseColor_alternative( colors );
-	//RB_CalcDiffuseColor_lame( colors );
 
+	if (r_shadeMode->integer == 2)
+	RB_CalcDiffuseColor_alternative( colors );
+	else if (r_shadeMode->integer == 3)
+	RB_CalcDiffuseColor_lame( colors );
+	else if (r_shadeMode->integer == 6)
+	RB_CalcDiffuseColor_crazy( colors );
+	else
+	RB_CalcDiffuseColor_scalar( colors );
 
 }
 
@@ -1868,4 +2046,164 @@ void RB_CalcFlatDirect( unsigned char *colors )
 	}
 }
 
+
+
+
+
+
+
+
+
+
+
+
+//
+// EYES
+//
+
+vec3_t eyemin = { -12, -12, -8 };		// clamps
+vec3_t eyemax = { 12, 12, 8 };		// clamps
+
+/*
+** RB_CalcEyes
+*/
+
+
+
+void RB_CalcEyes( float *st, qboolean theothereye) 
+{
+	int			i;
+	float		*v, *normal;
+	vec3_t		viewer, reflected, eyepos, eyelook, stare;
+	float		d, l, erp;
+	int	idk;
+
+	vec3_t		stareat, staree;
+	float dilation = 2;
+
+	VectorCopy(lightOrigin, staree);
+	VectorCopy(backEnd.or.viewOrigin, stareat);
+
+
+
+
+	// transform the direction to local space
+//	VectorNormalize( staree );
+//	stareat[0] = DotProduct( staree, backEnd.currentEntity->e.axis[0] );
+//	stareat[1] = DotProduct( staree, backEnd.currentEntity->e.axis[1] );
+//	stareat[2] = DotProduct( staree, backEnd.currentEntity->e.axis[2] );
+//	VectorNormalize( stareat );
+	v = tess.xyz[0];
+	normal = tess.normal[0];
+
+
+
+	//VectorCopy(lightOrigin, eyepos);
+	//normal = backEnd.currentEntity.eyepos[0];
+	VectorCopy(backEnd.currentEntity->e.eyepos[0], eyepos);
+
+	if (!theothereye){
+		eyepos[1] *= -1;
+		}
+
+	VectorCopy(backEnd.currentEntity->e.eyelook, stareat);
+
+
+	// We need to adjust the stareat vectors to local coordinates
+
+
+		vec3_t temp;
+		VectorSubtract( stareat, backEnd.currentEntity->e.origin, temp );
+		stareat[0] = DotProduct( temp, backEnd.currentEntity->e.axis[0] );
+		stareat[1] = DotProduct( temp, backEnd.currentEntity->e.axis[1] );
+		stareat[2] = DotProduct( temp, backEnd.currentEntity->e.axis[2] );
+
+
+
+
+// debug light positions
+if (r_leidebugeye->integer == 2)
+	{
+	vec3_t	temp;
+	vec3_t	temp2;
+
+
+	VectorCopy(eyepos, temp);
+	VectorCopy(backEnd.currentEntity->e.eyelook, temp2);
+//	VectorCopy(backEnd.currentEntity->e.eyelook, stareat);
+
+	ri.Printf( PRINT_WARNING, "EYES %f %f %f--\nVieworigin:%f %f %f \nEye look desired:%f %f %f\n", temp[0], temp[1], temp[2], backEnd.or.viewOrigin[0], backEnd.or.viewOrigin[1], backEnd.or.viewOrigin[2], stareat[0], stareat[1], stareat[2] );
+
+
+	VectorNormalize(temp2);
+
+	GL_Bind( tr.whiteImage );
+	qglColor3f (1,1,1);
+	qglDepthRange( 0, 0 );	// never occluded
+	GL_State( GLS_POLYMODE_LINE | GLS_DEPTHMASK_TRUE );
+	qglBegin (GL_LINES);
+	qglVertex3fv (eyepos);
+	qglVertex3fv (stareat);
+	qglEnd ();
+	qglDepthRange( 0, 1 );
+	}
+
+
+	for (i = 0 ; i < tess.numVertexes ; i++, v += 4, normal += 4, st += 2 ) 
+	{
+		
+		float norm1, norm2;
+		// Base eye position
+		VectorSubtract (backEnd.or.viewOrigin, v, viewer);
+		//VectorSubtract (backEnd.currentEntity->e.eyepos[0], v, viewer);
+
+		VectorSubtract (eyepos, v, viewer);
+
+		VectorNormalizeFast (viewer);
+
+		
+
+		d = DotProduct (normal, viewer);
+		d = d * 0.01f;	// only have a slight normal
+		//d = r_leidebug->value;
+
+		//d = 1;
+		// Stuff to look at
+
+
+		//VectorSubtract (backEnd.currentEntity->e.eyelook, v, stare);
+
+		if (r_leidebugeye->integer==1)
+		VectorSubtract (backEnd.or.viewOrigin, v, stare);
+		else if (r_leidebugeye->integer==3)
+		VectorSubtract (stareat, v, stare);
+
+
+
+
+		VectorSubtract (stareat, v, stare);
+		VectorNormalizeFast (stare);
+
+		erp = DotProduct (normal, stare);
+
+		// Limit the eye's turning so it doesn't have dead eyes
+		for (idk=0;idk<3;idk++){
+			stare[idk] *=  22;
+			if (stare[idk] > eyemax[idk]) stare[idk] = eyemax[idk];
+			if (stare[idk] < eyemin[idk]) stare[idk] = eyemin[idk];
+			stare[idk] /=  22;
+		}		
+		VectorAdd(viewer, stare, viewer);
+		
+	
+		reflected[0] = normal[0]*2*d - viewer[0];
+		reflected[1] = normal[1]*2*d - viewer[1];
+		reflected[2] = normal[2]*2*d - viewer[2];
+
+		st[0] = 0.5 + reflected[1] * 0.5;
+		st[1] = 0.5 - reflected[2] * 0.5;
+
+	}
+
+}
 

@@ -40,6 +40,8 @@ static void GfxInfo_f( void );
 cvar_t  *com_altivec;
 #endif
 
+cvar_t	*r_shadeMode;
+
 cvar_t	*r_flareSize;
 cvar_t	*r_flareFade;
 cvar_t	*r_flareCoeff;
@@ -195,10 +197,37 @@ cvar_t	*r_mockvr;		// Leilei - for debugging PVR only!
 cvar_t	*r_leifx;		// Leilei - leifx nostalgia filter
 cvar_t	*r_anime;		// Leilei - anime filter
 cvar_t	*r_leidebug;		// Leilei - debug
+cvar_t	*r_leidebugeye;		// Leilei - eye debug
+
+cvar_t	*r_motionblur;		// Leilei - motionblur
+cvar_t	*r_motionblur_fps;		// Leilei - motionblur framerated
 
 cvar_t	*r_slowness;		// Leilei - the cvar that slows everything down. use with caution.
 cvar_t	*r_slowness_cpu;		// Leilei
 cvar_t	*r_slowness_gpu;		// Leilei
+
+
+// leilei - fallback shader hack
+//extern const char *fallbackShader_anime_vp;
+//extern const char *fallbackShader_anime_fp;
+//extern const char *fallbackShader_anime_film_vp;
+//extern const char *fallbackShader_anime_film_fp;
+//extern const char *fallbackShader_brightness_vp;
+//extern const char *fallbackShader_brightness_fp;
+extern const char *fallbackShader_leifx_dither_vp;
+extern const char *fallbackShader_leifx_dither_fp;
+extern const char *fallbackShader_leifx_filter_vp;
+extern const char *fallbackShader_leifx_filter_fp;
+extern const char *fallbackShader_leifx_gamma_vp;
+extern const char *fallbackShader_leifx_gamma_fp;
+//extern const char *fallbackShader_leifx_vgasignal_vp;
+//extern const char *fallbackShader_leifx_vgasignal_fp;
+//extern const char *fallbackShader_motionblur_accum_vp;
+//extern const char *fallbackShader_motionblur_accum_fp;
+//extern const char *fallbackShader_motionblur_post_vp;
+//extern const char *fallbackShader_motionblur_post_fp;
+
+
 
 
 /*
@@ -1155,6 +1184,8 @@ void R_Register( void )
 	r_lightmap = ri.Cvar_Get ("r_lightmap", "0", 0 );
 	r_portalOnly = ri.Cvar_Get ("r_portalOnly", "0", CVAR_CHEAT );
 
+	r_shadeMode = ri.Cvar_Get ("r_shadeMode", "0", CVAR_ARCHIVE);
+
 	r_flareSize = ri.Cvar_Get ("r_flareSize", "40", CVAR_CHEAT);
 	r_flareFade = ri.Cvar_Get ("r_flareFade", "7", CVAR_CHEAT);
 	r_flareCoeff = ri.Cvar_Get ("r_flareCoeff", FLARE_STDCOEFF, CVAR_CHEAT);
@@ -1212,8 +1243,12 @@ void R_Register( void )
 	r_mockvr = ri.Cvar_Get( "r_mockvr", "0" , CVAR_ARCHIVE | CVAR_CHEAT);	
 	r_leifx = ri.Cvar_Get( "r_leifx", "0" , CVAR_ARCHIVE | CVAR_LATCH);	
 
+	r_motionblur = ri.Cvar_Get( "r_motionblur", "0" , CVAR_ARCHIVE);	
+	r_motionblur_fps = ri.Cvar_Get( "r_motionblur_fps", "60", 0);	
+
 	r_anime = ri.Cvar_Get( "r_anime", "0" , CVAR_ARCHIVE | CVAR_LATCH);	
 	r_leidebug = ri.Cvar_Get( "r_leidebug", "0" , CVAR_CHEAT);	
+	r_leidebugeye = ri.Cvar_Get( "r_leidebugeye", "0" , CVAR_CHEAT);	
 	r_slowness = ri.Cvar_Get( "r_slowness", "0" , CVAR_ARCHIVE);	// it's 0 because you want it to be the fastest possible by default.
 	r_slowness_cpu = ri.Cvar_Get( "r_slowness_cpu", "300" , CVAR_ARCHIVE);	// it's 0 because you want it to be the fastest possible by default.
 	r_slowness_gpu = ri.Cvar_Get( "r_slowness_gpu", "96" , CVAR_ARCHIVE);	// it's 0 because you want it to be the fastest possible by default.
@@ -1225,11 +1260,13 @@ void R_Register( void )
 	ri.Cmd_AddCommand( "skinlist", R_SkinList_f );
 	ri.Cmd_AddCommand( "modellist", R_Modellist_f );
 	ri.Cmd_AddCommand( "modelist", R_ModeList_f );
+	ri.Cmd_AddCommand( "imagelistmaponly", R_ImageListMapOnly_f );
 	ri.Cmd_AddCommand( "screenshot", R_ScreenShot_f );
 	ri.Cmd_AddCommand( "screenshotJPEG", R_ScreenShotJPEG_f );
 	ri.Cmd_AddCommand( "gfxinfo", GfxInfo_f );
 	ri.Cmd_AddCommand( "minimize", GLimp_Minimize );
 }
+
 
 /*
  * R_GLSL_AllocProgram
@@ -1274,6 +1311,12 @@ static glslProgram_t *R_GLSL_AllocProgram(void) {
 	program->u_Time							= -1;
 	program->u_ViewOrigin					= -1;
 	program->u_Normal					= -1;
+
+	program->u_mpass1						= -1;	
+	program->u_mpass2						= -1;	
+	program->u_mpass3						= -1;	
+	program->u_mpass4						= -1;	
+
 
 	tr.programs[tr.numPrograms] = program;
 	tr.numPrograms++;
@@ -1342,6 +1385,8 @@ void R_GLSL_Init(void) {
 	Q_strncpyz(programVertexObjects[0], "glsl/leifx_dither_vp.glsl", sizeof(programVertexObjects[0]));
 	Q_strncpyz(programFragmentObjects[0], "glsl/leifx_dither_fp.glsl", sizeof(programFragmentObjects[0]));
 	tr.leiFXDitherProgram = RE_GLSL_RegisterProgram("leifx_dither", (const char *)programVertexObjects, 1, (const char *)programFragmentObjects, 1);
+//	if (!tr.leiFXDitherProgram) // try fallback shader
+	//tr.leiFXDitherProgram = RE_GLSL_RegisterProgram("leifx_dither", (const char *)fallbackShader_leifx_dither_vp, 1, (const char *)fallbackShader_leifx_dither_fp, 1);
 
 	Q_strncpyz(programVertexObjects[0], "glsl/leifx_gamma_vp.glsl", sizeof(programVertexObjects[0]));
 	Q_strncpyz(programFragmentObjects[0], "glsl/leifx_gamma_fp.glsl", sizeof(programFragmentObjects[0]));
@@ -1351,7 +1396,17 @@ void R_GLSL_Init(void) {
 	Q_strncpyz(programFragmentObjects[0], "glsl/leifx_filter_fp.glsl", sizeof(programFragmentObjects[0]));
 	tr.leiFXFilterProgram = RE_GLSL_RegisterProgram("leifx_filter", (const char *)programVertexObjects, 1, (const char *)programFragmentObjects, 1);
 
+	Q_strncpyz(programVertexObjects[0], "glsl/motionblur_accum_vp.glsl", sizeof(programVertexObjects[0]));
+	Q_strncpyz(programFragmentObjects[0], "glsl/motionblur_accum_fp.glsl", sizeof(programFragmentObjects[0]));
+	tr.motionBlurProgram = RE_GLSL_RegisterProgram("motionblur_accum", (const char *)programVertexObjects, 1, (const char *)programFragmentObjects, 1);
 
+	Q_strncpyz(programVertexObjects[0], "glsl/motionblur_post_vp.glsl", sizeof(programVertexObjects[0]));
+	Q_strncpyz(programFragmentObjects[0], "glsl/motionblur_post_fp.glsl", sizeof(programFragmentObjects[0]));
+	tr.motionBlurPostProgram = RE_GLSL_RegisterProgram("motionblur_post", (const char *)programVertexObjects, 1, (const char *)programFragmentObjects, 1);
+
+	Q_strncpyz(programVertexObjects[0], "glsl/brightness_vp.glsl", sizeof(programVertexObjects[0]));
+	Q_strncpyz(programFragmentObjects[0], "glsl/brightness_fp.glsl", sizeof(programFragmentObjects[0]));
+	tr.BrightnessProgram = RE_GLSL_RegisterProgram("brightness", (const char *)programVertexObjects, 1, (const char *)programFragmentObjects, 1);
 
 	if (strcmp( (const char *)r_postprocess->string, "none" )) 
 		{
@@ -1366,6 +1421,7 @@ void R_GLSL_Init(void) {
 		if (tr.postprocessingProgram) postprocess=qtrue;
 		}
 }
+
 
 /*
 ===============
@@ -1456,8 +1512,7 @@ void R_Init( void ) {
 	R_ModelInit();
 
 	R_InitFreeType();
-
-
+	
 	err = qglGetError();
 	if ( err != GL_NO_ERROR )
 		ri.Printf (PRINT_ALL, "glGetError() = 0x%x\n", err);
@@ -1480,6 +1535,7 @@ void RE_Shutdown( qboolean destroyWindow ) {
 	ri.Cmd_RemoveCommand ("screenshotJPEG");
 	ri.Cmd_RemoveCommand ("screenshot");
 	ri.Cmd_RemoveCommand ("imagelist");
+	ri.Cmd_RemoveCommand ("imagelistmaponly");
 	ri.Cmd_RemoveCommand ("shaderlist");
 	ri.Cmd_RemoveCommand ("skinlist");
 	ri.Cmd_RemoveCommand ("gfxinfo");

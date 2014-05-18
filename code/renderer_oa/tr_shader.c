@@ -128,6 +128,13 @@ static glslProgram_t *R_GLSL_AllocProgram(void) {
 	program->u_ScreenToNextPixelX			= -1;
 	program->u_ScreenToNextPixelY			= -1;
 	program->u_zFar							= -1;
+	program->u_MotionBlurX			= -1;
+	program->u_MotionBlurY			= -1;
+	program->u_CC_Brightness		= -1;	
+	program->u_CC_Gamma			= -1;
+	program->u_CC_Overbright		= -1;
+	program->u_CC_Contrast			= -1;
+	program->u_CC_Saturation		= -1;
 	
 	tr.programs[tr.numPrograms] = program;
 	tr.numPrograms++;
@@ -183,6 +190,20 @@ static void R_GLSL_ParseProgram(glslProgram_t *program, char *_text) {
 					program->u_ScreenToNextPixelY = qglGetUniformLocationARB(program->program, "u_ScreenToNextPixelY");
 				}  else if (!Q_stricmp(token, "u_zFar;")) {
 					program->u_zFar = qglGetUniformLocationARB(program->program, "u_zFar");
+				}  else if (!Q_stricmp(token, "u_MotionBlurX;")) {
+					program->u_MotionBlurX = qglGetUniformLocationARB(program->program, "u_MotionBlurX");
+				}  else if (!Q_stricmp(token, "u_MotionBlurY;")) {
+					program->u_MotionBlurY = qglGetUniformLocationARB(program->program, "u_MotionBlurY");
+				}  else if (!Q_stricmp(token, "u_CC_Brightness;")) {
+					program->u_CC_Brightness = qglGetUniformLocationARB(program->program, "u_CC_Brightness");
+				}  else if (!Q_stricmp(token, "u_CC_Overbright;")) {
+					program->u_CC_Overbright = qglGetUniformLocationARB(program->program, "u_CC_Overbright");
+				}  else if (!Q_stricmp(token, "u_CC_Gamma;")) {
+					program->u_CC_Gamma = qglGetUniformLocationARB(program->program, "u_CC_Gamma");
+				}  else if (!Q_stricmp(token, "u_CC_Contrast;")) {
+					program->u_CC_Contrast = qglGetUniformLocationARB(program->program, "u_CC_Contrast");
+				}  else if (!Q_stricmp(token, "u_CC_Saturation;")) {
+					program->u_CC_Saturation = qglGetUniformLocationARB(program->program, "u_CC_Saturation");
 				} else {
 					ri.Printf(PRINT_WARNING, "WARNING: uniform float %s unrecognized in program %s\n", token, program->name);
 				}
@@ -2615,6 +2636,14 @@ static qboolean ParseStage( shaderStage_t *stage, char **text )
 			{
 				stage->bundle[0].tcGen = TCGEN_ENVIRONMENT_CELSHADE_LEILEI;
 			}
+			else if ( !Q_stricmp( token, "eyeleft" ) )		// leilei - eye tracking
+			{
+				stage->bundle[0].tcGen = TCGEN_EYE_LEFT;
+			}
+			else if ( !Q_stricmp( token, "eyeright" ) )		// leilei - eye tracking
+			{
+				stage->bundle[0].tcGen = TCGEN_EYE_RIGHT;
+			}
 			else if ( !Q_stricmp( token, "lightmap" ) )
 			{
 				stage->bundle[0].tcGen = TCGEN_LIGHTMAP;
@@ -2729,6 +2758,7 @@ deformVertexes projectionShadow
 deformVertexes autoSprite
 deformVertexes autoSprite2
 deformVertexes text[0-7]
+deformVertexes tessie	// leilei 
 ===============
 */
 static void ParseDeform( char **text ) {
@@ -2754,6 +2784,7 @@ static void ParseDeform( char **text ) {
 		ds->deformation = DEFORM_PROJECTION_SHADOW;
 		return;
 	}
+
 
 	if ( !Q_stricmp( token, "autosprite" ) ) {
 		ds->deformation = DEFORM_AUTOSPRITE;

@@ -69,6 +69,15 @@ typedef struct {
 	vec3_t		directedLight;
 	vec3_t		dynamicLight;
 	float		lightDistance;
+
+
+	// leilei - better quality lighting hack
+
+	vec3_t		directedLightA;
+	vec3_t		lightDirA;		
+
+	// leilei - eyes
+	vec3_t		eyepos[2];			// looking from
 } trRefEntity_t;
 
 
@@ -77,6 +86,8 @@ typedef struct {
 	vec3_t		axis[3];		// orientation in world
 	vec3_t		viewOrigin;		// viewParms->or.origin in local coordinates
 	float		modelMatrix[16];
+	vec3_t		viewOriginOld;		// leilei - motionBlur
+	vec3_t		viewOriginOlder;		// leilei - motionBlur
 } orientationr_t;
 
 //===============================================================================
@@ -184,6 +195,8 @@ typedef enum {
 	TCGEN_ENVIRONMENT_MAPPED,
 	TCGEN_ENVIRONMENT_CELSHADE_MAPPED,
 	TCGEN_ENVIRONMENT_CELSHADE_LEILEI,	// leilei - cel hack
+	TCGEN_EYE_LEFT,				// eyes
+	TCGEN_EYE_RIGHT,			// eyes
 	TCGEN_FOG,
 	TCGEN_VECTOR			// S and T from world coordinates
 } texCoordGen_t;
@@ -280,7 +293,7 @@ typedef struct {
 	int			alphahack;
 } textureBundle_t;
 
-#define NUM_TEXTURE_BUNDLES 8
+#define NUM_TEXTURE_BUNDLES 16 // leilei - was 8, increased for motion blur
 
 typedef struct {
 	qboolean		active;
@@ -829,6 +842,30 @@ typedef struct {
 	GLfloat			u_ScreenToNextPixelX;
 	GLfloat			u_ScreenToNextPixelY;
 	GLfloat			u_zFar;
+
+// leilei - motion blur vars
+
+	GLfloat			u_MotionBlurX;// OBSOLETE
+	GLfloat			u_MotionBlurY;// OBSOLETE
+
+	GLint			u_ViewMotion;// OBSOLETE
+	vec3_t			v_ViewMotion;// OBSOLETE
+
+	GLint			u_mpass1;	// 1-5
+	GLint			u_mpass2;	// 6-10
+	GLint			u_mpass3;	// 11-15
+	GLint			u_mpass4;	// 16-20
+
+
+
+// leilei - Color control
+
+	GLfloat			u_CC_Brightness;
+	GLfloat			u_CC_Contrast;
+	GLfloat			u_CC_Saturation;
+	GLfloat			u_CC_Overbright;
+	GLfloat			u_CC_Gamma;
+
 	
 //End Postprocess Vars	
 
@@ -985,6 +1022,7 @@ typedef struct {
 	qboolean	doneFilm;		// leilei - done film filtering this frame
 	qboolean	doneSun;		// leilei - done drawing a sun
 	qboolean	doneSunFlare;		// leilei - done drawing a sun flare
+	qboolean	donemblur;		// leilei - done motionblur this frame
 	qboolean	doneSurfaces;   // done any 3d surfaces already
 	trRefEntity_t	entity2D;	// currentEntity will point at this when doing 2D rendering
 } backEndState_t;
@@ -1041,6 +1079,9 @@ typedef struct {
 	qhandle_t				leiFXFilterProgram;	// leilei
 	qhandle_t				animeProgram;	// leilei
 	qhandle_t				animeFilmProgram;	// leilei
+	qhandle_t				motionBlurProgram;	// leilei
+	qhandle_t				motionBlurPostProgram;	// leilei
+	qhandle_t				BrightnessProgram;	// leilei
 
 	int						numPrograms;
 	glslProgram_t			*programs[MAX_PROGRAMS];
@@ -1121,6 +1162,8 @@ extern char		 depthimage;
 //
 // cvars
 //
+extern cvar_t	*r_shadeMode; // leilei - alternate shading modes
+
 extern cvar_t	*r_flareSize;
 extern cvar_t	*r_flareFade;
 extern cvar_t	*r_flareQuality;
@@ -1244,8 +1287,12 @@ extern cvar_t	*r_alternateBrightness;		// leilei - alternate brightness
 
 extern cvar_t	*r_leifx;	// Leilei - leifx nostalgia filter
 
+extern cvar_t	*r_motionblur;		// Leilei - motionblur
+extern cvar_t	*r_motionblur_fps;		// Leilei - motionblur framerated
+
 extern cvar_t	*r_anime;	// Leilei - anime filter
 extern cvar_t	*r_leidebug;	// Leilei - debug only!
+extern cvar_t	*r_leidebugeye;	// Leilei - debug only!
 
 //====================================================================
 
@@ -1346,6 +1393,7 @@ void    	R_Init( void );
 void		R_SetColorMappings( void );
 void		R_GammaCorrect( byte *buffer, int bufSize );
 
+void	R_ImageListMapOnly_f( void ); // leilei - stuff hack
 void	R_ImageList_f( void );
 void	R_SkinList_f( void );
 // https://zerowing.idsoftware.com/bugzilla/show_bug.cgi?id=516
@@ -1724,6 +1772,46 @@ static ID_INLINE void R_GLSL_SetUniform_u_zFar(glslProgram_t *program, GLfloat v
 	qglUniform1fARB(program->u_zFar, value);
 }
 
+static ID_INLINE void R_GLSL_SetUniform_u_MotionBlurX(glslProgram_t *program, GLfloat value) {
+	qglUniform1fARB(program->u_MotionBlurX, value);
+}
+
+static ID_INLINE void R_GLSL_SetUniform_u_MotionBlurY(glslProgram_t *program, GLfloat value) {
+	qglUniform1fARB(program->u_MotionBlurY, value);
+}
+
+
+static ID_INLINE void R_GLSL_SetUniform_u_CC_Brightness(glslProgram_t *program, GLfloat value) {
+	qglUniform1fARB(program->u_CC_Brightness, value);
+}
+
+
+static ID_INLINE void R_GLSL_SetUniform_u_CC_Gamma(glslProgram_t *program, GLfloat value) {
+	qglUniform1fARB(program->u_CC_Gamma, value);
+}
+
+
+static ID_INLINE void R_GLSL_SetUniform_u_CC_Contrast(glslProgram_t *program, GLfloat value) {
+	qglUniform1fARB(program->u_CC_Contrast, value);
+}
+
+
+static ID_INLINE void R_GLSL_SetUniform_u_CC_Saturation(glslProgram_t *program, GLfloat value) {
+	qglUniform1fARB(program->u_CC_Saturation, value);
+}
+
+
+static ID_INLINE void R_GLSL_SetUniform_u_CC_Overbright(glslProgram_t *program, GLfloat value) {
+	qglUniform1fARB(program->u_CC_Overbright, value);
+}
+
+
+
+
+static ID_INLINE void R_GLSL_SetUniform_Mpass1(glslProgram_t *program, GLint value) {qglUniform1iARB(program->u_mpass1, value);}
+static ID_INLINE void R_GLSL_SetUniform_Mpass2(glslProgram_t *program, GLint value) {qglUniform1iARB(program->u_mpass2, value);}
+static ID_INLINE void R_GLSL_SetUniform_Mpass3(glslProgram_t *program, GLint value) {qglUniform1iARB(program->u_mpass3, value);}
+static ID_INLINE void R_GLSL_SetUniform_Mpass4(glslProgram_t *program, GLint value) {qglUniform1iARB(program->u_mpass4, value);}
 
 void R_GLSL_Init(void);
 qhandle_t RE_GLSL_RegisterProgram(const char *name, const char *programVertexObjects, int numVertexObjects, const char *programFragmentObjects, int numFragmentObjects);
@@ -1882,6 +1970,7 @@ void	RB_DeformTessGeometry( void );
 void	RB_CalcEnvironmentTexCoords( float *dstTexCoords );
 void	RB_CalcCelTexCoords( float *dstTexCoords );		// leilei - cel hack
 void	RB_CalcEnvironmentTexCoordsJO( float *dstTexCoords );	// leilei
+void    RB_CalcEyes( float *st, qboolean theothereye); // leilei - eyes
 void	RB_CalcEnvironmentCelShadeTexCoords( float *dstTexCoords );
 void	RB_CalcEnvironmentTexCoordsNew( float *dstTexCoords );
 void	RB_CalcEnvironmentTexCoordsHW(void);
@@ -2082,4 +2171,8 @@ void R_AltBrightnessInit( void );
 void R_FilmScreen( void );	//	leilei - film effect
 extern int softwaremode;
 extern int leifxmode;
+
+void RB_UpdateMotionBlur (void);
+void R_MotionBlur_BackupScreen(int which);
 #endif //TR_LOCAL_H
+

@@ -128,7 +128,36 @@ void GL_SelectTexture( int unit )
 		GLimp_LogComment( "glActiveTextureARB( GL_TEXTURE7_ARB )\n" );
 		qglClientActiveTextureARB( GL_TEXTURE7_ARB );
 		GLimp_LogComment( "glClientActiveTextureARB( GL_TEXTURE7_ARB )\n" );
-	} else {
+	}
+	else if ( unit == 11 )
+	{
+		qglActiveTextureARB( GL_TEXTURE11_ARB );
+		GLimp_LogComment( "glActiveTextureARB( GL_TEXTURE11_ARB )\n" );
+		qglClientActiveTextureARB( GL_TEXTURE11_ARB );
+		GLimp_LogComment( "glClientActiveTextureARB( GL_TEXTURE11_ARB )\n" );
+	}
+	else if ( unit == 12 )
+	{
+		qglActiveTextureARB( GL_TEXTURE12_ARB );
+		GLimp_LogComment( "glActiveTextureARB( GL_TEXTURE12_ARB )\n" );
+		qglClientActiveTextureARB( GL_TEXTURE12_ARB );
+		GLimp_LogComment( "glClientActiveTextureARB( GL_TEXTURE12_ARB )\n" );
+	}
+	else if ( unit == 13 )
+	{
+		qglActiveTextureARB( GL_TEXTURE13_ARB );
+		GLimp_LogComment( "glActiveTextureARB( GL_TEXTURE13_ARB )\n" );
+		qglClientActiveTextureARB( GL_TEXTURE13_ARB );
+		GLimp_LogComment( "glClientActiveTextureARB( GL_TEXTURE13_ARB )\n" );
+	}
+	else if ( unit == 14 )
+	{
+		qglActiveTextureARB( GL_TEXTURE14_ARB );
+		GLimp_LogComment( "glActiveTextureARB( GL_TEXTURE14_ARB )\n" );
+		qglClientActiveTextureARB( GL_TEXTURE14_ARB );
+		GLimp_LogComment( "glClientActiveTextureARB( GL_TEXTURE14_ARB )\n" );
+	}
+	 else {
 		ri.Error( ERR_DROP, "GL_SelectTexture: unit = %i", unit );
 	}
 
@@ -1442,8 +1471,64 @@ extern cvar_t	*r_slowness;  // leilei - experimental variable slowness
 extern cvar_t	*r_slowness_cpu;  // leilei - experimental variable slowness
 extern cvar_t	*r_slowness_gpu;  // leilei - experimental variable slowness
 
+// leilei - motion blur hack
+float		motiontime;
+float		motion_finished;
+int		motionframe;
+int		motionpasses;
+int		numofmotionpasses;
+int		inmotion;
+
+int		mblurred;	// tells the renderer if we are rendering to a motion blur accum buffer instead of our drawing buffer
+void R_MblurScreen( void );
+void R_MblurScreenPost( void );
+void RB_UpdateMotionBlur (void){
+	// leilei - motion blur hack
+	int e;
+	numofmotionpasses = 4; 
+	motion_finished = (1000.0f / r_motionblur_fps->integer / 5 / numofmotionpasses);
+
+/*
+
+	if (motionpasses > numofmotionpasses){
+		motionpasses = 0;
+	//	inmotion = 0;
+		motionframe = 0;
+	//	if (!backEnd.donemblur){
+		//	R_MblurScreenPost();
+//			ri.Printf( PRINT_WARNING, "yae\n" );
+//			}
+//		return; // okay!
+		}
+*/
+if (motionpasses > numofmotionpasses){
+		motionpasses = 0;
+	}
+
+	if (motionframe > 5){
+
+		// do an accumulating post process
+		motionpasses += 1;
+	//	R_MotionBlur_BackupScreen(10 + motionpasses);	
+		R_MotionBlur_BackupScreen(11);	// back it up in there...
+		motionframe = 1;
+		//return;
+	}
+
+	if (backEnd.refdef.time > motiontime){
+		R_MotionBlur_BackupScreen(motionframe);	// back it up in there...
+		motionframe += 1;
+		R_MblurScreen();
+		motiontime = backEnd.refdef.time + motion_finished;
+		inmotion = 1;
+
+	}
+	else
+	inmotion = 0;
+}
 
 
+float	mtime;	// motion blur frame time
 /*
 =============
 RB_SwapBuffers
@@ -1453,15 +1538,43 @@ RB_SwapBuffers
 const void	*RB_SwapBuffers( const void *data ) {
 	const swapBuffersCommand_t	*cmd;
 
+
+
 	// finish any 2D drawing if needed
 	if ( tess.numIndexes ) {
 		RB_EndSurface();
+	}
+
+	if (r_motionblur->integer){
+
+
+	
+	//	if (backEnd.refdef.time > mtime && mblurred)
+		{
+			mtime = backEnd.refdef.time + (1000.0f / r_motionblur_fps->integer);
+			mblurred = 0;
+			RB_UpdateMotionBlur();
+		}
+	//	else
+	//	{
+	//		mblurred = 1;
+	////		RB_UpdateMotionBlur();
+//
+	//	}
+	
+	//	if (mblurred)
+	//	R_MblurScreen(); // don't update while in motion blur.
+	//	if (!mblurred)
+	//	R_MblurScreenPost();	
 	}
 
 	// texture swapping test
 	if ( r_showImages->integer ) {
 		RB_ShowImages();
 	}
+
+
+
 
 	if (r_ext_vertex_shader->integer){		// leilei - leifx filters
 	R_LeiFXPostprocessDitherScreen();
@@ -1471,6 +1584,7 @@ const void	*RB_SwapBuffers( const void *data ) {
 
 
 	R_BrightScreen();		// leilei - alternate brightness - do it here so we hit evereything
+
 
 	cmd = (const swapBuffersCommand_t *)data;
 
@@ -1509,12 +1623,19 @@ const void	*RB_SwapBuffers( const void *data ) {
 	backEnd.doneFilm = qfalse;
 	backEnd.doneleifx = qfalse;
 	backEnd.doneanime = qfalse;
+	backEnd.donemblur = qfalse;
 	backEnd.doneSurfaces = qfalse;
 	backEnd.doneSun	     = qfalse;
 	backEnd.doneSunFlare = qfalse;
 
+
 	// leilei - artificial slowness (mapper debug) - this might be windows only
 #ifdef _WIN32
+
+	//if (r_motionblur->integer && !mblurred)
+	//	Sleep(1000.0f / r_motionblur_fps->value); 
+
+
 	if (r_slowness->integer > 2){
 		// Should be roughly equiv to a P2 300 at value 1.0 (target system)
 		float cpuspeed = r_slowness_cpu->value;
@@ -1538,6 +1659,8 @@ const void	*RB_SwapBuffers( const void *data ) {
 #endif
 
 
+	
+
 	return (const void *)(cmd + 1);
 }
 
@@ -1550,6 +1673,7 @@ void RB_ExecuteRenderCommands( const void *data ) {
 	int		t1, t2;
 
 	t1 = ri.Milliseconds ();
+
 
 	while ( 1 ) {
 		data = PADP(data, sizeof(void *));
@@ -1603,5 +1727,7 @@ void RB_ExecuteRenderCommands( const void *data ) {
 			return;
 		}
 	}
+
+
 
 }

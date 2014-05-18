@@ -38,6 +38,7 @@ static	byte		*fileBase;
 
 int			c_subdivisions;
 int			c_gridVerts;
+int			ismaptexture;
 
 //===============================================================================
 
@@ -286,6 +287,8 @@ static shader_t *ShaderForShaderNum( int shaderNum, int lightmapNum ) {
 	if ( r_fullbright->integer ) {
 		lightmapNum = LIGHTMAP_WHITEIMAGE;
 	}
+
+	ismaptexture = 1;
 
 	shader = R_FindShader( dsh->shader, lightmapNum, qtrue );
 

@@ -37,6 +37,8 @@ int		palettedformat = GL_COLOR_INDEX8_EXT;	// leilei - paletted texture support
 static	image_t*		hashTable[FILE_HASH_SIZE];
 
 
+extern int ismaptexture;
+
 //
 // leilei - paletted texture support START
 //
@@ -507,6 +509,55 @@ void R_ImageList_f( void ) {
 	ri.Printf (PRINT_ALL, " approx %i bytes\n", estTotalSize);
 	ri.Printf (PRINT_ALL, " %i total images\n\n", tr.numImages );
 }
+
+
+/*
+===============
+R_ImageListMapOnly_f
+
+
+	This version is used to make life easier to see which map textures are used
+	and also provide a bunch of lame zip commands to modularize maps better
+	(i.e. packing only used stuff by the *good* maps for releases)
+===============
+*/
+void R_ImageListMapOnly_f( void ) {
+	int i;
+	int estTotalSize = 0;
+
+	for ( i = 0 ; i < tr.numImages ; i++ )
+	{
+		image_t *image = tr.images[i];
+		char *zipcommand = "zip -9 ";
+		char localName[ MAX_QPATH ];
+		char *sizeSuffix;
+		int estSize;
+		int displaySize;
+
+		estSize = image->uploadHeight * image->uploadWidth;
+
+		
+		// mipmap adds about 50%
+		if (image->flags & IMGFLAG_MIPMAP)
+			estSize += estSize / 2;
+
+		sizeSuffix = "b ";
+		displaySize = estSize;
+
+	//if ( !strncmp( image->imgName, "textures", 8 ) ) {
+		if (image->maptexture){
+
+		COM_StripExtension( image->imgName, localName, MAX_QPATH );
+		ri.Printf(PRINT_ALL, "%s pak1-map-mapname.pk3 %s.*\n", zipcommand, localName);
+		}
+	}
+
+//	ri.Printf (PRINT_ALL, " ---------\n");
+//	ri.Printf (PRINT_ALL, " approx %i bytes\n", estTotalSize);
+//	ri.Printf (PRINT_ALL, " %i total images\n\n", tr.numImages );
+}
+
+
 
 //=======================================================================
 
@@ -1817,6 +1868,10 @@ image_t *R_CreateImage( const char *name, byte *pic, int width, int height,
 		GL_SelectTexture( 0 );
 	}
 
+	// leilei - map texture listing hack
+
+	image->maptexture = ismaptexture;
+
 	hash = generateHashValue(name);
 	image->next = hashTable[hash];
 	hashTable[hash] = image;
@@ -1983,6 +2038,8 @@ image_t	*R_FindImageFile( const char *name, imgType_t type, imgFlags_t flags )
 
 	image = R_CreateImage( ( char * ) name, pic, width, height, type, flags, 0 );
 	ri.Free( pic );
+	ismaptexture = 0;
+
 	return image;
 }
 
@@ -2042,6 +2099,7 @@ image_t	*R_FindImageFileIfItsThere( const char *name, imgType_t type, imgFlags_t
 
 	image = R_CreateImage( ( char * ) name, pic, width, height, type, flags, 0 );
 	ri.Free( pic );
+	ismaptexture = 0;
 	return image;
 }
 
@@ -2225,7 +2283,7 @@ void R_CreateBuiltinImages( void ) {
 
 	// we use a solid white image instead of disabling texturing
 	Com_Memset( data, 255, sizeof( data ) );
-
+	ismaptexture = 0;
 	tr.whiteImage = R_CreateImage("*white", (byte *)data, 8, 8, IMGTYPE_COLORALPHA, IMGFLAG_NONE, 0);
 
 	// with overbright bits active, we need an image which is some fraction of full color,
@@ -2306,7 +2364,7 @@ void R_SetColorMappings( void ) {
 
 	g = r_gamma->value;
 
-	if (!r_alternateBrightness->integer)	// leilei - don't do the shift to the brightness when we do alternate. This allows
+	if (r_alternateBrightness->integer != 1)	// leilei - don't do the shift to the brightness when we do alternate. This allows
 	shift = tr.overbrightBits;		// hardware gamma to work (if available) since we can't do alternate gamma via blends
 	else shift = 0;	// don't
 
@@ -2334,7 +2392,7 @@ void R_SetColorMappings( void ) {
 		s_intensitytable[i] = j;
 	}
 
-	if ( glConfig.deviceSupportsGamma )
+	if ( glConfig.deviceSupportsGamma && r_alternateBrightness->integer != 2)
 	{
 		GLimp_SetGamma( s_gammatable, s_gammatable, s_gammatable );
 	}
