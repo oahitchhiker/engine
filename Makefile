@@ -1301,7 +1301,6 @@ makedirs:
 	@if [ ! -d $(B)/renderergl2 ];then $(MKDIR) $(B)/renderergl2;fi
 	@if [ ! -d $(B)/renderergl2/glsl ];then $(MKDIR) $(B)/renderergl2/glsl;fi
 	@if [ ! -d $(B)/renderer_oa ];then $(MKDIR) $(B)/renderer_oa;fi
-	@if [ ! -d $(B)/renderer_oa/glsl ];then $(MKDIR) $(B)/renderer_oa/glsl;fi
 	@if [ ! -d $(B)/renderersoft ];then $(MKDIR) $(B)/renderersoft;fi
 	@if [ ! -d $(B)/ded ];then $(MKDIR) $(B)/ded;fi
 	@if [ ! -d $(B)/$(BASEGAME) ];then $(MKDIR) $(B)/$(BASEGAME);fi
@@ -1720,26 +1719,6 @@ Q3ROAOBJ = \
   \
   $(B)/renderergl1/sdl_gamma.o \
   $(B)/renderergl1/sdl_glimp.o
-
-Q3ROASTRINGOBJ = \
-  $(B)/renderer_oa/glsl/anime_fp.o \
-  $(B)/renderer_oa/glsl/anime_vp.o \
-  $(B)/renderer_oa/glsl/anime_film_fp.o \
-  $(B)/renderer_oa/glsl/anime_film_vp.o \
-  $(B)/renderer_oa/glsl/brightness_fp.o \
-  $(B)/renderer_oa/glsl/brightness_vp.o \
-  $(B)/renderer_oa/glsl/leifx_dither_fp.o \
-  $(B)/renderer_oa/glsl/leifx_dither_vp.o \
-  $(B)/renderer_oa/glsl/leifx_filter_fp.o \
-  $(B)/renderer_oa/glsl/leifx_filter_vp.o \
-  $(B)/renderer_oa/glsl/leifx_gamma_fp.o \
-  $(B)/renderer_oa/glsl/leifx_gamma_vp.o \
-  $(B)/renderer_oa/glsl/leifx_vgasignal_fp.o \
-  $(B)/renderer_oa/glsl/leifx_vgasignal_vp.o \
-  $(B)/renderer_oa/glsl/motionblur_accum_fp.o \
-  $(B)/renderer_oa/glsl/motionblur_accum_vp.o \
-  $(B)/renderer_oa/glsl/motionblur_post_fp.o \
-  $(B)/renderer_oa/glsl/motionblur_post_vp.o 
 
 
 Q3ROBJ = \
@@ -2170,9 +2149,9 @@ $(B)/renderer_opengl2_$(SHLIBNAME): $(Q3R2OBJ) $(Q3R2STRINGOBJ) $(JPGOBJ)
 	$(Q)$(CC) $(CFLAGS) $(SHLIBLDFLAGS) -o $@ $(Q3R2OBJ) $(Q3R2STRINGOBJ) $(JPGOBJ) \
 		$(THREAD_LIBS) $(LIBSDLMAIN) $(RENDERER_LIBS) $(LIBS)
 
-$(B)/renderer_openarena1_$(SHLIBNAME): $(Q3ROAOBJ) $(Q3ROASTRINGOBJ) $(JPGOBJ)
+$(B)/renderer_openarena1_$(SHLIBNAME): $(Q3ROAOBJ) $(JPGOBJ)
 	$(echo_cmd) "LD $@"
-	$(Q)$(CC) $(CFLAGS) $(SHLIBLDFLAGS) -o $@ $(Q3ROASTRINGOBJ) $(Q3ROAOBJ) $(JPGOBJ) \
+	$(Q)$(CC) $(CFLAGS) $(SHLIBLDFLAGS) -o $@ $(Q3ROAOBJ) $(JPGOBJ) \
 		$(THREAD_LIBS) $(LIBSDLMAIN) $(RENDERER_LIBS) $(LIBS)
 
 $(B)/renderer_software_$(SHLIBNAME): $(Q3RSOFTOBJ) $(JPGOBJ)
@@ -2182,10 +2161,10 @@ $(B)/renderer_software_$(SHLIBNAME): $(Q3RSOFTOBJ) $(JPGOBJ)
 
 
 else
-$(B)/$(CLIENTBIN)$(FULLBINEXT): $(Q3OBJ) $(Q3ROASTRINGOBJ) $(Q3ROAOBJ) $(JPGOBJ) $(LIBSDLMAIN)
+$(B)/$(CLIENTBIN)$(FULLBINEXT): $(Q3OBJ) $(Q3ROAOBJ) $(JPGOBJ) $(LIBSDLMAIN)
 	$(echo_cmd) "LD $@"
 	$(Q)$(CC) $(CLIENT_CFLAGS) $(CFLAGS) $(CLIENT_LDFLAGS) $(LDFLAGS) \
-		-o $@ $(Q3OBJ) $(Q3ROASTRINGOBJ) $(Q3ROAOBJ) $(JPGOBJ) \
+		-o $@ $(Q3OBJ) $(Q3ROAOBJ) $(JPGOBJ) \
 		$(LIBSDLMAIN) $(CLIENT_LIBS) $(RENDERER_LIBS) $(LIBS)
 
 $(B)/$(CLIENTBIN)_opengl2$(FULLBINEXT): $(Q3OBJ) $(Q3R2OBJ) $(Q3R2STRINGOBJ) $(JPGOBJ) $(LIBSDLMAIN)
@@ -2726,12 +2705,6 @@ $(B)/renderer_oa/%.o: $(ROADIR)/%.c
 $(B)/renderer_oa/%.o: $(RCOMMONDIR)/%.c
 	$(DO_REF_CC)
 
-$(B)/renderer_oa/glsl/%.c: $(ROADIR)/glsl/%.glsl
-	$(DO_REF_STR)
-
-$(B)/renderer_oa/glsl/%.o: $(B)/renderer_oa/glsl/%.c
-	$(DO_REF_CC)
-
 $(B)/renderersoft/%.o: $(CMDIR)/%.c
 	$(DO_REF_CC)
 
@@ -2875,7 +2848,7 @@ OBJ = $(Q3OBJ) $(Q3ROBJ) $(Q3R2OBJ) $(Q3ROAOBJ) $(Q3RSOFTOBJ) $(Q3DOBJ) $(JPGOBJ
   $(MPGOBJ) $(Q3GOBJ) $(Q3CGOBJ) $(MPCGOBJ) $(Q3UIOBJ) $(MPUIOBJ) \
   $(MPGVMOBJ) $(Q3GVMOBJ) $(Q3CGVMOBJ) $(MPCGVMOBJ) $(Q3UIVMOBJ) $(MPUIVMOBJ)
 TOOLSOBJ = $(LBURGOBJ) $(Q3CPPOBJ) $(Q3RCCOBJ) $(Q3LCCOBJ) $(Q3ASMOBJ)
-STRINGOBJ = $(Q3R2STRINGOBJ) $(Q3ROASTRINGOBJ)
+STRINGOBJ = $(Q3R2STRINGOBJ)
 
 
 copyfiles: release
