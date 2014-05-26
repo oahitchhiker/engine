@@ -1480,28 +1480,39 @@ int		numofmotionpasses;
 int		inmotion;
 
 int		mblurred;	// tells the renderer if we are rendering to a motion blur accum buffer instead of our drawing buffer
+int		mpasses;	// how many passes of motion blur we should render.
+
+float		motioner;
+
 void R_MblurScreen( void );
 void R_MblurScreenPost( void );
 void RB_UpdateMotionBlur (void){
 	// leilei - motion blur hack
 	int e;
 	numofmotionpasses = 4; 
-	motion_finished = (1000.0f / r_motionblur_fps->integer / 5 / numofmotionpasses);
+	numofmotionpasses = backEnd.refdef.time - backEnd.refdef.floatTime / 1000.0f;
 
-/*
+	motioner = (backEnd.refdef.time - motiontime);
+	numofmotionpasses = (int)motioner / 3;
+
+
+
+	// unfortunately doing this with some math just causes it to loop 
+	if (numofmotionpasses == 4) numofmotionpasses = 0;
+	else if (numofmotionpasses == 3) numofmotionpasses = 1;
+	else if (numofmotionpasses == 2) numofmotionpasses = 2;
+	else if (numofmotionpasses == 1) numofmotionpasses = 3;
+	else if (numofmotionpasses == 0) numofmotionpasses = 4;
+	//else numofmotionpasses = 0;
+	
+	//ri.Printf( PRINT_WARNING, "hah %i\n", numofmotionpasses);
+	mpasses = floor(numofmotionpasses);
+	if (mpasses > 4) mpasses = 4;
+	if (mpasses < 1) return;	// JUST DONT!!
+	motion_finished = (1000.0f / r_motionblur_fps->integer / 5 / mpasses);
+
 
 	if (motionpasses > numofmotionpasses){
-		motionpasses = 0;
-	//	inmotion = 0;
-		motionframe = 0;
-	//	if (!backEnd.donemblur){
-		//	R_MblurScreenPost();
-//			ri.Printf( PRINT_WARNING, "yae\n" );
-//			}
-//		return; // okay!
-		}
-*/
-if (motionpasses > numofmotionpasses){
 		motionpasses = 0;
 	}
 
@@ -1546,26 +1557,11 @@ const void	*RB_SwapBuffers( const void *data ) {
 	}
 
 	if (r_motionblur->integer){
-
-
-	
-	//	if (backEnd.refdef.time > mtime && mblurred)
 		{
 			mtime = backEnd.refdef.time + (1000.0f / r_motionblur_fps->integer);
 			mblurred = 0;
 			RB_UpdateMotionBlur();
 		}
-	//	else
-	//	{
-	//		mblurred = 1;
-	////		RB_UpdateMotionBlur();
-//
-	//	}
-	
-	//	if (mblurred)
-	//	R_MblurScreen(); // don't update while in motion blur.
-	//	if (!mblurred)
-	//	R_MblurScreenPost();	
 	}
 
 	// texture swapping test
@@ -1631,10 +1627,6 @@ const void	*RB_SwapBuffers( const void *data ) {
 
 	// leilei - artificial slowness (mapper debug) - this might be windows only
 #ifdef _WIN32
-
-	//if (r_motionblur->integer && !mblurred)
-	//	Sleep(1000.0f / r_motionblur_fps->value); 
-
 
 	if (r_slowness->integer > 2){
 		// Should be roughly equiv to a P2 300 at value 1.0 (target system)

@@ -130,6 +130,7 @@ static glslProgram_t *R_GLSL_AllocProgram(void) {
 	program->u_zFar							= -1;
 	program->u_MotionBlurX			= -1;
 	program->u_MotionBlurY			= -1;
+	program->u_mpasses			= -1;
 	program->u_CC_Brightness		= -1;	
 	program->u_CC_Gamma			= -1;
 	program->u_CC_Overbright		= -1;
@@ -173,6 +174,8 @@ static void R_GLSL_ParseProgram(glslProgram_t *program, char *_text) {
 					program->u_ScreenSizeX = qglGetUniformLocationARB(program->program, "u_ScreenSizeX");
 				}  else if (!Q_stricmp(token, "u_ScreenSizeY;")) {
 					program->u_ScreenSizeY = qglGetUniformLocationARB(program->program, "u_ScreenSizeY");
+				}  else if (!Q_stricmp(token, "u_mpasses;")) {
+					program->u_mpasses = qglGetUniformLocationARB(program->program, "u_mpasses");
 				} else {
 					ri.Printf(PRINT_WARNING, "WARNING: uniform int %s unrecognized in program %s\n", token, program->name);
 				}
@@ -4138,7 +4141,7 @@ most world construction surfaces.
 
 ===============
 */
-shader_t *R_FindShader( const char *name, int lightmapIndex, qboolean mipRawImage ) {
+shader_t *R_FindShaderReal( const char *name, int lightmapIndex, qboolean mipRawImage ) {
 	char		strippedName[MAX_QPATH];
 	int			i, hash;
 	char		*shaderText;
@@ -4293,6 +4296,22 @@ shader_t *R_FindShader( const char *name, int lightmapIndex, qboolean mipRawImag
 	return FinishShader();
 }
 
+// leilei - rather stupid way to do a cel wrapper to work for all textures
+shader_t *R_FindShader( const char *name, int lightmapIndex, qboolean mipRawImage ) {
+		shader_t	*sh;		
+
+	if (r_anime->integer){
+		sh = R_FindShaderReal(va("%s_cel",name), lightmapIndex, mipRawImage);
+		if ( sh->defaultShader )
+		sh = R_FindShaderReal(name, lightmapIndex, mipRawImage);
+		return sh;
+	}
+	else
+		sh = R_FindShaderReal(name, lightmapIndex, mipRawImage);
+	return sh;
+
+}
+
 
 qhandle_t RE_RegisterShaderFromImage(const char *name, int lightmapIndex, image_t *image, qboolean mipRawImage) {
 	int			i, hash;
@@ -4444,14 +4463,15 @@ way to ask for different implicit lighting modes (vertex, lightmap, etc)
 qhandle_t RE_RegisterShader( const char *name ) {
 	shader_t	*sh;
 
+
 	if ( strlen( name ) >= MAX_QPATH ) {
 		ri.Printf( PRINT_ALL, "Shader name exceeds MAX_QPATH\n" );
 		return 0;
 	}
 
 
-
 	sh = R_FindShader( name, LIGHTMAP_2D, qtrue );
+
 
 	// we want to return 0 if the shader failed to
 	// load for some reason, but R_FindShader should

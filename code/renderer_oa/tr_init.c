@@ -126,6 +126,7 @@ cvar_t	*r_singleShader;
 cvar_t	*r_roundImagesDown;
 cvar_t	*r_colorMipLevels;
 cvar_t	*r_picmip;
+cvar_t	*r_iconmip;
 cvar_t	*r_showtris;
 cvar_t	*r_showsky;
 cvar_t	*r_shownormals;
@@ -199,6 +200,8 @@ cvar_t	*r_anime;		// Leilei - anime filter
 cvar_t	*r_leidebug;		// Leilei - debug
 cvar_t	*r_leidebugeye;		// Leilei - eye debug
 
+cvar_t	*r_suggestiveThemes;		// leilei - mature content control
+
 cvar_t	*r_motionblur;		// Leilei - motionblur
 cvar_t	*r_motionblur_fps;		// Leilei - motionblur framerated
 
@@ -208,25 +211,27 @@ cvar_t	*r_slowness_gpu;		// Leilei
 
 
 // leilei - fallback shader hack
-//extern const char *fallbackShader_anime_vp;
-//extern const char *fallbackShader_anime_fp;
-//extern const char *fallbackShader_anime_film_vp;
-//extern const char *fallbackShader_anime_film_fp;
-//extern const char *fallbackShader_brightness_vp;
-//extern const char *fallbackShader_brightness_fp;
+
+#ifdef USE_FALLBACK_GLSL
+extern const char *fallbackShader_anime_vp;
+extern const char *fallbackShader_anime_fp;
+extern const char *fallbackShader_anime_film_vp;
+extern const char *fallbackShader_anime_film_fp;
+extern const char *fallbackShader_brightness_vp;
+extern const char *fallbackShader_brightness_fp;
 extern const char *fallbackShader_leifx_dither_vp;
 extern const char *fallbackShader_leifx_dither_fp;
 extern const char *fallbackShader_leifx_filter_vp;
 extern const char *fallbackShader_leifx_filter_fp;
 extern const char *fallbackShader_leifx_gamma_vp;
 extern const char *fallbackShader_leifx_gamma_fp;
-//extern const char *fallbackShader_leifx_vgasignal_vp;
-//extern const char *fallbackShader_leifx_vgasignal_fp;
-//extern const char *fallbackShader_motionblur_accum_vp;
-//extern const char *fallbackShader_motionblur_accum_fp;
-//extern const char *fallbackShader_motionblur_post_vp;
-//extern const char *fallbackShader_motionblur_post_fp;
-
+extern const char *fallbackShader_leifx_vgasignal_vp;
+extern const char *fallbackShader_leifx_vgasignal_fp;
+extern const char *fallbackShader_motionblur_accum_vp;
+extern const char *fallbackShader_motionblur_accum_fp;
+extern const char *fallbackShader_motionblur_post_vp;
+extern const char *fallbackShader_motionblur_post_fp;
+#endif
 
 
 
@@ -1243,7 +1248,9 @@ void R_Register( void )
 	r_mockvr = ri.Cvar_Get( "r_mockvr", "0" , CVAR_ARCHIVE | CVAR_CHEAT);	
 	r_leifx = ri.Cvar_Get( "r_leifx", "0" , CVAR_ARCHIVE | CVAR_LATCH);	
 
-	r_motionblur = ri.Cvar_Get( "r_motionblur", "0" , CVAR_ARCHIVE);	
+	r_suggestiveThemes = ri.Cvar_Get( "r_suggestiveThemes", "1" , CVAR_ARCHIVE | CVAR_LATCH);	
+
+	r_motionblur = ri.Cvar_Get( "r_motionblur", "0" , CVAR_ARCHIVE | CVAR_LATCH);	
 	r_motionblur_fps = ri.Cvar_Get( "r_motionblur_fps", "60", 0);	
 
 	r_anime = ri.Cvar_Get( "r_anime", "0" , CVAR_ARCHIVE | CVAR_LATCH);	
@@ -1252,6 +1259,8 @@ void R_Register( void )
 	r_slowness = ri.Cvar_Get( "r_slowness", "0" , CVAR_ARCHIVE);	// it's 0 because you want it to be the fastest possible by default.
 	r_slowness_cpu = ri.Cvar_Get( "r_slowness_cpu", "300" , CVAR_ARCHIVE);	// it's 0 because you want it to be the fastest possible by default.
 	r_slowness_gpu = ri.Cvar_Get( "r_slowness_gpu", "96" , CVAR_ARCHIVE);	// it's 0 because you want it to be the fastest possible by default.
+
+	r_iconmip = ri.Cvar_Get ("r_iconmip", "1", CVAR_ARCHIVE | CVAR_LATCH );	// leilei - icon mip
 
 	// make sure all the commands added here are also
 	// removed in R_Shutdown
@@ -1327,6 +1336,7 @@ static glslProgram_t *R_GLSL_AllocProgram(void) {
  * R_GLSL_Init
  * Load all default GLSL programs which are not loaded via the q3 shader system
  */
+
 void R_GLSL_Init(void) {
 	glslProgram_t	*program;
 	char			programVertexObjects[MAX_PROGRAM_OBJECTS][MAX_QPATH];
@@ -1385,9 +1395,10 @@ void R_GLSL_Init(void) {
 	Q_strncpyz(programVertexObjects[0], "glsl/leifx_dither_vp.glsl", sizeof(programVertexObjects[0]));
 	Q_strncpyz(programFragmentObjects[0], "glsl/leifx_dither_fp.glsl", sizeof(programFragmentObjects[0]));
 	tr.leiFXDitherProgram = RE_GLSL_RegisterProgram("leifx_dither", (const char *)programVertexObjects, 1, (const char *)programFragmentObjects, 1);
+#ifdef USE_FALLBACK_GLSL
 //	if (!tr.leiFXDitherProgram) // try fallback shader
-	//tr.leiFXDitherProgram = RE_GLSL_RegisterProgram("leifx_dither", (const char *)fallbackShader_leifx_dither_vp, 1, (const char *)fallbackShader_leifx_dither_fp, 1);
-
+//	tr.leiFXDitherProgram = RE_GLSL_RegisterProgram("leifx_dither", fallbackShader_leifx_dither_vp, 1, fallbackShader_leifx_dither_fp, 1);
+#endif
 	Q_strncpyz(programVertexObjects[0], "glsl/leifx_gamma_vp.glsl", sizeof(programVertexObjects[0]));
 	Q_strncpyz(programFragmentObjects[0], "glsl/leifx_gamma_fp.glsl", sizeof(programFragmentObjects[0]));
 	tr.leiFXGammaProgram = RE_GLSL_RegisterProgram("leifx_gamma", (const char *)programVertexObjects, 1, (const char *)programFragmentObjects, 1);

@@ -856,6 +856,8 @@ typedef struct {
 	GLint			u_mpass3;	// 11-15
 	GLint			u_mpass4;	// 16-20
 
+	GLint			u_mpasses;	// How many passes of Motion do we have anyhow?
+
 
 
 // leilei - Color control
@@ -1287,12 +1289,16 @@ extern cvar_t	*r_alternateBrightness;		// leilei - alternate brightness
 
 extern cvar_t	*r_leifx;	// Leilei - leifx nostalgia filter
 
+extern cvar_t	*r_suggestiveThemes;	// Leilei - mature content
+
 extern cvar_t	*r_motionblur;		// Leilei - motionblur
 extern cvar_t	*r_motionblur_fps;		// Leilei - motionblur framerated
 
 extern cvar_t	*r_anime;	// Leilei - anime filter
 extern cvar_t	*r_leidebug;	// Leilei - debug only!
 extern cvar_t	*r_leidebugeye;	// Leilei - debug only!
+
+extern	cvar_t	*r_iconmip;	// leilei - icon mip - picmip for 2d icons
 
 //====================================================================
 
@@ -1806,7 +1812,9 @@ static ID_INLINE void R_GLSL_SetUniform_u_CC_Overbright(glslProgram_t *program, 
 }
 
 
-
+static ID_INLINE void R_GLSL_SetUniform_u_mpasses(glslProgram_t *program, GLint value) {
+	qglUniform1iARB(program->u_mpasses, value);
+}
 
 static ID_INLINE void R_GLSL_SetUniform_Mpass1(glslProgram_t *program, GLint value) {qglUniform1iARB(program->u_mpass1, value);}
 static ID_INLINE void R_GLSL_SetUniform_Mpass2(glslProgram_t *program, GLint value) {qglUniform1iARB(program->u_mpass2, value);}

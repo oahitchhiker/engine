@@ -341,6 +341,7 @@ static void R_Postprocess_InitTextures( void )
 	
 	// leilei - motion blur textures!
 
+	if (r_motionblur->integer){
 	data = ri.Hunk_AllocateTempMemory( postproc.screen.width * postproc.screen.height * 4 );
 	Com_Memset( data, 0, postproc.screen.width * postproc.screen.height * 4 );
 	postproc.motion1.texture = R_CreateImage( "***motionblur1 texture***", data, postproc.screen.width, postproc.screen.height, qfalse, qfalse, GL_CLAMP_TO_EDGE  );
@@ -353,7 +354,7 @@ static void R_Postprocess_InitTextures( void )
 	postproc.mpass3.texture = R_CreateImage( "***motionaccum1 texture***", data, postproc.screen.width, postproc.screen.height, qfalse, qfalse, GL_CLAMP_TO_EDGE  );
 	postproc.mpass4.texture = R_CreateImage( "***motionaccum1 texture***", data, postproc.screen.width, postproc.screen.height, qfalse, qfalse, GL_CLAMP_TO_EDGE  );
 	ri.Hunk_FreeTempMemory( data );
-	
+	}
 
 	// GLSL Depth Buffer
 
@@ -684,7 +685,8 @@ static void R_Postprocess_BackupScreen( void ) {
 
 // leilei - motion blur hack
 void R_MotionBlur_BackupScreen(int which) {
-
+	if( !r_motionblur->integer)
+		return;
 	if (which == 1){ GL_Bind( postproc.motion1.texture ); qglCopyTexSubImage2D( GL_TEXTURE_2D, 0, 0, 0, 0, 0, glConfig.vidWidth, glConfig.vidHeight ); }  // gather thee samples
 	if (which == 2){ GL_Bind( postproc.motion2.texture ); qglCopyTexSubImage2D( GL_TEXTURE_2D, 0, 0, 0, 0, 0, glConfig.vidWidth, glConfig.vidHeight ); }
 	if (which == 3){ GL_Bind( postproc.motion3.texture ); qglCopyTexSubImage2D( GL_TEXTURE_2D, 0, 0, 0, 0, 0, glConfig.vidWidth, glConfig.vidHeight ); }
@@ -695,6 +697,7 @@ void R_MotionBlur_BackupScreen(int which) {
 	if (which == 13){ GL_Bind( postproc.mpass1.texture ); qglCopyTexSubImage2D( GL_TEXTURE_2D, 0, 0, 0, 0, 0, glConfig.vidWidth, glConfig.vidHeight ); }	// to accum
 	if (which == 14){ GL_Bind( postproc.mpass1.texture ); qglCopyTexSubImage2D( GL_TEXTURE_2D, 0, 0, 0, 0, 0, glConfig.vidWidth, glConfig.vidHeight ); }	// to accum
 	if (which == 18){ GL_Bind( postproc.screen.texture ); qglCopyTexSubImage2D( GL_TEXTURE_2D, 0, 0, 0, 0, 0, glConfig.vidWidth, glConfig.vidHeight ); }	// to accum
+	
 	
 }
 /*
@@ -727,9 +730,9 @@ R_Bloom_RestoreScreen_Postprocessed
 Restore the temporary framebuffer section we used with the backup texture
 =================
 */
+extern int mpasses;
 static void R_Bloom_RestoreScreen_Postprocessed( void ) {
 	glslProgram_t	*program;
-
 	if (leifxmode)
 	{
 	if (leifxmode == 1){ if (vertexShaders) R_GLSL_UseProgram(tr.leiFXDitherProgram); program=tr.programs[tr.leiFXDitherProgram];}
@@ -758,6 +761,8 @@ static void R_Bloom_RestoreScreen_Postprocessed( void ) {
 	if (program->u_ScreenToNextPixelY > -1) R_GLSL_SetUniform_u_ScreenToNextPixelY(program, (float)1.0/(float)glConfig.vidHeight);
 
 
+
+
 	// Brightness stuff
 	if (program->u_CC_Brightness > -1) R_GLSL_SetUniform_u_CC_Brightness(program, 1.0);
 	if (program->u_CC_Gamma > -1) R_GLSL_SetUniform_u_CC_Gamma(program, r_gamma->value);
@@ -778,6 +783,8 @@ static void R_Bloom_RestoreScreen_Postprocessed( void ) {
 	GL_Bind( postproc.depth.texture );	
 
 	// motion blur crap
+	if( r_motionblur->integer){
+	if (program->u_mpasses > -1) R_GLSL_SetUniform_u_mpasses(program, mpasses);
 	GL_SelectTexture(2);
 	GL_State( GLS_DEPTHTEST_DISABLE | GLS_SRCBLEND_ONE | GLS_DSTBLEND_ZERO );
 	GL_Bind( postproc.motion1.texture );	
@@ -805,8 +812,9 @@ static void R_Bloom_RestoreScreen_Postprocessed( void ) {
 	GL_SelectTexture(14);
 	GL_State( GLS_DEPTHTEST_DISABLE | GLS_SRCBLEND_ONE | GLS_DSTBLEND_ZERO );
 	GL_Bind( postproc.mpass1.texture );	
-
+	}
 	qglColor4f( 1, 1, 1, 1 );
+
 //	if (leifxmode == 778)
 //		return;
 	R_Bloom_Quad( glConfig.vidWidth, glConfig.vidHeight, 0, 0,

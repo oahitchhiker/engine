@@ -1520,7 +1520,7 @@ static void RB_CalcDiffuseColor_crazy( unsigned char *colors )
 
 
 	// Actually, in reality, I disabled B, C and D as I figured out a more sane way to do things.
-/*
+
 	// debug light positions
 	{
 	vec3_t	temp;
@@ -1541,7 +1541,6 @@ static void RB_CalcDiffuseColor_crazy( unsigned char *colors )
 	qglDepthRange( 0, 1 );
 	}
 
-*/
 	if (lightDirA[0] == 666){
 	VectorCopy( ent->directedLight, directedLightA );
 	VectorCopy( ent->lightDir, lightDirA );

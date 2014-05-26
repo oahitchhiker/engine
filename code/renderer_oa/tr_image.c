@@ -1048,6 +1048,8 @@ Upload32
 extern qboolean charSet;
 int hqresample = 0;		// leilei - high quality texture resampling
 				// Currently 0 as there is an alignment issue I haven't fixed.
+
+int	isicon;			// leilei  - for determining if it's an icon.
 static void Upload32( unsigned *data, 
 						  int width, int height, 
 						  qboolean mipmap, 
@@ -1113,6 +1115,47 @@ static void Upload32( unsigned *data,
 		scaled_height >>= r_picmip->integer;
 	}
 
+
+	//
+	// leilei - icon picmip for certain 2d graphics elements that get wasted in lower resolutions, saving vram
+	//
+
+	if ( isicon ){
+	
+		if (r_iconmip->integer){
+	
+	
+			// Auto-determine from resolution division
+			
+			if (r_iconmip->integer == 1){
+				int wadth, haght, dev;
+	
+				wadth = floor(1280 / glConfig.vidWidth) - 1;
+				haght = floor(960 / glConfig.vidHeight) - 1;
+				if (wadth > haght) dev = wadth;
+				else if (haght > wadth) dev = haght;
+				if (dev < 0) dev = 0;
+
+				scaled_width >>= dev;
+				scaled_height >>= dev;
+	
+				if (scaled_width < 32) scaled_width = 32;
+				if (scaled_height < 32) scaled_height = 32;
+	
+				}
+			else
+			// Force it 
+			{
+			scaled_width >>= (r_iconmip->integer - 1);
+			scaled_height >>= (r_iconmip->integer - 1);
+			if (scaled_width < 16) scaled_width = 16;
+			if (scaled_height < 16) scaled_height = 16;
+	
+			}
+	
+	
+		}
+	}
 
 
 	//
@@ -2027,6 +2070,17 @@ image_t	*R_FindImageFile( const char *name, imgType_t type, imgFlags_t flags )
 		ri.Printf( PRINT_DEVELOPER, "DETAILHACK: %s - mips will be gray\n", name );
 		detailhack = 1;		// leilei - attempt to fade detail mips to gray, EXPECTS DST_COLOR/SRC_COLOR for this to work right
 		}
+
+	// leilei - iconmip hack
+
+	if ( !Q_strncmp( name, "icons/", 5 )  || 
+		!Q_strncmp( name, "gfx/2d", 6 ) &&
+		Q_strncmp( name, "gfx/2d/bigchars", 14 )
+		){
+		isicon = 1;
+		}
+	else
+		isicon = 0;
 
 	//
 	// load the pic from disk

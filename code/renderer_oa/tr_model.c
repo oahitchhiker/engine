@@ -249,7 +249,7 @@ optimization to prevent disk rescanning if they are
 asked for again.
 ====================
 */
-qhandle_t RE_RegisterModel( const char *name ) {
+qhandle_t RE_RegisterModelReal( const char *name ) {
 	model_t		*mod;
 	qhandle_t	hModel;
 	qboolean	orgNameFailed = qfalse;
@@ -258,6 +258,8 @@ qhandle_t RE_RegisterModel( const char *name ) {
 	char		localName[ MAX_QPATH ];
 	const char	*ext;
 	char		altName[ MAX_QPATH ];
+
+
 
 	if ( !name || !name[0] ) {
 		ri.Printf( PRINT_ALL, "RE_RegisterModel: NULL name\n" );
@@ -362,6 +364,30 @@ qhandle_t RE_RegisterModel( const char *name ) {
 	}
 
 	return hModel;
+}
+
+
+// leilei - wrapper function to get alternate models loaded
+
+qhandle_t RE_RegisterModel( const char *name ) {
+
+
+	if (!r_suggestiveThemes->integer){
+		qhandle_t  eh;
+		char	narm[ MAX_QPATH ];
+		COM_StripExtension( name, narm, MAX_QPATH );
+
+		eh = RE_RegisterModelReal( va("%s_safe", narm) );
+		if (!eh)	
+			eh = RE_RegisterModelReal( name );
+				// TODO: Free the previous _safe qhandle 
+		return eh;
+		}
+	else
+	{
+	return RE_RegisterModelReal( name );
+	}
+
 }
 
 /*
