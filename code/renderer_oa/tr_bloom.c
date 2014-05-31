@@ -43,6 +43,12 @@ cvar_t *r_film;
 extern int	force32upload;		
 int		leifxmode;
 int		fakeit = 0;
+
+int 	tvinterlace = 1;
+int 	tvinter= 1;
+extern int tvWidth;
+extern int tvHeight;
+
 /* 
 ============================================================================== 
  
@@ -170,6 +176,19 @@ static struct {
 		int		width, height;
 		float	readW, readH;
 	} mpass4;
+	struct {
+		image_t	*texture;
+		int		width, height;
+		float	readW, readH;
+	} tv;
+	struct {
+		int		width, height;
+	} tvwork;
+	struct {
+		image_t	*texture;
+		int		width, height;
+		float	readW, readH;
+	} tveffect;
 
 	qboolean started;
 } postproc;
@@ -197,6 +216,51 @@ static void ID_INLINE R_Bloom_Quad( int width, int height, float texX, float tex
 	qglVertex2f(	width,						height	);	
 
 	qglTexCoord2f(	texWidth,					texHeight	);	
+	qglVertex2f(	width,						y	);				
+	qglEnd ();
+}
+
+static void ID_INLINE R_Bloom_QuadTV( int width, int height, float texX, float texY, float texWidth, float texHeight, int aa ) {
+	int x = 0;
+	int y = 0;
+	float raa = r_retroAA->value;
+	if (raa < 1) raa = 1;
+
+	float xpix = 1.0f / width  / (4 / raa);
+	float ypix = 1.0f / height / (4 / raa);
+	float xaa;
+	float yaa;
+	x = 0;
+	y = 0;
+
+	if (aa == 0){	xaa = 0; yaa = 0;   }
+	if (aa == 1){	xaa = -xpix; yaa = ypix;   }
+	if (aa == 2){	xaa = -xpix; yaa = -ypix;   }
+	if (aa == 3){	xaa = xpix; yaa = -ypix;   }
+	if (aa == 4){	xaa = xpix; yaa = ypix;   }
+
+	//y += tvHeight - height;
+	width += x;
+	height += y;
+	
+	texWidth += texX;
+	texHeight += texY;
+
+	if (!aa){
+	qglViewport( 0, 0, tvWidth, tvHeight );
+	qglScissor( 0, 0, tvWidth, tvHeight );
+	}
+	qglBegin( GL_QUADS );	
+	//GL_State( GLS_DEPTHTEST_DISABLE | GLS_SRCBLEND_ONE | GLS_DSTBLEND_ONE );
+	if (aa)
+	qglColor4f( 0.25, 0.25, 0.25, 1 );						
+	qglTexCoord2f(	texX + xaa,						texHeight + yaa);	
+	qglVertex2f(	x,							y	);
+	qglTexCoord2f(	texX + xaa,						texY + yaa	);				
+	qglVertex2f(	x,							height	);	
+	qglTexCoord2f(	texWidth + xaa,					texY	+ yaa );				
+	qglVertex2f(	width,						height	);	
+	qglTexCoord2f(	texWidth + xaa,					texHeight + yaa	);	
 	qglVertex2f(	width,						y	);				
 	qglEnd ();
 }
@@ -339,6 +403,34 @@ static void R_Postprocess_InitTextures( void )
 	postproc.screen.texture = R_CreateImage( "***postproc screen texture***", data, postproc.screen.width, postproc.screen.height, qfalse, qfalse, GL_CLAMP_TO_EDGE  );
 	ri.Hunk_FreeTempMemory( data );
 	
+	// leilei - tv output texture
+
+	if (r_tvMode->integer){
+		// find closer power of 2 to screen size 
+		for (postproc.tv.width = 1;postproc.tv.width< tvWidth;postproc.tv.width *= 2);
+		for (postproc.tv.height = 1;postproc.tv.height < tvHeight;postproc.tv.height *= 2);
+	
+		postproc.tv.readW = tvWidth / (float)postproc.tv.width;
+		postproc.tv.readH = tvHeight / (float)postproc.tv.height;
+	
+		// find closer power of 2 to effect size 
+		postproc.tvwork.width = r_bloom_sample_size->integer;
+		postproc.tvwork.height = postproc.tvwork.width * ( tvWidth / tvHeight );
+	
+		for (postproc.tveffect.width = 1;postproc.tveffect.width < postproc.tvwork.width;postproc.tveffect.width *= 2);
+		for (postproc.tveffect.height = 1;postproc.tveffect.height < postproc.tvwork.height;postproc.tveffect.height *= 2);
+	
+		postproc.tveffect.readW = postproc.tvwork.width / (float)postproc.tveffect.width;
+		postproc.tveffect.readH = postproc.tvwork.height / (float)postproc.tveffect.height;
+	
+	
+	
+		data = ri.Hunk_AllocateTempMemory( tvWidth * tvHeight * 4 );
+		Com_Memset( data, 0, tvWidth * tvHeight * 4 );
+		postproc.tv.texture = R_CreateImage( "***tv output screen texture***", data, tvWidth, tvHeight, qfalse, qfalse, GL_CLAMP_TO_EDGE  );
+		ri.Hunk_FreeTempMemory( data );
+	}
+
 	// leilei - motion blur textures!
 
 	if (r_motionblur->integer){
@@ -682,6 +774,13 @@ static void R_Postprocess_BackupScreen( void ) {
 		
 }
 
+static void R_Postprocess_BackupScreenTV( void ) {
+
+	GL_Bind( postproc.screen.texture );
+	qglCopyTexSubImage2D( GL_TEXTURE_2D, 0, 0, 0, 0, tvinter, glConfig.vidWidth, glConfig.vidHeight);
+
+}
+
 
 // leilei - motion blur hack
 void R_MotionBlur_BackupScreen(int which) {
@@ -744,6 +843,7 @@ static void R_Bloom_RestoreScreen_Postprocessed( void ) {
 	if (leifxmode == 778){ if (vertexShaders) R_GLSL_UseProgram(tr.motionBlurProgram); program=tr.programs[tr.motionBlurProgram];}
 	if (leifxmode == 779){ if (vertexShaders) R_GLSL_UseProgram(tr.motionBlurPostProgram); program=tr.programs[tr.motionBlurPostProgram];}
 	if (leifxmode == 666){ if (vertexShaders) R_GLSL_UseProgram(tr.BrightnessProgram); program=tr.programs[tr.BrightnessProgram];}
+	if (leifxmode == 1236){ if (vertexShaders) R_GLSL_UseProgram(tr.CRTProgram); program=tr.programs[tr.CRTProgram];}
 	
 	}
 	else
@@ -760,6 +860,10 @@ static void R_Bloom_RestoreScreen_Postprocessed( void ) {
 
 	if (program->u_ScreenToNextPixelY > -1) R_GLSL_SetUniform_u_ScreenToNextPixelY(program, (float)1.0/(float)glConfig.vidHeight);
 
+	// leilei - for TV shaders
+//	if (program->u_ActualScreenSizeX > -1) R_GLSL_SetUniform_u_ActualScreenSizeX(program, tvWidth);
+
+//	if (program->u_ActualScreenSizeY > -1) R_GLSL_SetUniform_u_ActualScreenSizeY(program, tvHeight);
 
 
 
@@ -817,9 +921,33 @@ static void R_Bloom_RestoreScreen_Postprocessed( void ) {
 
 //	if (leifxmode == 778)
 //		return;
+	if (leifxmode == 1234){
+			{
+			R_Bloom_QuadTV( glConfig.vidWidth, glConfig.vidHeight, 0, 0, postproc.screen.readW,postproc.screen.readH, 0 );
+			}
+		}
+	else if (leifxmode == 1236){
+			{
+			R_Bloom_QuadTV( glConfig.vidWidth, glConfig.vidHeight, 0, 0, postproc.screen.readW,postproc.screen.readH, 0 );
+			}
+		}
+	else if (leifxmode == 1233){
+			
+
+			R_Bloom_QuadTV( glConfig.vidWidth, glConfig.vidHeight, 0, 0, postproc.screen.readW,postproc.screen.readH, 1 );
+			GL_SelectTexture(0);
+			GL_State( GLS_DEPTHTEST_DISABLE | GLS_SRCBLEND_ONE | GLS_DSTBLEND_ONE );
+			GL_Bind( postproc.screen.texture );
+			R_Bloom_QuadTV( glConfig.vidWidth, glConfig.vidHeight, 0, 0, postproc.screen.readW,postproc.screen.readH, 2 );
+			R_Bloom_QuadTV( glConfig.vidWidth, glConfig.vidHeight, 0, 0, postproc.screen.readW,postproc.screen.readH, 3 );
+			R_Bloom_QuadTV( glConfig.vidWidth, glConfig.vidHeight, 0, 0, postproc.screen.readW,postproc.screen.readH, 4 );
+
+		}
+	else
+		{
 	R_Bloom_Quad( glConfig.vidWidth, glConfig.vidHeight, 0, 0,
 			postproc.screen.readW,postproc.screen.readH );
-
+		}
 	if (vertexShaders) R_GLSL_UseProgram(0);
 	GL_SelectTexture(0);
 
@@ -1054,8 +1182,8 @@ void R_LeiFXPostprocessDitherScreen( void )
 		return;
 	if ( backEnd.doneleifx)
 		return;
-	if ( !backEnd.doneSurfaces )
-		return;
+//	if ( !backEnd.doneSurfaces )
+//		return;
 //	backEnd.doneleifx = qtrue;
 	if( !postproc.started ) {
 		force32upload = 1;
@@ -1092,8 +1220,8 @@ void R_LeiFXPostprocessFilterScreen( void )
 		return;
 	if ( backEnd.doneleifx)
 		return;
-	if ( !backEnd.doneSurfaces )
-		return;
+//	if ( !backEnd.doneSurfaces )
+//		return;
 	if( !postproc.started ) {
 		force32upload = 1;
 		R_Postprocess_InitTextures();
@@ -1136,6 +1264,86 @@ void R_LeiFXPostprocessFilterScreen( void )
 	
 
 }
+
+// tvmode doesn't do any actual postprocessing yet (ntsc, shadow mask etc)
+
+float tvtime;
+
+void R_TVScreen( void )
+{
+	if( !r_tvMode->integer)
+		return;
+	if ( backEnd.donetv)
+		return;
+	if( !postproc.started ) {
+		force32upload = 1;
+		R_Postprocess_InitTextures();
+		if( !postproc.started )
+			return;
+	}
+
+	if ( !backEnd.projection2D )
+		RB_SetGL2D();
+		force32upload = 1;
+
+//	postprocess = 1;
+
+	if (backEnd.refdef.time > tvtime){
+		tvinterlace *= -1;
+	tvtime = backEnd.refdef.time + (1000.0f / 60); // 60hz
+	}
+		
+	tvinter = tvinterlace;
+	if (tvinter < 0) tvinter = 0;
+	if (r_tvMode->integer < 3) tvinter = 0;
+
+	leifxmode = 1234;		// just show it through to tvWidth/tvHeight
+
+	if (r_tvMode->integer == 2)
+		leifxmode = 1236;		// run it through a shader
+	//R_Postprocess_BackupScreen();
+	R_Postprocess_BackupScreenTV();
+
+	R_Bloom_RestoreScreen_Postprocessed();
+	
+	backEnd.donetv = qtrue;
+
+	force32upload = 0;
+	
+
+}
+
+
+// leilei - old 2000 console-style antialiasing/antiflickering
+void R_RetroAAScreen( void )
+{
+	if( !r_retroAA->integer)
+		return;
+	if ( backEnd.doneraa)
+		return;
+	if( !postproc.started ) {
+		force32upload = 1;
+		R_Postprocess_InitTextures();
+		if( !postproc.started )
+			return;
+	}
+
+	if ( !backEnd.projection2D )
+		RB_SetGL2D();
+	force32upload = 1;
+
+	leifxmode = 1233;		// just show it through to tvWidth/tvHeight
+	//R_Postprocess_BackupScreen();
+	R_Postprocess_BackupScreen();
+	R_Bloom_RestoreScreen_Postprocessed();
+	
+	backEnd.doneraa = qtrue;
+
+	force32upload = 0;
+	
+
+}
+
 
 
 

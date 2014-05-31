@@ -50,6 +50,7 @@ static qboolean enumeration_all_ext = qfalse;
 #ifdef USE_VOIP
 static qboolean capture_ext = qfalse;
 #endif
+extern int xmpspeed; 		// leilei
 
 /*
 =================
@@ -2516,6 +2517,9 @@ qboolean S_AL_Init( soundInterface_t *si )
 
 	s_alInputDevice = Cvar_Get( "s_alInputDevice", "", CVAR_ARCHIVE | CVAR_LATCH );
 	s_alDevice = Cvar_Get("s_alDevice", "", CVAR_ARCHIVE | CVAR_LATCH);
+
+
+	xmpspeed = 48000; // leilei - force it to 48000 which is the native mixing rate post-ac'97
 
 	// Load QAL
 	if( !QAL_Init( s_alDriver->string ) )

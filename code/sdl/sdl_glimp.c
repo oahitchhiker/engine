@@ -49,6 +49,10 @@ typedef void *QGLContext;
 
 static QGLContext opengl_context;
 
+int tvMode;	// leilei - tvmode
+int tvWidth;
+int tvHeight;
+
 typedef enum
 {
 	RSERR_OK,
@@ -63,6 +67,8 @@ static SDL_Surface *screen = NULL;
 static const SDL_VideoInfo *videoInfo = NULL;
 
 cvar_t *r_allowSoftwareGL; // Don't abort out if a hardware visual can't be obtained
+cvar_t *r_tvMode; // leilei - tv mode - force 480i rendering, which is then stretched and interlaced
+cvar_t *r_tvModeAspect; // leilei - tv mode - to do widescreen and low res tv etc
 cvar_t *r_allowResize; // make window resizable
 cvar_t *r_centerWindow;
 cvar_t *r_sdlDriver;
@@ -377,6 +383,7 @@ static int GLimp_SetMode(int mode, qboolean fullscreen, qboolean noborder)
 		
 		SDL_GL_SetAttribute( SDL_GL_DOUBLEBUFFER, 1 );
 
+
 #if 0 // See http://bugzilla.icculus.org/show_bug.cgi?id=3526
 		// If not allowing software GL, demand accelerated
 		if( !r_allowSoftwareGL->integer )
@@ -439,8 +446,35 @@ static int GLimp_SetMode(int mode, qboolean fullscreen, qboolean noborder)
 		ri.Printf( PRINT_ALL, "Couldn't get a visual\n" );
 		return RSERR_INVALID_MODE;
 	}
+	
+	//
+	// leilei - TV MODE
+	//
+	tvWidth = glConfig.vidWidth;
+	tvHeight = glConfig.vidHeight;
+
+	if( r_tvMode->integer ){
+
+		// HIJACKED >:)
+	glConfig.vidWidth = 640;
+	glConfig.vidHeight = 480;
+
+		// leilei - make it use an aspect-corrected lower resolution that's always 640 wide for the width, but variable height
+	if( r_tvModeAspect->integer ){
+		float aspe = 640.0f / tvWidth;
+		glConfig.vidWidth = tvWidth * aspe;
+		glConfig.vidHeight = tvHeight * aspe;
+
+		}
+		// then change the gl port..
+		//vidscreen = SDL_SetVideoMode(tvWidth, tvHeight, colorbits, flags);
+	}
+	// leilei - tv mode hack end
 
 	screen = vidscreen;
+
+
+
 
 	glstring = (char *) qglGetString (GL_RENDERER);
 	ri.Printf( PRINT_ALL, "GL_RENDERER: %s\n", glstring );
@@ -691,7 +725,9 @@ void GLimp_Init( void )
 	r_sdlDriver = ri.Cvar_Get( "r_sdlDriver", "", CVAR_ROM );
 	r_allowResize = ri.Cvar_Get( "r_allowResize", "0", CVAR_ARCHIVE | CVAR_LATCH );
 	r_centerWindow = ri.Cvar_Get( "r_centerWindow", "0", CVAR_ARCHIVE | CVAR_LATCH );
-
+// leilei - tv mode hack
+	r_tvMode = ri.Cvar_Get( "r_tvMode", "0", CVAR_LATCH | CVAR_ARCHIVE );
+	r_tvModeAspect = ri.Cvar_Get( "r_tvModeAspect", "0", CVAR_LATCH | CVAR_ARCHIVE ); // yes
 	if( ri.Cvar_VariableIntegerValue( "com_abnormalExit" ) )
 	{
 		ri.Cvar_Set( "r_mode", va( "%d", R_MODE_FALLBACK ) );

@@ -1085,17 +1085,36 @@ RB_SetGL2D
 
 ================
 */
+extern int tvWidth;
+extern int tvHeight;
+
 void	RB_SetGL2D (void) {
 	backEnd.projection2D = qtrue;
 
 	// set 2D virtual screen size
+
+	if (r_tvMode->integer)
+	{
+		qglViewport( 0, 0, glConfig.vidWidth, glConfig.vidHeight );
+		qglScissor( 0, 0, glConfig.vidWidth, glConfig.vidHeight );
+	
+		qglMatrixMode(GL_PROJECTION);
+	    qglLoadIdentity ();
+		qglOrtho (0, glConfig.vidWidth, glConfig.vidHeight, 0, 0, 1);
+		qglMatrixMode(GL_MODELVIEW);
+	    qglLoadIdentity ();
+	}
+	else
+	{
 	qglViewport( 0, 0, glConfig.vidWidth, glConfig.vidHeight );
 	qglScissor( 0, 0, glConfig.vidWidth, glConfig.vidHeight );
+	
 	qglMatrixMode(GL_PROJECTION);
     qglLoadIdentity ();
 	qglOrtho (0, glConfig.vidWidth, glConfig.vidHeight, 0, 0, 1);
 	qglMatrixMode(GL_MODELVIEW);
     qglLoadIdentity ();
+	}
 
     qglGetFloatv(GL_PROJECTION_MATRIX, glState.currentProjectionMatrix);
     qglGetFloatv(GL_MODELVIEW_MATRIX, glState.currentModelViewMatrix);
@@ -1484,6 +1503,9 @@ int		mpasses;	// how many passes of motion blur we should render.
 
 float		motioner;
 
+void R_TVScreen( void );
+void R_RetroAAScreen( void );
+
 void R_MblurScreen( void );
 void R_MblurScreenPost( void );
 void RB_UpdateMotionBlur (void){
@@ -1580,6 +1602,8 @@ const void	*RB_SwapBuffers( const void *data ) {
 
 
 	R_BrightScreen();		// leilei - alternate brightness - do it here so we hit evereything
+	R_RetroAAScreen();		// leilei - then apply 'anti aliasing'
+	R_TVScreen();			// leilei - tv operation comes last, this is a SCREEN
 
 
 	cmd = (const swapBuffersCommand_t *)data;
@@ -1623,6 +1647,8 @@ const void	*RB_SwapBuffers( const void *data ) {
 	backEnd.doneSurfaces = qfalse;
 	backEnd.doneSun	     = qfalse;
 	backEnd.doneSunFlare = qfalse;
+	backEnd.donetv = qfalse;
+	backEnd.doneraa = qfalse;
 
 
 	// leilei - artificial slowness (mapper debug) - this might be windows only

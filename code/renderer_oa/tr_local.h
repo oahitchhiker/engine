@@ -842,6 +842,8 @@ typedef struct {
 	GLfloat			u_ScreenToNextPixelX;
 	GLfloat			u_ScreenToNextPixelY;
 	GLfloat			u_zFar;
+	GLint			u_ActualScreenSizeX;
+	GLint			u_ActualScreenSizeY;
 
 // leilei - motion blur vars
 
@@ -1025,6 +1027,8 @@ typedef struct {
 	qboolean	doneSun;		// leilei - done drawing a sun
 	qboolean	doneSunFlare;		// leilei - done drawing a sun flare
 	qboolean	donemblur;		// leilei - done motionblur this frame
+	qboolean	donetv;		// leilei - tv this frame
+	qboolean	doneraa;	// leilei - done aa'ing this frame
 	qboolean	doneSurfaces;   // done any 3d surfaces already
 	trRefEntity_t	entity2D;	// currentEntity will point at this when doing 2D rendering
 } backEndState_t;
@@ -1084,6 +1088,7 @@ typedef struct {
 	qhandle_t				motionBlurProgram;	// leilei
 	qhandle_t				motionBlurPostProgram;	// leilei
 	qhandle_t				BrightnessProgram;	// leilei
+	qhandle_t				CRTProgram;	// leilei
 
 	int						numPrograms;
 	glslProgram_t			*programs[MAX_PROGRAMS];
@@ -1288,6 +1293,10 @@ extern	cvar_t	*r_flaresDlight;
 extern cvar_t	*r_alternateBrightness;		// leilei - alternate brightness
 
 extern cvar_t	*r_leifx;	// Leilei - leifx nostalgia filter
+
+extern cvar_t	*r_tvMode;	// Leilei - tv faking mode
+
+extern cvar_t	*r_retroAA;	// Leilei - old console anti aliasing
 
 extern cvar_t	*r_suggestiveThemes;	// Leilei - mature content
 
@@ -1815,6 +1824,14 @@ static ID_INLINE void R_GLSL_SetUniform_u_CC_Overbright(glslProgram_t *program, 
 static ID_INLINE void R_GLSL_SetUniform_u_mpasses(glslProgram_t *program, GLint value) {
 	qglUniform1iARB(program->u_mpasses, value);
 }
+
+static ID_INLINE void R_GLSL_SetUniform_u_ActualScreenSizeX(glslProgram_t *program, GLint value) {
+	qglUniform1iARB(program->u_ActualScreenSizeX, value);
+}
+static ID_INLINE void R_GLSL_SetUniform_u_ActualScreenSizeY(glslProgram_t *program, GLint value) {
+	qglUniform1iARB(program->u_ActualScreenSizeY, value);
+}
+
 
 static ID_INLINE void R_GLSL_SetUniform_Mpass1(glslProgram_t *program, GLint value) {qglUniform1iARB(program->u_mpass1, value);}
 static ID_INLINE void R_GLSL_SetUniform_Mpass2(glslProgram_t *program, GLint value) {qglUniform1iARB(program->u_mpass2, value);}

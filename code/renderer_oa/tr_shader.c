@@ -136,6 +136,9 @@ static glslProgram_t *R_GLSL_AllocProgram(void) {
 	program->u_CC_Overbright		= -1;
 	program->u_CC_Contrast			= -1;
 	program->u_CC_Saturation		= -1;
+	program->u_ActualScreenSizeX					= -1;
+	program->u_ActualScreenSizeY					= -1;
+
 	
 	tr.programs[tr.numPrograms] = program;
 	tr.numPrograms++;
@@ -174,6 +177,10 @@ static void R_GLSL_ParseProgram(glslProgram_t *program, char *_text) {
 					program->u_ScreenSizeX = qglGetUniformLocationARB(program->program, "u_ScreenSizeX");
 				}  else if (!Q_stricmp(token, "u_ScreenSizeY;")) {
 					program->u_ScreenSizeY = qglGetUniformLocationARB(program->program, "u_ScreenSizeY");
+				}  else if (!Q_stricmp(token, "u_ActualScreenSizeX;")) {
+					program->u_ActualScreenSizeX = qglGetUniformLocationARB(program->program, "u_ActualScreenSizeX");
+				}  else if (!Q_stricmp(token, "u_ActualScreenSizeY;")) {
+					program->u_ActualScreenSizeY = qglGetUniformLocationARB(program->program, "u_ActualScreenSizeY");
 				}  else if (!Q_stricmp(token, "u_mpasses;")) {
 					program->u_mpasses = qglGetUniformLocationARB(program->program, "u_mpasses");
 				} else {

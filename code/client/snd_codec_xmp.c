@@ -22,6 +22,7 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 ===========================================================================
 */
 
+int	xmpspeed = 22050; // assume 22050hz unless........
 #ifdef USE_CODEC_XMP
 
 // includes for the Q3 sound system
@@ -39,6 +40,7 @@ xmp_context xmpsong;
 //int sound_init(int, int);
 void sound_play(void *, int);
 void sound_deinit(void);
+
 
 
 
@@ -131,7 +133,7 @@ snd_stream_t *S_XMP_CodecOpenStream(const char *filename)
 	FS_FCloseFile(file);		// unfortunately these do not help with the leak
 
 	if (itsloaded == 0)
-	itsloaded = xmp_start_player(xmpsong, 44100, 0);	// TODO: do sample rate of the mixer.
+	itsloaded = xmp_start_player(xmpsong, xmpspeed, 0);	// TODO: do sample rate of the mixer.
 	
 		if (itsloaded == 0){
 	
@@ -148,7 +150,7 @@ snd_stream_t *S_XMP_CodecOpenStream(const char *filename)
 	rv->info.size = 1337;	// This doesn't matter!
 	rv->pos = 0;
 
-	rv->info.rate = 44100;
+	rv->info.rate = xmpspeed;
 	rv->info.width = 2;
 	rv->info.channels = 2;
 	rv->info.samples = 12;
