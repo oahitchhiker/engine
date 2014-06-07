@@ -204,7 +204,7 @@ cvar_t	*r_leidebugeye;		// Leilei - eye debug
 
 cvar_t	*r_suggestiveThemes;		// leilei - mature content control
 
-cvar_t	*r_motionblur;		// Leilei - motionblur
+//cvar_t	*r_motionblur;		// Leilei - motionblur
 cvar_t	*r_motionblur_fps;		// Leilei - motionblur framerated
 
 cvar_t	*r_slowness;		// Leilei - the cvar that slows everything down. use with caution.
@@ -214,7 +214,7 @@ cvar_t	*r_slowness_gpu;		// Leilei
 
 // leilei - fallback shader hack
 
-#include "tr_leiglsl.h"
+
 
 
 #ifdef USE_FALLBACK_GLSL
@@ -1258,7 +1258,7 @@ void R_Register( void )
 
 	r_suggestiveThemes = ri.Cvar_Get( "r_suggestiveThemes", "1" , CVAR_ARCHIVE | CVAR_LATCH);	
 
-	r_motionblur = ri.Cvar_Get( "r_motionblur", "0" , CVAR_ARCHIVE | CVAR_LATCH);	
+//	r_motionblur = ri.Cvar_Get( "r_motionblur", "0" , CVAR_ARCHIVE | CVAR_LATCH);	
 	r_motionblur_fps = ri.Cvar_Get( "r_motionblur_fps", "60", 0);	
 
 	r_anime = ri.Cvar_Get( "r_anime", "0" , CVAR_ARCHIVE | CVAR_LATCH);	

@@ -1089,23 +1089,11 @@ extern int tvWidth;
 extern int tvHeight;
 
 void	RB_SetGL2D (void) {
+
 	backEnd.projection2D = qtrue;
 
 	// set 2D virtual screen size
 
-	if (r_tvMode->integer)
-	{
-		qglViewport( 0, 0, glConfig.vidWidth, glConfig.vidHeight );
-		qglScissor( 0, 0, glConfig.vidWidth, glConfig.vidHeight );
-	
-		qglMatrixMode(GL_PROJECTION);
-	    qglLoadIdentity ();
-		qglOrtho (0, glConfig.vidWidth, glConfig.vidHeight, 0, 0, 1);
-		qglMatrixMode(GL_MODELVIEW);
-	    qglLoadIdentity ();
-	}
-	else
-	{
 	qglViewport( 0, 0, glConfig.vidWidth, glConfig.vidHeight );
 	qglScissor( 0, 0, glConfig.vidWidth, glConfig.vidHeight );
 	
@@ -1114,7 +1102,7 @@ void	RB_SetGL2D (void) {
 	qglOrtho (0, glConfig.vidWidth, glConfig.vidHeight, 0, 0, 1);
 	qglMatrixMode(GL_MODELVIEW);
     qglLoadIdentity ();
-	}
+
 
     qglGetFloatv(GL_PROJECTION_MATRIX, glState.currentProjectionMatrix);
     qglGetFloatv(GL_MODELVIEW_MATRIX, glState.currentModelViewMatrix);
@@ -1562,6 +1550,71 @@ void RB_UpdateMotionBlur (void){
 
 
 float	mtime;	// motion blur frame time
+
+//
+// leilei - accumulation buffer-based motion blur, a much more legacy technique
+//	code addapted from MH's "Quake motion blur" thread (which is intended for GLQuake)
+//      but made to work with our cvars relating to the crappy pixel shader'd motion blur
+//	i coded on a whim one day.
+//
+
+float	mblur_time;
+float	mblur_timelast;
+
+float	time_now;
+float	time_last;
+float	mbluracc;
+void RB_AccumBlurValue (void)
+{
+	// calculate how much we need, determined by motion blur fps
+	mblur_time = time_now - time_last;
+	mbluracc = (mblur_time) / 32;
+	mbluracc *= -1;
+	mbluracc += 1.0f;
+	mbluracc /= 2;
+	
+};
+
+void RB_DrawAccumBlur (void)
+{
+   static int blurstate = 0;
+   float accblur;
+   static float damagetime = -1.0f;
+
+   if (r_tvMode->integer) return;	// tvmode causes this to crash
+   if (!r_motionblur->integer) return;
+   if (r_motionblur->integer > 1) return; 	// don't do it for the other motion blur techniques
+
+	RB_AccumBlurValue ();
+	accblur = mbluracc;
+
+	//ri.Printf( PRINT_WARNING, "accum value %f\n", mbluracc );
+	if (accblur > 1.0f)
+		accblur = 0.5f;
+
+   if (accblur <= 0.0f)
+   {
+      // reinit if we're not blurring so that the contents of the
+      // accumulation buffer are valid for the frame
+      blurstate = 0;
+      return;
+   }
+
+   if (!blurstate)
+   {
+      // load the scene into the accumulation buffer
+      qglAccum (GL_LOAD, 1.0f);
+   }
+   else
+   {
+      qglAccum (GL_MULT, accblur); // scale contents of accumulation buffer
+      qglAccum (GL_ACCUM, 1.0f - accblur); // add screen contents
+      qglAccum (GL_RETURN, 1.0f); // read result back
+   }
+
+   blurstate = 1;
+}
+
 /*
 =============
 RB_SwapBuffers
@@ -1571,20 +1624,21 @@ RB_SwapBuffers
 const void	*RB_SwapBuffers( const void *data ) {
 	const swapBuffersCommand_t	*cmd;
 
-
+	
 
 	// finish any 2D drawing if needed
 	if ( tess.numIndexes ) {
 		RB_EndSurface();
 	}
 
-	if (r_motionblur->integer){
+	if (r_motionblur->integer > 2){
 		{
 			mtime = backEnd.refdef.time + (1000.0f / r_motionblur_fps->integer);
 			mblurred = 0;
 			RB_UpdateMotionBlur();
 		}
 	}
+
 
 	// texture swapping test
 	if ( r_showImages->integer ) {
@@ -1600,7 +1654,9 @@ const void	*RB_SwapBuffers( const void *data ) {
 	}
 
 
-
+	if (r_motionblur->integer == 1){
+		RB_DrawAccumBlur ();
+	}
 	R_BrightScreen();		// leilei - alternate brightness - do it here so we hit evereything
 	R_RetroAAScreen();		// leilei - then apply 'anti aliasing'
 	R_TVScreen();			// leilei - tv operation comes last, this is a SCREEN
@@ -1678,7 +1734,7 @@ const void	*RB_SwapBuffers( const void *data ) {
 
 
 	
-
+	time_last =  backEnd.refdef.time;
 	return (const void *)(cmd + 1);
 }
 
@@ -1691,7 +1747,7 @@ void RB_ExecuteRenderCommands( const void *data ) {
 	int		t1, t2;
 
 	t1 = ri.Milliseconds ();
-
+	time_now = t1;
 
 	while ( 1 ) {
 		data = PADP(data, sizeof(void *));

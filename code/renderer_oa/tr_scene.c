@@ -394,9 +394,19 @@ void RE_RenderScene( const refdef_t *fd ) {
 	// recalculate fov according to widescreen parameters
 	{
 		float zoomfov = tr.refdef.fov_x / 90;	// figure out our zoom or changed fov magnitiude from cg_fov and cg_zoomfov
+		int thisisit;
+
+		// find aspect to immediately match our vidwidth for perfect match with resized screens...
+		float erspact = tr.refdef.width / tr.refdef.height;
+		float aspact = glConfig.vidWidth / glConfig.vidHeight;
+		if (erspact == aspact) thisisit = 1;
+
 	
 		// try not to recalculate fov of ui and hud elements
-		if (((tr.refdef.fov_x /  tr.refdef.fov_y) > 1.3) && (tr.refdef.width > 320) && (tr.refdef.height > 240))
+		//if (((tr.refdef.fov_x /  tr.refdef.fov_y) > 1.3) && (tr.refdef.width > 320) && (tr.refdef.height > 240))
+		//if (((tr.refdef.fov_x /  tr.refdef.fov_y) > 1.3) && (tr.refdef.width > (320 * refdefscalex)) && (tr.refdef.height > (240 * refdefscaley)))
+		if (((tr.refdef.fov_x /  tr.refdef.fov_y) > 1.3) && (thisisit))
+
 			{
 			// undo vert-
 			parms.fovY = parms.fovY * (73.739792 / tr.refdef.fov_y) * zoomfov;

@@ -52,6 +52,7 @@ static QGLContext opengl_context;
 int tvMode;	// leilei - tvmode
 int tvWidth;
 int tvHeight;
+int tvinterlace;	// leilei - interlace value for height
 
 typedef enum
 {
@@ -69,6 +70,7 @@ static const SDL_VideoInfo *videoInfo = NULL;
 cvar_t *r_allowSoftwareGL; // Don't abort out if a hardware visual can't be obtained
 cvar_t *r_tvMode; // leilei - tv mode - force 480i rendering, which is then stretched and interlaced
 cvar_t *r_tvModeAspect; // leilei - tv mode - to do widescreen and low res tv etc
+cvar_t *r_motionblur; // leilei - moved here to set up accumulation bits
 cvar_t *r_allowResize; // make window resizable
 cvar_t *r_centerWindow;
 cvar_t *r_sdlDriver;
@@ -202,6 +204,7 @@ static int GLimp_SetMode(int mode, qboolean fullscreen, qboolean noborder)
 	int sdlcolorbits;
 	int colorbits, depthbits, stencilbits;
 	int tcolorbits, tdepthbits, tstencilbits;
+	int accumbits, taccumbits;	// leilei - motionblur
 	int samples;
 	int i = 0;
 	SDL_Surface *vidscreen = NULL;
@@ -293,6 +296,12 @@ static int GLimp_SetMode(int mode, qboolean fullscreen, qboolean noborder)
 	stencilbits = r_stencilbits->value;
 	samples = r_ext_multisample->value;
 
+	// leilei - motion blur via accumulation buffer support
+	if (r_motionblur->integer == 1)
+	accumbits = 16;
+	else
+	accumbits = 0;
+
 	for (i = 0; i < 16; i++)
 	{
 		// 0 - default
@@ -324,6 +333,7 @@ static int GLimp_SetMode(int mode, qboolean fullscreen, qboolean noborder)
 		tcolorbits = colorbits;
 		tdepthbits = depthbits;
 		tstencilbits = stencilbits;
+		taccumbits = accumbits;
 
 		if ((i % 4) == 3)
 		{ // reduce colorbits
@@ -366,6 +376,12 @@ static int GLimp_SetMode(int mode, qboolean fullscreen, qboolean noborder)
 		SDL_GL_SetAttribute( SDL_GL_BLUE_SIZE, sdlcolorbits );
 		SDL_GL_SetAttribute( SDL_GL_DEPTH_SIZE, tdepthbits );
 		SDL_GL_SetAttribute( SDL_GL_STENCIL_SIZE, tstencilbits );
+
+		// leilei - accumulation buffer motion blur
+		SDL_GL_SetAttribute( SDL_GL_ACCUM_RED_SIZE,   accumbits );
+		SDL_GL_SetAttribute( SDL_GL_ACCUM_GREEN_SIZE, accumbits );
+		SDL_GL_SetAttribute( SDL_GL_ACCUM_BLUE_SIZE,  accumbits );
+		SDL_GL_SetAttribute( SDL_GL_ACCUM_ALPHA_SIZE, accumbits );
 
 		SDL_GL_SetAttribute( SDL_GL_MULTISAMPLEBUFFERS, samples ? 1 : 0 );
 		SDL_GL_SetAttribute( SDL_GL_MULTISAMPLESAMPLES, samples );
@@ -455,9 +471,12 @@ static int GLimp_SetMode(int mode, qboolean fullscreen, qboolean noborder)
 
 	if( r_tvMode->integer ){
 
+
+
 		// HIJACKED >:)
 	glConfig.vidWidth = 640;
 	glConfig.vidHeight = 480;
+
 
 		// leilei - make it use an aspect-corrected lower resolution that's always 640 wide for the width, but variable height
 	if( r_tvModeAspect->integer ){
@@ -728,6 +747,10 @@ void GLimp_Init( void )
 // leilei - tv mode hack
 	r_tvMode = ri.Cvar_Get( "r_tvMode", "0", CVAR_LATCH | CVAR_ARCHIVE );
 	r_tvModeAspect = ri.Cvar_Get( "r_tvModeAspect", "0", CVAR_LATCH | CVAR_ARCHIVE ); // yes
+
+// leilei - move motionblur cvar here to get it to not upset the other renderers when setting up an accumulation buffer
+	r_motionblur = ri.Cvar_Get( "r_motionblur", "0", CVAR_LATCH | CVAR_ARCHIVE );
+
 	if( ri.Cvar_VariableIntegerValue( "com_abnormalExit" ) )
 	{
 		ri.Cvar_Set( "r_mode", va( "%d", R_MODE_FALLBACK ) );

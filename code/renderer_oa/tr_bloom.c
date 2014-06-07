@@ -367,13 +367,27 @@ R_Postprocess_InitTextures
 static void R_Postprocess_InitTextures( void )
 {
 	byte	*data;
+	int vidinted = glConfig.vidHeight * 0.55f;
+	int intdiv = 1;
+
 	force32upload = 1;
 	// find closer power of 2 to screen size 
 	for (postproc.screen.width = 1;postproc.screen.width< glConfig.vidWidth;postproc.screen.width *= 2);
+
+	if (r_tvMode->integer > 1)	// interlaced
+
+	for (postproc.screen.height = 1;postproc.screen.height < vidinted;postproc.screen.height *= 2);
+else
 	for (postproc.screen.height = 1;postproc.screen.height < glConfig.vidHeight;postproc.screen.height *= 2);
+
+	if (r_tvMode->integer > 1)	
+		intdiv = 2;
 
 	postproc.screen.readW = glConfig.vidWidth / (float)postproc.screen.width;
 	postproc.screen.readH = glConfig.vidHeight / (float)postproc.screen.height;
+
+
+
 
 	// find closer power of 2 to effect size 
 	postproc.work.width = r_bloom_sample_size->integer;
@@ -385,6 +399,8 @@ static void R_Postprocess_InitTextures( void )
 	postproc.effect.readW = postproc.work.width / (float)postproc.effect.width;
 	postproc.effect.readH = postproc.work.height / (float)postproc.effect.height;
 
+	postproc.screen.readH /= intdiv; // interlacey
+	postproc.effect.readH /= intdiv; // interlacey
 
 	// disable blooms if we can't handle a texture of that size
 	if( 	postproc.screen.width > glConfig.maxTextureSize ||
@@ -433,7 +449,7 @@ static void R_Postprocess_InitTextures( void )
 
 	// leilei - motion blur textures!
 
-	if (r_motionblur->integer){
+	if (r_motionblur->integer > 2){
 	data = ri.Hunk_AllocateTempMemory( postproc.screen.width * postproc.screen.height * 4 );
 	Com_Memset( data, 0, postproc.screen.width * postproc.screen.height * 4 );
 	postproc.motion1.texture = R_CreateImage( "***motionblur1 texture***", data, postproc.screen.width, postproc.screen.height, qfalse, qfalse, GL_CLAMP_TO_EDGE  );
@@ -776,15 +792,34 @@ static void R_Postprocess_BackupScreen( void ) {
 
 static void R_Postprocess_BackupScreenTV( void ) {
 
+	int intdiv;
+	if (r_tvMode->integer > 1) intdiv = 2;
+	else intdiv = 1;
+
+
+	GL_TexEnv( GL_MODULATE );
+	qglScissor( 0, 0, glConfig.vidWidth, glConfig.vidHeight );
+	qglViewport( 0, 0, glConfig.vidWidth, glConfig.vidHeight );
+	qglMatrixMode( GL_PROJECTION );
+    qglLoadIdentity ();
+	qglOrtho( 0, glConfig.vidWidth, glConfig.vidHeight, 0, 0, 1 );
+	qglMatrixMode( GL_MODELVIEW );
+    qglLoadIdentity ();
+
+
 	GL_Bind( postproc.screen.texture );
-	qglCopyTexSubImage2D( GL_TEXTURE_2D, 0, 0, 0, 0, tvinter, glConfig.vidWidth, glConfig.vidHeight);
+	qglCopyTexSubImage2D( GL_TEXTURE_2D, 0, 0, 0, 0, 0, glConfig.vidWidth, glConfig.vidHeight);
+
+
+	//qglCopyTexSubImage2D( GL_TEXTURE_2D, 0, 0, 0, 0, 0, 320, 240);
+
 
 }
 
 
 // leilei - motion blur hack
 void R_MotionBlur_BackupScreen(int which) {
-	if( !r_motionblur->integer)
+	if( r_motionblur->integer < 3)
 		return;
 	if (which == 1){ GL_Bind( postproc.motion1.texture ); qglCopyTexSubImage2D( GL_TEXTURE_2D, 0, 0, 0, 0, 0, glConfig.vidWidth, glConfig.vidHeight ); }  // gather thee samples
 	if (which == 2){ GL_Bind( postproc.motion2.texture ); qglCopyTexSubImage2D( GL_TEXTURE_2D, 0, 0, 0, 0, 0, glConfig.vidWidth, glConfig.vidHeight ); }
@@ -887,7 +922,7 @@ static void R_Bloom_RestoreScreen_Postprocessed( void ) {
 	GL_Bind( postproc.depth.texture );	
 
 	// motion blur crap
-	if( r_motionblur->integer){
+	if( r_motionblur->integer > 2){
 	if (program->u_mpasses > -1) R_GLSL_SetUniform_u_mpasses(program, mpasses);
 	GL_SelectTexture(2);
 	GL_State( GLS_DEPTHTEST_DISABLE | GLS_SRCBLEND_ONE | GLS_DSTBLEND_ZERO );
@@ -1282,8 +1317,11 @@ void R_TVScreen( void )
 			return;
 	}
 
-	if ( !backEnd.projection2D )
-		RB_SetGL2D();
+//	if ( !backEnd.projection2D )
+//		RB_SetGL2D();
+
+
+
 		force32upload = 1;
 
 //	postprocess = 1;
@@ -1295,11 +1333,11 @@ void R_TVScreen( void )
 		
 	tvinter = tvinterlace;
 	if (tvinter < 0) tvinter = 0;
-	if (r_tvMode->integer < 3) tvinter = 0;
+	if (r_tvMode->integer < 2) tvinter = 0;
 
 	leifxmode = 1234;		// just show it through to tvWidth/tvHeight
 
-	if (r_tvMode->integer == 2)
+	if (r_tvMode->integer > 2)
 		leifxmode = 1236;		// run it through a shader
 	//R_Postprocess_BackupScreen();
 	R_Postprocess_BackupScreenTV();
@@ -1387,7 +1425,7 @@ void R_AnimeScreen( void )
 
 void R_MblurScreen( void )
 {
-	if( !r_motionblur->integer)
+	if( r_motionblur->integer < 3)
 		return;
 	if ( backEnd.donemblur)
 		return;
@@ -1414,7 +1452,7 @@ void R_MblurScreen( void )
 
 void R_MblurScreenPost( void )
 {
-	if( !r_motionblur->integer)
+	if( r_motionblur->integer < 3)
 		return;
 	if ( !backEnd.doneSurfaces )
 		return;
