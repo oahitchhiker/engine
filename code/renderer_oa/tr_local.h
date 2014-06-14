@@ -437,7 +437,6 @@ typedef struct {
 	int			numDrawSurfs;
 	struct drawSurf_s	*drawSurfs;
 
-
 } trRefdef_t;
 
 
@@ -1027,6 +1026,7 @@ typedef struct {
 	qboolean	doneSun;		// leilei - done drawing a sun
 	qboolean	doneSunFlare;		// leilei - done drawing a sun flare
 	qboolean	donemblur;		// leilei - done motionblur this frame
+	qboolean	donewater;		// leilei - done water this frame
 	qboolean	donetv;		// leilei - tv this frame
 	qboolean	doneraa;	// leilei - done aa'ing this frame
 	qboolean	doneSurfaces;   // done any 3d surfaces already
@@ -1061,6 +1061,7 @@ typedef struct {
 	image_t					*scratchImage[32];
 	image_t					*fogImage;
 	image_t					*dlightImage;	// inverse-quare highlight for projective adding
+	image_t					*waterImage;
 	image_t					*flareImage;
 	image_t					*whiteImage;			// full of 0xff
 	image_t					*identityLightImage;	// full of tr.identityLightByte
@@ -1155,6 +1156,7 @@ typedef struct {
 	qboolean				placeholderTextureAvail;
 	qboolean				placeholderModelAvail;
 	qboolean				placeholderAvail;
+
 } trGlobals_t;
 
 extern backEndState_t	backEnd;
@@ -1293,6 +1295,7 @@ extern	cvar_t	*r_flaresDlight;
 extern cvar_t	*r_alternateBrightness;		// leilei - alternate brightness
 
 extern cvar_t	*r_leifx;	// Leilei - leifx nostalgia filter
+extern cvar_t	*r_leiwater;	// Leilei - water test
 
 extern cvar_t	*r_tvMode;	// Leilei - tv faking mode
 
@@ -1308,6 +1311,8 @@ extern cvar_t	*r_leidebug;	// Leilei - debug only!
 extern cvar_t	*r_leidebugeye;	// Leilei - debug only!
 
 extern	cvar_t	*r_iconmip;	// leilei - icon mip - picmip for 2d icons
+
+extern	cvar_t	*r_texdump;	// leilei - texture dumping
 
 //====================================================================
 
@@ -1995,6 +2000,7 @@ void	RB_DeformTessGeometry( void );
 void	RB_CalcEnvironmentTexCoords( float *dstTexCoords );
 void	RB_CalcCelTexCoords( float *dstTexCoords );		// leilei - cel hack
 void	RB_CalcEnvironmentTexCoordsJO( float *dstTexCoords );	// leilei
+void	RB_CalcEnvironmentTexCoordsR( float *dstTexCoords );	// leilei
 void    RB_CalcEyes( float *st, qboolean theothereye); // leilei - eyes
 void	RB_CalcEnvironmentCelShadeTexCoords( float *dstTexCoords );
 void	RB_CalcEnvironmentTexCoordsNew( float *dstTexCoords );
@@ -2183,7 +2189,9 @@ void RE_TakeVideoFrame( int width, int height,
 
 //Bloom Stuff
 void R_BloomInit( void );
+void R_WaterInit( void );
 void R_BloomScreen( void );
+void R_WaterScreen( void );
 void R_AnimeScreen( void );
 
 // Postprocessing

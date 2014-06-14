@@ -27,7 +27,7 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 
 static qboolean R_LoadMD3(model_t *mod, int lod, void *buffer, const char *name );
 static qboolean R_LoadMDR(model_t *mod, void *buffer, int filesize, const char *name );
-
+extern int ismaptexture; // leilei - for listing map textures
 /*
 ====================
 R_RegisterMD3
@@ -507,7 +507,7 @@ static qboolean R_LoadMD3 (model_t *mod, int lod, void *buffer, const char *mod_
         shader = (md3Shader_t *) ( (byte *)surf + surf->ofsShaders );
         for ( j = 0 ; j < surf->numShaders ; j++, shader++ ) {
             shader_t	*sh;
-
+		ismaptexture = 0;
             sh = R_FindShader( shader->name, LIGHTMAP_NONE, qtrue );
 			if ( sh->defaultShader ) {
 				shader->shaderIndex = 0;
@@ -773,6 +773,7 @@ static qboolean R_LoadMDR( model_t *mod, void *buffer, int filesize, const char 
 			Q_strlwr( surf->name );
 
 			// register the shaders
+			ismaptexture = 0;
 			sh = R_FindShader(surf->shader, LIGHTMAP_NONE, qtrue);
 			if ( sh->defaultShader ) {
 				surf->shaderIndex = 0;

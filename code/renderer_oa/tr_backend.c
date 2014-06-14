@@ -1694,6 +1694,7 @@ const void	*RB_SwapBuffers( const void *data ) {
 	backEnd.projection2D = qfalse;
 
 	backEnd.doneBloom = qfalse;
+	backEnd.donewater = qfalse;
 	backEnd.donepostproc = qfalse;
 	backEnd.doneAltBrightness = qfalse;
 	backEnd.doneFilm = qfalse;
@@ -1759,6 +1760,7 @@ void RB_ExecuteRenderCommands( const void *data ) {
 		case RC_STRETCH_PIC:
 			//Check if it's time for BLOOM!
 			leifxmode = 0;
+			R_WaterScreen(); // do this first
 			R_PostprocessScreen();
 			R_BloomScreen();
 			R_FilmScreen();
@@ -1774,6 +1776,7 @@ void RB_ExecuteRenderCommands( const void *data ) {
 		case RC_SWAP_BUFFERS:
 			//Check if it's time for BLOOM!
 			leifxmode = 0;
+			R_WaterScreen(); // do this first
 			R_PostprocessScreen();
 			R_BloomScreen();
 			R_FilmScreen();

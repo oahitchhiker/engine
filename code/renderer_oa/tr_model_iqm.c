@@ -31,7 +31,7 @@ static float identityMatrix[12] = {
 	0, 1, 0, 0,
 	0, 0, 1, 0
 };
-
+extern int ismaptexture; // leilei - for listing map textures
 static qboolean IQM_CheckRange( iqmHeader_t *header, int offset,
 				int count,int size ) {
 	// return true if the range specified by offset, count and size
@@ -622,6 +622,7 @@ qboolean R_LoadIQM( model_t *mod, void *buffer, int filesize, const char *mod_na
 		surface->surfaceType = SF_IQM;
 		Q_strncpyz(surface->name, str + mesh->name, sizeof (surface->name));
 		Q_strlwr(surface->name); // lowercase the surface name so skin compares are faster
+		ismaptexture = 0;
 		surface->shader = R_FindShader( str + mesh->material, LIGHTMAP_NONE, qtrue );
 		if( surface->shader->defaultShader )
 			surface->shader = tr.defaultShader;

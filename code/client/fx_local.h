@@ -82,18 +82,6 @@ typedef struct fxAtive_s {
 	int					beenUsed;
 } fxActive_t;
 
-typedef struct fxEntity_s {
-	struct		fxEntity_s *next;
-	const		fxRunEmitter_t *emitter;
-
-	int			flags;
-	int			startTime;
-	float		traceTime;
-	float		moveTime, lifeScale;
-
-	vec3_t		origin, velocity;
-} fxEntity_t;
-
 //Making any changes to this order you'll also need to modify the mask/unpacking stuff
 typedef struct {
 	vec3_t			origin;

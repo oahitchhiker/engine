@@ -1379,6 +1379,7 @@ void R_RenderView (viewParms_t *parms) {
 
 	R_GenerateDrawSurfs();
 
+
 	R_SortDrawSurfs( tr.refdef.drawSurfs + firstDrawSurf, tr.refdef.numDrawSurfs - firstDrawSurf );
 
 	// draw main system development information (surface outlines, etc)

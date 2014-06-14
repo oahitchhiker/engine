@@ -246,12 +246,10 @@ void GLimp_InitExtraExtensions()
 	if ( GLimp_HaveExtension( "GL_EXT_paletted_texture" ) )
 	{
 		if ( r_ext_paletted_texture->integer ) {
-			//qglCompressedTexImage2DARB = (GLvoid (APIENTRYP)(GLenum, GLint, GLenum, GLsizei, GLsizei, GLint, GLsizei, const GLvoid *)) SDL_GL_GetProcAddress("glCompressedTexImage2DARB");
 			qglColorTableEXT = (GLvoid (APIENTRYP)(GLint, GLint, GLint, GLint, GLint, const GLvoid *)) SDL_GL_GetProcAddress("glColorTableEXT");
 			// SGI
 
 			qglColorTableSGI = (GLvoid (APIENTRYP)(GLint, GLint, GLint, GLint, GLint, const GLvoid *)) SDL_GL_GetProcAddress("glColorTableSGI");
-			//qglColorTableEXT = ( void ( APIENTRY * ) ( int, int, int, int, int, const void * ) ) qwglGetProcAddress( "glColorTableEXT" );
 			{
 				ri.Printf( PRINT_ALL, "...using GL_EXT_paletted_texture\n");
 				palettedTextureSupport = qtrue;

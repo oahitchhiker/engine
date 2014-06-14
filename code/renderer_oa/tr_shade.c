@@ -1151,7 +1151,10 @@ static void ComputeTexCoords( shaderStage_t *pStage ) {
 			} // new dancing one
 			else if ( r_envMode->integer == 2 ) { 
 				RB_CalcEnvironmentTexCoordsJO( ( float * ) tess.svars.texcoords[b] ); 
-			} // odin's
+			} // JO's
+			else if ( r_envMode->integer == 3 ) { 
+				RB_CalcEnvironmentTexCoordsR( ( float * ) tess.svars.texcoords[b] ); 
+			} // Q3R's
 			else { 
 				RB_CalcEnvironmentTexCoords( ( float * ) tess.svars.texcoords[b] ); 
 			} // old one

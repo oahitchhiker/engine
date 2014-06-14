@@ -235,6 +235,33 @@ void RB_CalcDeformNormals( deformStage_t *ds ) {
 	}
 }
 
+
+void RB_CalcDeformNormalsEvenMore( deformStage_t *ds ) {
+	int i;
+	float	scale;
+	float	*xyz = ( float * ) tess.xyz;
+	float	*normal = ( float * ) tess.normal;
+
+	for ( i = 0; i < tess.numVertexes; i++, xyz += 4, normal += 4 ) {
+		scale = 5.98f;
+		scale = R_NoiseGet4f( xyz[0] * scale, xyz[1] * scale, xyz[2] * scale,
+			tess.shaderTime * ds->deformationWave.frequency );
+		normal[ 0 ] += ds->deformationWave.amplitude * scale;
+
+		scale = 5.98f;
+		scale = R_NoiseGet4f( 100 + xyz[0] * scale, xyz[1] * scale, xyz[2] * scale,
+			tess.shaderTime * ds->deformationWave.frequency );
+		normal[ 1 ] += ds->deformationWave.amplitude * scale;
+
+		scale = 5.98f;
+		scale = R_NoiseGet4f( 200 + xyz[0] * scale, xyz[1] * scale, xyz[2] * scale,
+			tess.shaderTime * ds->deformationWave.frequency );
+		normal[ 2 ] += ds->deformationWave.amplitude * scale;
+
+		VectorNormalizeFast( normal );
+	}
+}
+
 /*
 ========================
 RB_CalcBulgeVertexes
@@ -1067,8 +1094,57 @@ void RB_CalcEnvironmentTexCoordsJO( float *st )
 	}
 }
 
+/*
+** RB_CalcEnvironmentTexCoordsR
+	Inpsired by Revolution, reflect from the sun light position instead
+*/
+
+void RB_CalcEnvironmentTexCoordsR( float *st ) 
+{
+	int			i;
+	float		*v, *normal;
+	vec3_t		viewer, reflected, sunned;
+	float		d;
+	vec3_t		sundy;
+	float		size;
+	float		dist;
+	vec3_t		origin, vec1, vec2;
+
+	v = tess.xyz[0];
+	normal = tess.normal[0];
+
+	dist = 	backEnd.viewParms.zFar / 1.75;		// div sqrt(3)
+	size = dist * 0.4;
+
+	VectorScale( tr.sunDirection, dist, sundy);
+	PerpendicularVector( vec1, tr.sunDirection );
+	CrossProduct( tr.sunDirection, vec1, vec2 );
+
+	VectorScale( vec1, size, vec1 );
+	VectorScale( vec2, size, vec2 );
 
 
+	v = tess.xyz[0];
+	normal = tess.normal[0];
+
+	for (i = 0 ; i < tess.numVertexes ; i++, v += 4, normal += 4, st += 2 ) 
+	{
+		VectorSubtract (backEnd.or.viewOrigin, v, viewer);
+		VectorNormalizeFast (viewer);
+
+		VectorSubtract (sundy, v, sunned);
+		VectorNormalizeFast (sunned);
+
+		d = DotProduct (normal, viewer) + DotProduct (viewer, sunned);
+
+		reflected[0] = normal[0]*2*d - viewer[0];
+		reflected[1] = normal[1]*2*d - viewer[1];
+		reflected[2] = normal[2]*2*d - viewer[2];
+
+		st[0] = 0.5 + reflected[1] * 0.5;
+		st[1] = 0.5 - reflected[2] * 0.5;
+	}
+}
 
 /*
 ** RB_CalcCelTexCoords
@@ -1500,6 +1576,71 @@ static void RB_CalcDiffuseColor_scalar( unsigned char *colors )
 // leilei - use FIVE (!) lighting points. Very expensive!
 static void RB_CalcDiffuseColor_crazy( unsigned char *colors )
 {
+	int				i, j, k;
+	float			*v, *normal;
+	float			incoming, incomingA;
+	trRefEntity_t	*ent;
+	int				ambientLightInt;
+	vec3_t			ambientLight;
+	vec3_t			lightDir, lightDirA;
+	vec3_t			directedLight, directedLightA;
+	int				numVertexes;
+	ent = backEnd.currentEntity;
+	ambientLightInt = ent->ambientLightInt;
+	VectorCopy( ent->ambientLight, ambientLight );
+	VectorCopy( ent->directedLight, directedLight );
+	VectorCopy( ent->directedLightA, directedLightA );
+	VectorCopy( ent->lightDir, lightDir );
+	VectorCopy( ent->lightDirA, lightDirA );
+
+	ambientLight[0] *= 0.5f;
+	ambientLight[1] *= 0.5f;
+	ambientLight[2] *= 0.5f;
+
+	v = tess.xyz[0];
+	normal = tess.normal[0];
+
+	numVertexes = tess.numVertexes;
+
+
+	for (i = 0 ; i < numVertexes ; i++, v += 4, normal += 4) {
+		incoming = DotProduct (normal, lightDir);
+		incomingA = DotProduct (normal, lightDirA);
+		if ( incoming <= 0 ) {
+			*(int *)&colors[i*4] = ambientLightInt;
+			continue;
+		} 
+		j = ri.ftol(ambientLight[0] + incoming * directedLight[0]);
+		k = ri.ftol(ambientLight[0] + incomingA * directedLightA[0]);
+		j += k;
+		if ( j > 255 ) {
+			j = 255;
+		}
+		colors[i*4+0] = j;
+
+		j = ri.ftol(ambientLight[1] + incoming * directedLight[1]);
+		k = ri.ftol(ambientLight[1] + incomingA * directedLightA[1]);
+		j += k;
+		if ( j > 255 ) {
+			j = 255;
+		}
+		colors[i*4+1] = j;
+
+		j = ri.ftol(ambientLight[2] + incoming * directedLight[2]);
+		k = ri.ftol(ambientLight[2] + incomingA * directedLightA[2]);
+		j += k;
+		if ( j > 255 ) {
+			j = 255;
+		}
+		colors[i*4+2] = j;
+
+		colors[i*4+3] = 255;
+	}
+}
+
+/*
+static void RB_CalcDiffuseColor_crafzy( unsigned char *colors )
+{
 	int				i, j, jA;
 	float			*v, *normal;
 	float			incoming, incomingA, incomingB, incomingC, incomingD;
@@ -1596,7 +1737,7 @@ static void RB_CalcDiffuseColor_crazy( unsigned char *colors )
 	}
 }
 
-
+*/
 
 // leilei - some slower, but bolder way of lighting
 // i sure hope gcc unrolls this.

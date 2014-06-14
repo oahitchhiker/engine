@@ -201,6 +201,7 @@ cvar_t	*r_retroAA;		// Leilei - old console AA
 cvar_t	*r_anime;		// Leilei - anime filter
 cvar_t	*r_leidebug;		// Leilei - debug
 cvar_t	*r_leidebugeye;		// Leilei - eye debug
+cvar_t	*r_leiwater;		// Leilei - water effect test
 
 cvar_t	*r_suggestiveThemes;		// leilei - mature content control
 
@@ -211,6 +212,8 @@ cvar_t	*r_slowness;		// Leilei - the cvar that slows everything down. use with c
 cvar_t	*r_slowness_cpu;		// Leilei
 cvar_t	*r_slowness_gpu;		// Leilei
 
+
+cvar_t	*r_texdump;		// Leilei - debug - texture dump as they load, players should never need to use this!
 
 // leilei - fallback shader hack
 
@@ -1253,6 +1256,8 @@ void R_Register( void )
 	r_mockvr = ri.Cvar_Get( "r_mockvr", "0" , CVAR_ARCHIVE | CVAR_CHEAT);	
 	r_leifx = ri.Cvar_Get( "r_leifx", "0" , CVAR_ARCHIVE | CVAR_LATCH);	
 
+	r_leiwater = ri.Cvar_Get( "r_leiwater", "0" , CVAR_ARCHIVE | CVAR_LATCH);	
+
 	//r_tvMode = ri.Cvar_Get( "r_tvMode", "0" , CVAR_ARCHIVE | CVAR_LATCH);	
 	r_retroAA = ri.Cvar_Get( "r_retroAA", "0" , CVAR_ARCHIVE | CVAR_LATCH);	
 
@@ -1269,6 +1274,9 @@ void R_Register( void )
 	r_slowness_gpu = ri.Cvar_Get( "r_slowness_gpu", "96" , CVAR_ARCHIVE);	// it's 0 because you want it to be the fastest possible by default.
 
 	r_iconmip = ri.Cvar_Get ("r_iconmip", "1", CVAR_ARCHIVE | CVAR_LATCH );	// leilei - icon mip
+
+	r_texdump = ri.Cvar_Get( "r_texdump", "0", CVAR_CHEAT );	// leilei - debug - texture dumping
+
 
 	// make sure all the commands added here are also
 	// removed in R_Shutdown
@@ -1509,6 +1517,7 @@ void R_Init( void ) {
 	R_BloomInit();
 	R_PostprocessingInit();
 	R_AltBrightnessInit();	// leilei	- alternate brightness
+	R_WaterInit();		// leilei - water test
 	max_polys = r_maxpolys->integer;
 	if (max_polys < MAX_POLYS)
 		max_polys = MAX_POLYS;

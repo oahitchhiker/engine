@@ -1185,6 +1185,14 @@ static qboolean ParseStage( shaderStage_t *stage, char **text )
 				stage->bundle[0].image[0] = tr.whiteImage;
 				continue;
 			}
+			if ( !Q_stricmp( token, "$waterimage" ) )
+			{
+				stage->bundle[0].image[0] = tr.waterImage;
+
+				imgType_t type = IMGTYPE_COLORALPHA;
+				imgFlags_t flags = IMGFLAG_NONE;
+				continue;
+			}
 			else if ( !Q_stricmp( token, "$lightmap" ) )
 			{
 				stage->bundle[0].isLightmap = qtrue;
@@ -1230,6 +1238,11 @@ static qboolean ParseStage( shaderStage_t *stage, char **text )
 			if ( !Q_stricmp( token, "$whiteimage" ) )
 			{
 				stage->bundle[2].image[0] = tr.whiteImage;
+				continue;
+			}
+			if ( !Q_stricmp( token, "$waterimage" ) )
+			{
+				stage->bundle[2].image[0] = tr.waterImage;
 				continue;
 			}
 			else if ( !Q_stricmp( token, "$lightmap" ) )
@@ -1279,6 +1292,11 @@ static qboolean ParseStage( shaderStage_t *stage, char **text )
 				stage->bundle[3].image[0] = tr.whiteImage;
 				continue;
 			}
+			if ( !Q_stricmp( token, "$waterimage" ) )
+			{
+				stage->bundle[3].image[0] = tr.waterImage;
+				continue;
+			}
 			else if ( !Q_stricmp( token, "$lightmap" ) )
 			{
 				stage->bundle[3].isLightmap = qtrue;
@@ -1324,6 +1342,11 @@ static qboolean ParseStage( shaderStage_t *stage, char **text )
 			if ( !Q_stricmp( token, "$whiteimage" ) )
 			{
 				stage->bundle[4].image[0] = tr.whiteImage;
+				continue;
+			}
+			if ( !Q_stricmp( token, "$waterimage" ) )
+			{
+				stage->bundle[4].image[0] = tr.waterImage;
 				continue;
 			}
 			else if ( !Q_stricmp( token, "$lightmap" ) )
@@ -1373,6 +1396,11 @@ static qboolean ParseStage( shaderStage_t *stage, char **text )
 				stage->bundle[5].image[0] = tr.whiteImage;
 				continue;
 			}
+			if ( !Q_stricmp( token, "$waterimage" ) )
+			{
+				stage->bundle[5].image[0] = tr.waterImage;
+				continue;
+			}
 			else if ( !Q_stricmp( token, "$lightmap" ) )
 			{
 				stage->bundle[5].isLightmap = qtrue;
@@ -1420,6 +1448,11 @@ static qboolean ParseStage( shaderStage_t *stage, char **text )
 				stage->bundle[6].image[0] = tr.whiteImage;
 				continue;
 			}
+			if ( !Q_stricmp( token, "$waterimage" ) )
+			{
+				stage->bundle[6].image[0] = tr.waterImage;
+				continue;
+			}
 			else if ( !Q_stricmp( token, "$lightmap" ) )
 			{
 				stage->bundle[6].isLightmap = qtrue;
@@ -1465,6 +1498,11 @@ static qboolean ParseStage( shaderStage_t *stage, char **text )
 			if ( !Q_stricmp( token, "$whiteimage" ) )
 			{
 				stage->bundle[7].image[0] = tr.whiteImage;
+				continue;
+			}
+			if ( !Q_stricmp( token, "$waterimage" ) )
+			{
+				stage->bundle[7].image[0] = tr.waterImage;
 				continue;
 			}
 			else if ( !Q_stricmp( token, "$lightmap" ) )

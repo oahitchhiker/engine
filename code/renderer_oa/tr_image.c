@@ -1050,6 +1050,88 @@ int hqresample = 0;		// leilei - high quality texture resampling
 				// Currently 0 as there is an alignment issue I haven't fixed.
 
 int	isicon;			// leilei  - for determining if it's an icon.
+char	dumpname[ MAX_QPATH ];  // leilei - name for texture dumping
+
+static void DumpTex( unsigned *data, 
+						  int width, int height  )
+{
+
+// leilei - Do crazy dumping crap
+		byte		*scan;
+		byte *baffer, *alffer, *flipper;
+		scan = ((byte *)data);
+		size_t offset = 0, memcount;
+		int padlen;
+		int be, bi, ber, ba;
+		int scrale = width * height;
+		int scravg = width + height / 2;
+		int wit = width;
+		int hat = height;
+		int quality = 85; // estimate quality from total size
+		int hasalf = 0;
+		float countw, counth;
+
+		if (scravg > 511) quality = 42; // huge textures
+		else if (scravg > 255) quality = 62; // large textures
+		else if (scravg > 127) quality = 72; // large textures
+		else if (scravg < 127) quality = 95; // tiny textures
+		baffer = 	ri.Hunk_AllocateTempMemory( width * height * 3 );
+		flipper = 	ri.Hunk_AllocateTempMemory( width * height * 3 );
+		alffer = 	ri.Hunk_AllocateTempMemory( width * height * 3 );
+		// TODO: Save alpha separately
+		// I'm gonna flip......
+		int alfcnt = 0;
+
+		countw = 0;
+		counth = 0;
+
+
+		wit = width * 3;
+		hat = height * 3;
+
+		for (be=0; be<scrale; be++){
+			int bib;
+
+			if (countw > width)
+			countw = 0;
+			else
+			countw++;
+			ber = scrale - be - 1;
+			bib = be;
+			if (bib < 0) bib = 0;
+			if (bib > scrale) bib = 0;
+			baffer[bib*3] 	= scan[ber*4];
+			baffer[bib*3+1] 	= scan[ber*4+1];
+			baffer[bib*3+2] 	= scan[ber*4+2];
+			alffer[bib*3] 	= scan[ber*4+3];
+			alffer[bib*3+1] 	= scan[ber*4+3];
+			alffer[bib*3+2] 	= scan[ber*4+3];
+			if (scan[ber*4+3] > 1){ hasalf = 1;}
+			if (scan[ber*4+3] == 255){ alfcnt += 1; }
+		}
+
+
+		// NOW FIX IT
+
+
+
+			
+		memcount = (width * 3 + padlen) * height;
+		if ((width > 16) && (height > 16)){
+		RE_SaveJPG( va("dump/%s.jpg", dumpname), 85,width, height, baffer, padlen);
+		if (hasalf)
+		RE_SaveJPG( va("dump/%s_alpha.jpg", dumpname), 85,width, height, alffer, padlen);
+		}
+		ri.Printf( PRINT_ALL, "TEXDUMP: %s \n", dumpname );
+
+	//	if ( baffer != 0 )
+		ri.Hunk_FreeTempMemory( baffer );
+	//	if ( alffer != 0 )
+		ri.Hunk_FreeTempMemory( alffer );
+		ri.Hunk_FreeTempMemory( flipper );
+}
+
+
 static void Upload32( unsigned *data, 
 						  int width, int height, 
 						  qboolean mipmap, 
@@ -1240,6 +1322,9 @@ static void Upload32( unsigned *data,
 		}
 	}
 
+
+
+
 	if( r_greyscale->value )
 	{
 			// leilei - replaced with saturation processing
@@ -1350,7 +1435,7 @@ static void Upload32( unsigned *data,
 				}
 					if (detailhack) internalFormat = GL_LUMINANCE; // leilei - use paletted mono format for detail textures
 					if (force32upload) internalFormat = GL_RGB8;   // leilei - gets bloom and postproc working on s3tc & 8bit & palettes
-					if (r_leifx->integer && !force32upload) internalFormat = GL_RGB5;
+					if ((r_leifx->integer) && (!force32upload)) internalFormat = GL_RGB5;
 			}
 		}
 		else if ( samples == 4 )
@@ -1396,7 +1481,7 @@ static void Upload32( unsigned *data,
 					internalFormat = GL_RGBA;
 				}
 					if (force32upload) internalFormat = GL_RGBA8;   // leilei - gets bloom and postproc working on s3tc & 8bit & palettes
-					if (r_leifx->integer && !force32upload) internalFormat = GL_RGBA4;
+					if ((r_leifx->integer) && (!force32upload)) internalFormat = GL_RGBA4;
 			}
 		}
 	}
@@ -1405,6 +1490,8 @@ static void Upload32( unsigned *data,
 		{ mipmap=0; internalFormat = GL_DEPTH_COMPONENT; temp_GLformat=GL_DEPTH_COMPONENT; temp_GLtype=GL_FLOAT; } 
 			else 
 		{ temp_GLformat=GL_RGBA; temp_GLtype=GL_UNSIGNED_BYTE; }
+
+
 
 	// copy or resample data as appropriate for first MIP level
 	if ( ( scaled_width == width ) && 
@@ -1418,6 +1505,10 @@ static void Upload32( unsigned *data,
 
 			goto done;
 		}
+
+
+		
+
 		Com_Memcpy (scaledBuffer, data, width*height*4);
 	}
 	else
@@ -1445,6 +1536,8 @@ static void Upload32( unsigned *data,
 
 	qglTexImage2D (GL_TEXTURE_2D, 0, internalFormat, scaled_width, scaled_height, 0, temp_GLformat, temp_GLtype, scaledBuffer );
 
+
+
 	if (mipmap)
 	{
 		int		miplevel;
@@ -1470,10 +1563,13 @@ static void Upload32( unsigned *data,
 				R_BlendToGray( (byte *)scaledBuffer, scaled_width * scaled_height, miplevel );
 			}
 
+		
 			qglTexImage2D (GL_TEXTURE_2D, miplevel, internalFormat, scaled_width, scaled_height, 0, temp_GLformat, temp_GLtype, scaledBuffer );
 		}
 	}
 done:
+
+	
 
 	if (mipmap)
 	{
@@ -1592,7 +1688,7 @@ static void Upload8( unsigned *data,
 	texsizey = glConfig.maxTextureSize;
 	
 
-	if (r_leifx->integer && !force32upload){	// leilei
+	if ((r_leifx->integer) && (!force32upload)){	// leilei
 	texsizex = 256;	// 3dfx 
 	texsizey = 256;	// 3dfx 
 	}
@@ -1882,6 +1978,12 @@ image_t *R_CreateImage( const char *name, byte *pic, int width, int height,
 
 	GL_Bind(image);
 
+	// leilei - texture dumping
+	if (r_texdump->integer){
+			COM_StripExtension( name, dumpname, MAX_QPATH );	// leilei - transfer name for texdump
+			DumpTex( (unsigned *)pic, image->width, image->height);
+		}
+
 	if (paletteavailable && r_texturebits->integer == 8 && !isLightmap && !depthimage && !force32upload)
 	Upload8( (unsigned *)pic, image->width, image->height, 
 								image->flags & IMGFLAG_MIPMAP,
@@ -2073,10 +2175,7 @@ image_t	*R_FindImageFile( const char *name, imgType_t type, imgFlags_t flags )
 
 	// leilei - iconmip hack
 
-	if ( !Q_strncmp( name, "icons/", 5 )  || 
-		!Q_strncmp( name, "gfx/2d", 6 ) &&
-		Q_strncmp( name, "gfx/2d/bigchars", 14 )
-		){
+	if ( !Q_strncmp( name, "icons/", 5 )  || (!Q_strncmp( name, "gfx/2d", 6 )) && (Q_strncmp( name, "gfx/2d/bigchars", 14 ))){
 		isicon = 1;
 		}
 	else
@@ -2092,7 +2191,7 @@ image_t	*R_FindImageFile( const char *name, imgType_t type, imgFlags_t flags )
 
 	image = R_CreateImage( ( char * ) name, pic, width, height, type, flags, 0 );
 	ri.Free( pic );
-	ismaptexture = 0;
+	
 
 	return image;
 }
@@ -2189,6 +2288,8 @@ static void R_CreateDlightImage( void ) {
 		}
 	}
 	tr.dlightImage = R_CreateImage("*dlight", (byte *)data, DLIGHT_SIZE, DLIGHT_SIZE, IMGTYPE_COLORALPHA, IMGFLAG_CLAMPTOEDGE, 0 );
+//	tr.dlightImage = R_CreateImage("*dlight", (byte *)data, DLIGHT_SIZE, DLIGHT_SIZE, IMGTYPE_COLORALPHA, IMGFLAG_CLAMPTOEDGE, 0 );
+
 }
 
 
@@ -2264,7 +2365,9 @@ static void R_CreateFogImage( void ) {
 	// S is distance, T is depth
 	for (x=0 ; x<FOG_S ; x++) {
 		for (y=0 ; y<FOG_T ; y++) {
+		//	d = R_FogFactor( ( x + 0.5f ) / FOG_S, ( y + 0.5f ) / FOG_T );
 			d = R_FogFactor( ( x + 0.5f ) / FOG_S, ( y + 0.5f ) / FOG_T );
+
 
 			data[(y*FOG_S+x)*4+0] = 
 			data[(y*FOG_S+x)*4+1] = 
@@ -2272,6 +2375,8 @@ static void R_CreateFogImage( void ) {
 			data[(y*FOG_S+x)*4+3] = 255*d;
 		}
 	}
+
+
 	// standard openGL clamping doesn't really do what we want -- it includes
 	// the border color at the edges.  OpenGL 1.2 has clamp-to-edge, which does
 	// what we want.
@@ -2359,8 +2464,12 @@ void R_CreateBuiltinImages( void ) {
 		tr.scratchImage[x] = R_CreateImage("*scratch", (byte *)data, DEFAULT_SIZE, DEFAULT_SIZE, IMGTYPE_COLORALPHA, IMGFLAG_PICMIP | IMGFLAG_CLAMPTOEDGE, 0);
 	}
 
+
 	R_CreateDlightImage();
+
 	R_CreateFogImage();
+	//tr.fogImage = R_FindImageFile( "gfx/engine/fog.tga", 0, IMGFLAG_CLAMPTOEDGE )
+	//tr.dlightImage = R_FindImageFile( "gfx/engine/dlight.tga", 0, IMGFLAG_CLAMPTOEDGE );
 }
 
 
