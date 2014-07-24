@@ -24,6 +24,8 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 backEndData_t	*backEndData;
 backEndState_t	backEnd;
 
+float ScreenFrameCount;
+
 static float	s_flipMatrix[16] = {
 	// convert from our coordinate system (looking down X)
 	// to OpenGL's coordinate system (looking down -Z)
@@ -1088,6 +1090,9 @@ RB_SetGL2D
 extern int tvWidth;
 extern int tvHeight;
 
+extern int vresWidth;
+extern int vresHeight;
+
 void	RB_SetGL2D (void) {
 
 	backEnd.projection2D = qtrue;
@@ -1651,6 +1656,8 @@ const void	*RB_SwapBuffers( const void *data ) {
 	if (r_ext_vertex_shader->integer){		// leilei - leifx filters
 	R_LeiFXPostprocessDitherScreen();
 	R_LeiFXPostprocessFilterScreen();
+
+
 	}
 
 
@@ -1659,6 +1666,9 @@ const void	*RB_SwapBuffers( const void *data ) {
 	}
 	R_BrightScreen();		// leilei - alternate brightness - do it here so we hit evereything
 	R_RetroAAScreen();		// leilei - then apply 'anti aliasing'
+
+	R_NTSCScreen();
+
 	R_TVScreen();			// leilei - tv operation comes last, this is a SCREEN
 
 
@@ -1691,6 +1701,7 @@ const void	*RB_SwapBuffers( const void *data ) {
 
 	GLimp_EndFrame();
 
+	ScreenFrameCount++;
 	backEnd.projection2D = qfalse;
 
 	backEnd.doneBloom = qfalse;
@@ -1704,6 +1715,7 @@ const void	*RB_SwapBuffers( const void *data ) {
 	backEnd.doneSurfaces = qfalse;
 	backEnd.doneSun	     = qfalse;
 	backEnd.doneSunFlare = qfalse;
+	backEnd.donentsc = qfalse;
 	backEnd.donetv = qfalse;
 	backEnd.doneraa = qfalse;
 

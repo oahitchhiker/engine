@@ -196,6 +196,8 @@ cvar_t	*r_flaresDlight;
 cvar_t	*r_alternateBrightness;		// leilei - linux overbright fix
 cvar_t	*r_mockvr;		// Leilei - for debugging PVR only!
 cvar_t	*r_leifx;		// Leilei - leifx nostalgia filter
+
+cvar_t	*r_ntsc;		// Leilei - ntsc / composite signals
 //cvar_t	*r_tvMode;		// Leilei - tv fake mode
 cvar_t	*r_retroAA;		// Leilei - old console AA
 cvar_t	*r_anime;		// Leilei - anime filter
@@ -1256,6 +1258,8 @@ void R_Register( void )
 	r_mockvr = ri.Cvar_Get( "r_mockvr", "0" , CVAR_ARCHIVE | CVAR_CHEAT);	
 	r_leifx = ri.Cvar_Get( "r_leifx", "0" , CVAR_ARCHIVE | CVAR_LATCH);	
 
+	r_ntsc = ri.Cvar_Get( "r_ntsc", "0" , CVAR_ARCHIVE | CVAR_LATCH);	
+
 	r_leiwater = ri.Cvar_Get( "r_leiwater", "0" , CVAR_ARCHIVE | CVAR_LATCH);	
 
 	//r_tvMode = ri.Cvar_Get( "r_tvMode", "0" , CVAR_ARCHIVE | CVAR_LATCH);	
@@ -1342,6 +1346,11 @@ static glslProgram_t *R_GLSL_AllocProgram(void) {
 	program->u_mpass3						= -1;	
 	program->u_mpass4						= -1;	
 
+
+	program->rubyTextureSize				= -1;
+	program->rubyInputSize					= -1;
+	program->rubyOutputSize					= -1;
+	program->rubyFrameCount					= -1;
 
 	tr.programs[tr.numPrograms] = program;
 	tr.numPrograms++;
@@ -1438,6 +1447,18 @@ void R_GLSL_Init(void) {
 	Q_strncpyz(programVertexObjects[0], "glsl/crt_vp.glsl", sizeof(programVertexObjects[0]));
 	Q_strncpyz(programFragmentObjects[0], "glsl/crt_fp.glsl", sizeof(programFragmentObjects[0]));
 	tr.CRTProgram = RE_GLSL_RegisterProgram("crt", (const char *)programVertexObjects, 1, (const char *)programFragmentObjects, 1);
+
+	Q_strncpyz(programVertexObjects[0], "glsl/ntsc_encode_vp.glsl", sizeof(programVertexObjects[0]));
+	Q_strncpyz(programFragmentObjects[0], "glsl/ntsc_encode_fp.glsl", sizeof(programFragmentObjects[0]));
+	tr.NTSCEncodeProgram = RE_GLSL_RegisterProgram("ntsc_encode", (const char *)programVertexObjects, 1, (const char *)programFragmentObjects, 1);
+
+	Q_strncpyz(programVertexObjects[0], "glsl/ntsc_decode_vp.glsl", sizeof(programVertexObjects[0]));
+	Q_strncpyz(programFragmentObjects[0], "glsl/ntsc_decode_fp.glsl", sizeof(programFragmentObjects[0]));
+	tr.NTSCDecodeProgram = RE_GLSL_RegisterProgram("ntsc_decode", (const char *)programVertexObjects, 1, (const char *)programFragmentObjects, 1);
+
+	Q_strncpyz(programVertexObjects[0], "glsl/ntsc_bleed_vp.glsl", sizeof(programVertexObjects[0]));
+	Q_strncpyz(programFragmentObjects[0], "glsl/ntsc_bleed_fp.glsl", sizeof(programFragmentObjects[0]));
+	tr.NTSCBleedProgram = RE_GLSL_RegisterProgram("ntsc_bleed", (const char *)programVertexObjects, 1, (const char *)programFragmentObjects, 1);
 
 	if (strcmp( (const char *)r_postprocess->string, "none" )) 
 		{

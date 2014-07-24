@@ -28,6 +28,9 @@ BUILD_RENDERER_OPENGL2=0
 # You can disable the renderer libraries and build in the OA renderer by default
 USE_RENDERER_DLOPEN=1
 
+# renderer_oa - This causes compiling issues on Linux and does not work yet.
+USE_FALLBACK_GLSL=0
+
 # You can change these although you probably don't need to
 CLIENTBIN=openarena
 SERVERBIN=oa_ded

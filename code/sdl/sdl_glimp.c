@@ -54,6 +54,10 @@ int tvWidth;
 int tvHeight;
 int tvinterlace;	// leilei - interlace value for height
 
+//int vresWidth;		
+//int vresHeight;		
+
+
 typedef enum
 {
 	RSERR_OK,
@@ -69,9 +73,11 @@ static const SDL_VideoInfo *videoInfo = NULL;
 
 cvar_t *r_allowSoftwareGL; // Don't abort out if a hardware visual can't be obtained
 cvar_t *r_tvMode; // leilei - tv mode - force 480i rendering, which is then stretched and interlaced
+cvar_t *r_tvConsoleMode; // leilei - tv mode
 cvar_t *r_tvModeAspect; // leilei - tv mode - to do widescreen and low res tv etc
 cvar_t *r_motionblur; // leilei - moved here to set up accumulation bits
 cvar_t *r_allowResize; // make window resizable
+cvar_t *r_conMode; // leilei - console mode - force native resolutions of various consoles
 cvar_t *r_centerWindow;
 cvar_t *r_sdlDriver;
 
@@ -469,6 +475,13 @@ static int GLimp_SetMode(int mode, qboolean fullscreen, qboolean noborder)
 	tvWidth = glConfig.vidWidth;
 	tvHeight = glConfig.vidHeight;
 
+	vresWidth = glConfig.vidWidth;
+	vresHeight = glConfig.vidHeight;
+
+
+	vresWidth = 640;
+	vresHeight = 480;
+
 	if( r_tvMode->integer ){
 
 
@@ -486,9 +499,36 @@ static int GLimp_SetMode(int mode, qboolean fullscreen, qboolean noborder)
 
 		}
 		// then change the gl port..
-		//vidscreen = SDL_SetVideoMode(tvWidth, tvHeight, colorbits, flags);
+
+	vresWidth = tvWidth;
+	vresHeight = tvHeight;
 	}
 	// leilei - tv mode hack end
+
+	// leilei - console hack
+	if( r_tvConsoleMode->integer ){
+
+
+		if (r_tvConsoleMode->integer == 1) // standard 640x448 console of 6th gen
+		{
+			glConfig.vidWidth = 640;
+			glConfig.vidHeight = 448;
+
+			vresWidth = 640;
+			vresHeight = 480;
+		}
+
+		if (r_tvConsoleMode->integer == 10) // that other portable
+		{
+			glConfig.vidWidth = 480;
+			glConfig.vidHeight = 272;
+
+			vresWidth = 480;
+			vresHeight = 272;
+		}
+
+	}
+
 
 	screen = vidscreen;
 
@@ -747,6 +787,8 @@ void GLimp_Init( void )
 // leilei - tv mode hack
 	r_tvMode = ri.Cvar_Get( "r_tvMode", "0", CVAR_LATCH | CVAR_ARCHIVE );
 	r_tvModeAspect = ri.Cvar_Get( "r_tvModeAspect", "0", CVAR_LATCH | CVAR_ARCHIVE ); // yes
+
+	r_tvConsoleMode = ri.Cvar_Get( "r_tvConsoleMode", "0", CVAR_LATCH | CVAR_ARCHIVE );
 
 // leilei - move motionblur cvar here to get it to not upset the other renderers when setting up an accumulation buffer
 	r_motionblur = ri.Cvar_Get( "r_motionblur", "0", CVAR_LATCH | CVAR_ARCHIVE );

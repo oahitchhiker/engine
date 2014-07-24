@@ -64,6 +64,9 @@ typedef struct image_s {
 	struct image_s*	next;
 
 	qboolean			maptexture;	// leilei - map texture listing hack
+
+	float				loadTime;	// leilei - time taken loading image
+	float				procTime;	// leilei - time taken processing image/uploading to vram
 } image_t;
 
 // any change in the LIGHTMAP_* defines here MUST be reflected in

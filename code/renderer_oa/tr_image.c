@@ -374,6 +374,7 @@ R_ImageList_f
 void R_ImageList_f( void ) {
 	int i;
 	int estTotalSize = 0;
+	float estTotalTimeLoaded = 0;
 
 	ri.Printf(PRINT_ALL, "\n      -w-- -h-- type  -size- --name-------\n");
 
@@ -501,13 +502,17 @@ void R_ImageList_f( void ) {
 			sizeSuffix = "Gb";
 		}
 
-		ri.Printf(PRINT_ALL, "%4i: %4ix%4i %s %4i%s %s\n", i, image->uploadWidth, image->uploadHeight, format, displaySize, sizeSuffix, image->imgName);
+		//ri.Printf(PRINT_ALL, "%4i: %4ix%4i %s %4i%s %s\n", i, image->uploadWidth, image->uploadHeight, format, displaySize, sizeSuffix, image->imgName);
+		ri.Printf(PRINT_ALL, "%4i: %4ix%4i %s %4i%s %s %f %f\n", i, image->uploadWidth, image->uploadHeight, format, displaySize, sizeSuffix, image->imgName, image->loadTime, image->procTime);
+
 		estTotalSize += estSize;
+		estTotalTimeLoaded += image->loadTime + image->procTime;
 	}
 
 	ri.Printf (PRINT_ALL, " ---------\n");
 	ri.Printf (PRINT_ALL, " approx %i bytes\n", estTotalSize);
 	ri.Printf (PRINT_ALL, " %i total images\n\n", tr.numImages );
+	ri.Printf (PRINT_ALL, " %f msec loaded\n\n", estTotalTimeLoaded );
 }
 
 
@@ -1937,7 +1942,7 @@ image_t *R_CreateImage( const char *name, byte *pic, int width, int height,
 	qboolean	isLightmap = qfalse;
 	long		hash;
 	int         glWrapClampMode;
-
+	float oldtime = backEnd.refdef.floatTime;
 	if (strlen(name) >= MAX_QPATH ) {
 		ri.Error (ERR_DROP, "R_CreateImage: \"%s\" is too long", name);
 	}
@@ -2021,6 +2026,7 @@ image_t *R_CreateImage( const char *name, byte *pic, int width, int height,
 	image->next = hashTable[hash];
 	hashTable[hash] = image;
 
+	image->procTime = backEnd.refdef.floatTime - oldtime;
 	return image;
 }
 
@@ -2143,6 +2149,9 @@ image_t	*R_FindImageFile( const char *name, imgType_t type, imgFlags_t flags )
 	int		width, height;
 	byte	*pic;
 	long	hash;
+	float oldtime;
+	float loadtime;
+	float proctime;
 
 	if (!name) {
 		return NULL;
@@ -2184,14 +2193,22 @@ image_t	*R_FindImageFile( const char *name, imgType_t type, imgFlags_t flags )
 	//
 	// load the pic from disk
 	//
+	oldtime = backEnd.refdef.floatTime;
 	R_LoadImage( name, &pic, &width, &height );
 	if ( pic == NULL ) {
 		return NULL;
 	}
+	loadtime = backEnd.refdef.floatTime - oldtime;
+
 
 	image = R_CreateImage( ( char * ) name, pic, width, height, type, flags, 0 );
+
+
+
 	ri.Free( pic );
 	
+
+	image->loadTime = loadtime;
 
 	return image;
 }

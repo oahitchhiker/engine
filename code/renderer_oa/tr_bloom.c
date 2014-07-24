@@ -45,119 +45,7 @@ static cvar_t *r_bloom_sky_only;		// LEILEI
 
 
 
-
-
-
-
-
-cvar_t *r_film;
-extern int	force32upload;		
-int		leifxmode;
-int		fakeit = 0;
-
-int 	tvinterlace = 1;
-int 	tvinter= 1;
-extern int tvWidth;
-extern int tvHeight;
-
-/* 
-============================================================================== 
- 
-						LIGHT BLOOMS
- 
-============================================================================== 
-*/ 
-
-static float Diamond8x[8][8] =
-{ 
-	{ 0.0f, 0.0f, 0.0f, 0.1f, 0.1f, 0.0f, 0.0f, 0.0f, },
-	{ 0.0f, 0.0f, 0.2f, 0.3f, 0.3f, 0.2f, 0.0f, 0.0f, },
-	{ 0.0f, 0.2f, 0.4f, 0.6f, 0.6f, 0.4f, 0.2f, 0.0f, },
-	{ 0.1f, 0.3f, 0.6f, 0.9f, 0.9f, 0.6f, 0.3f, 0.1f, },
-	{ 0.1f, 0.3f, 0.6f, 0.9f, 0.9f, 0.6f, 0.3f, 0.1f, },
-	{ 0.0f, 0.2f, 0.4f, 0.6f, 0.6f, 0.4f, 0.2f, 0.0f, },
-	{ 0.0f, 0.0f, 0.2f, 0.3f, 0.3f, 0.2f, 0.0f, 0.0f, },
-	{ 0.0f, 0.0f, 0.0f, 0.1f, 0.1f, 0.0f, 0.0f, 0.0f  }
-};
-
-
-static float Star8x[8][8] =
-{ 
-	{ 0.4f, 0.1f, 0.0f, 0.0f, 0.0f, 0.0f, 0.1f, 0.4f, },
-	{ 0.1f, 0.6f, 0.2f, 0.0f, 0.0f, 0.2f, 0.6f, 0.1f, },
-	{ 0.0f, 0.2f, 0.7f, 0.6f, 0.6f, 0.7f, 0.2f, 0.0f, },
-	{ 0.0f, 0.0f, 0.6f, 0.9f, 0.9f, 0.6f, 0.0f, 0.0f, },
-	{ 0.0f, 0.0f, 0.6f, 0.9f, 0.9f, 0.6f, 0.0f, 0.0f, },
-	{ 0.0f, 0.2f, 0.7f, 0.6f, 0.6f, 0.7f, 0.2f, 0.0f, },
-	{ 0.1f, 0.6f, 0.2f, 0.0f, 0.0f, 0.2f, 0.6f, 0.1f, },
-	{ 0.4f, 0.1f, 0.0f, 0.0f, 0.0f, 0.0f, 0.1f, 0.4f, }
-};
-
-
-static float Diamond6x[6][6] =
-{ 
-	{ 0.0f, 0.0f, 0.1f, 0.1f, 0.0f, 0.0f, },
-	{ 0.0f, 0.3f, 0.5f, 0.5f, 0.3f, 0.0f, }, 
-	{ 0.1f, 0.5f, 0.9f, 0.9f, 0.5f, 0.1f, },
-	{ 0.1f, 0.5f, 0.9f, 0.9f, 0.5f, 0.1f, },
-	{ 0.0f, 0.3f, 0.5f, 0.5f, 0.3f, 0.0f, },
-	{ 0.0f, 0.0f, 0.1f, 0.1f, 0.0f, 0.0f  }
-};
-
-static float Diamond4x[4][4] =
-{  
-	{ 0.3f, 0.4f, 0.4f, 0.3f, },
-	{ 0.4f, 0.9f, 0.9f, 0.4f, },
-	{ 0.4f, 0.9f, 0.9f, 0.4f, },
-	{ 0.3f, 0.4f, 0.4f, 0.3f  }
-};
-
-static struct {
-	struct {
-		image_t	*texture;
-		int		width, height;
-		float	readW, readH;
-	} effect;
-	struct {
-		image_t	*texture;
-		int		width, height;
-		float	readW, readH;
-	} effect2;
-	struct {
-		image_t	*texture;
-		int		width, height;
-		float	readW, readH;
-	} screen;
-	struct {
-		int		width, height;
-	} work;
-	qboolean started;
-} bloom;
-
-
-
-
-static struct {
-	struct {
-		image_t	*texture;
-		int		width, height;
-		float	readW, readH;
-	} effect;
-	struct {
-		image_t	*texture;
-		int		width, height;
-		float	readW, readH;
-	} effect2;
-	struct {
-		image_t	*texture;
-		int		width, height;
-		float	readW, readH;
-	} screen;
-	struct {
-		int		width, height;
-	} work;
-	qboolean started;
-} water;
+extern float ScreenFrameCount;
 
 static struct {
 	struct {
@@ -244,6 +132,94 @@ static struct {
 } postproc;
 
 
+
+cvar_t *r_film;
+extern int	force32upload;		
+int		leifxmode;
+int		fakeit = 0;
+
+int 	tvinterlace = 1;
+int 	tvinter= 1;
+extern int tvWidth;
+extern int tvHeight;
+extern int vresWidth;
+extern int vresHeight;
+/* 
+============================================================================== 
+ 
+						LIGHT BLOOMS
+ 
+============================================================================== 
+*/ 
+
+static float Diamond8x[8][8] =
+{ 
+	{ 0.0f, 0.0f, 0.0f, 0.1f, 0.1f, 0.0f, 0.0f, 0.0f, },
+	{ 0.0f, 0.0f, 0.2f, 0.3f, 0.3f, 0.2f, 0.0f, 0.0f, },
+	{ 0.0f, 0.2f, 0.4f, 0.6f, 0.6f, 0.4f, 0.2f, 0.0f, },
+	{ 0.1f, 0.3f, 0.6f, 0.9f, 0.9f, 0.6f, 0.3f, 0.1f, },
+	{ 0.1f, 0.3f, 0.6f, 0.9f, 0.9f, 0.6f, 0.3f, 0.1f, },
+	{ 0.0f, 0.2f, 0.4f, 0.6f, 0.6f, 0.4f, 0.2f, 0.0f, },
+	{ 0.0f, 0.0f, 0.2f, 0.3f, 0.3f, 0.2f, 0.0f, 0.0f, },
+	{ 0.0f, 0.0f, 0.0f, 0.1f, 0.1f, 0.0f, 0.0f, 0.0f  }
+};
+
+
+static float Star8x[8][8] =
+{ 
+	{ 0.4f, 0.1f, 0.0f, 0.0f, 0.0f, 0.0f, 0.1f, 0.4f, },
+	{ 0.1f, 0.6f, 0.2f, 0.0f, 0.0f, 0.2f, 0.6f, 0.1f, },
+	{ 0.0f, 0.2f, 0.7f, 0.6f, 0.6f, 0.7f, 0.2f, 0.0f, },
+	{ 0.0f, 0.0f, 0.6f, 0.9f, 0.9f, 0.6f, 0.0f, 0.0f, },
+	{ 0.0f, 0.0f, 0.6f, 0.9f, 0.9f, 0.6f, 0.0f, 0.0f, },
+	{ 0.0f, 0.2f, 0.7f, 0.6f, 0.6f, 0.7f, 0.2f, 0.0f, },
+	{ 0.1f, 0.6f, 0.2f, 0.0f, 0.0f, 0.2f, 0.6f, 0.1f, },
+	{ 0.4f, 0.1f, 0.0f, 0.0f, 0.0f, 0.0f, 0.1f, 0.4f, }
+};
+
+
+static float Diamond6x[6][6] =
+{ 
+	{ 0.0f, 0.0f, 0.1f, 0.1f, 0.0f, 0.0f, },
+	{ 0.0f, 0.3f, 0.5f, 0.5f, 0.3f, 0.0f, }, 
+	{ 0.1f, 0.5f, 0.9f, 0.9f, 0.5f, 0.1f, },
+	{ 0.1f, 0.5f, 0.9f, 0.9f, 0.5f, 0.1f, },
+	{ 0.0f, 0.3f, 0.5f, 0.5f, 0.3f, 0.0f, },
+	{ 0.0f, 0.0f, 0.1f, 0.1f, 0.0f, 0.0f  }
+};
+
+static float Diamond4x[4][4] =
+{  
+	{ 0.3f, 0.4f, 0.4f, 0.3f, },
+	{ 0.4f, 0.9f, 0.9f, 0.4f, },
+	{ 0.4f, 0.9f, 0.9f, 0.4f, },
+	{ 0.3f, 0.4f, 0.4f, 0.3f  }
+};
+
+static struct {
+	struct {
+		image_t	*texture;
+		int		width, height;
+		float	readW, readH;
+	} effect;
+	struct {
+		image_t	*texture;
+		int		width, height;
+		float	readW, readH;
+	} effect2;
+	struct {
+		image_t	*texture;
+		int		width, height;
+		float	readW, readH;
+	} screen;
+	struct {
+		int		width, height;
+	} work;
+	qboolean started;
+} bloom;
+
+
+
 static void ID_INLINE R_Bloom_Quad( int width, int height, float texX, float texY, float texWidth, float texHeight ) {
 	int x = 0;
 	int y = 0;
@@ -270,50 +246,6 @@ static void ID_INLINE R_Bloom_Quad( int width, int height, float texX, float tex
 	qglEnd ();
 }
 
-static void ID_INLINE R_Bloom_QuadTV( int width, int height, float texX, float texY, float texWidth, float texHeight, int aa ) {
-	int x = 0;
-	int y = 0;
-	float raa = r_retroAA->value;
-	if (raa < 1) raa = 1;
-
-	float xpix = 1.0f / width  / (4 / raa);
-	float ypix = 1.0f / height / (4 / raa);
-	float xaa;
-	float yaa;
-	x = 0;
-	y = 0;
-
-	if (aa == 0){	xaa = 0; yaa = 0;   }
-	if (aa == 1){	xaa = -xpix; yaa = ypix;   }
-	if (aa == 2){	xaa = -xpix; yaa = -ypix;   }
-	if (aa == 3){	xaa = xpix; yaa = -ypix;   }
-	if (aa == 4){	xaa = xpix; yaa = ypix;   }
-
-	//y += tvHeight - height;
-	width += x;
-	height += y;
-	
-	texWidth += texX;
-	texHeight += texY;
-
-	if (!aa){
-	qglViewport( 0, 0, tvWidth, tvHeight );
-	qglScissor( 0, 0, tvWidth, tvHeight );
-	}
-	qglBegin( GL_QUADS );	
-	//GL_State( GLS_DEPTHTEST_DISABLE | GLS_SRCBLEND_ONE | GLS_DSTBLEND_ONE );
-	if (aa)
-	qglColor4f( 0.25, 0.25, 0.25, 1 );						
-	qglTexCoord2f(	texX + xaa,						texHeight + yaa);	
-	qglVertex2f(	x,							y	);
-	qglTexCoord2f(	texX + xaa,						texY + yaa	);				
-	qglVertex2f(	x,							height	);	
-	qglTexCoord2f(	texWidth + xaa,					texY	+ yaa );				
-	qglVertex2f(	width,						height	);	
-	qglTexCoord2f(	texWidth + xaa,					texHeight + yaa	);	
-	qglVertex2f(	width,						y	);				
-	qglEnd ();
-}
 
 // LEILEI - Bloom Reflection
 
@@ -409,184 +341,6 @@ static void R_Bloom_InitTextures( void )
 	force32upload = 0;
 }
 
-/*
-=================
-R_Postprocess_InitTextures
-=================
-*/
-static void R_Postprocess_InitTextures( void )
-{
-	byte	*data;
-	int vidinted = glConfig.vidHeight * 0.55f;
-	int intdiv = 1;
-
-	force32upload = 1;
-	// find closer power of 2 to screen size 
-	for (postproc.screen.width = 1;postproc.screen.width< glConfig.vidWidth;postproc.screen.width *= 2);
-
-	if (r_tvMode->integer > 1)	// interlaced
-
-	for (postproc.screen.height = 1;postproc.screen.height < vidinted;postproc.screen.height *= 2);
-else
-	for (postproc.screen.height = 1;postproc.screen.height < glConfig.vidHeight;postproc.screen.height *= 2);
-
-	if (r_tvMode->integer > 1)	
-		intdiv = 2;
-
-	postproc.screen.readW = glConfig.vidWidth / (float)postproc.screen.width;
-	postproc.screen.readH = glConfig.vidHeight / (float)postproc.screen.height;
-
-
-
-
-	// find closer power of 2 to effect size 
-	postproc.work.width = r_bloom_sample_size->integer;
-	postproc.work.height = postproc.work.width * ( glConfig.vidWidth / glConfig.vidHeight );
-
-	for (postproc.effect.width = 1;postproc.effect.width < postproc.work.width;postproc.effect.width *= 2);
-	for (postproc.effect.height = 1;postproc.effect.height < postproc.work.height;postproc.effect.height *= 2);
-
-	postproc.effect.readW = postproc.work.width / (float)postproc.effect.width;
-	postproc.effect.readH = postproc.work.height / (float)postproc.effect.height;
-
-	postproc.screen.readH /= intdiv; // interlacey
-	postproc.effect.readH /= intdiv; // interlacey
-
-	// disable blooms if we can't handle a texture of that size
-	if( 	postproc.screen.width > glConfig.maxTextureSize ||
-			postproc.screen.height > glConfig.maxTextureSize 
-	) {
-		ri.Cvar_Set( "r_postprocess", "none" );
-		Com_Printf( S_COLOR_YELLOW"WARNING: 'R_InitPostprocessTextures' too high resolution for postprocessing, effect disabled\n" );
-		postprocess=0;
-		return;
-	}
-
-	force32upload = 1;
-
-	data = ri.Hunk_AllocateTempMemory( postproc.screen.width * postproc.screen.height * 4 );
-	Com_Memset( data, 0, postproc.screen.width * postproc.screen.height * 4 );
-	postproc.screen.texture = R_CreateImage( "***postproc screen texture***", data, postproc.screen.width, postproc.screen.height, qfalse, qfalse, GL_CLAMP_TO_EDGE  );
-	ri.Hunk_FreeTempMemory( data );
-	
-	// leilei - tv output texture
-
-	if (r_tvMode->integer){
-		// find closer power of 2 to screen size 
-		for (postproc.tv.width = 1;postproc.tv.width< tvWidth;postproc.tv.width *= 2);
-		for (postproc.tv.height = 1;postproc.tv.height < tvHeight;postproc.tv.height *= 2);
-	
-		postproc.tv.readW = tvWidth / (float)postproc.tv.width;
-		postproc.tv.readH = tvHeight / (float)postproc.tv.height;
-	
-		// find closer power of 2 to effect size 
-		postproc.tvwork.width = r_bloom_sample_size->integer;
-		postproc.tvwork.height = postproc.tvwork.width * ( tvWidth / tvHeight );
-	
-		for (postproc.tveffect.width = 1;postproc.tveffect.width < postproc.tvwork.width;postproc.tveffect.width *= 2);
-		for (postproc.tveffect.height = 1;postproc.tveffect.height < postproc.tvwork.height;postproc.tveffect.height *= 2);
-	
-		postproc.tveffect.readW = postproc.tvwork.width / (float)postproc.tveffect.width;
-		postproc.tveffect.readH = postproc.tvwork.height / (float)postproc.tveffect.height;
-	
-	
-	
-		data = ri.Hunk_AllocateTempMemory( tvWidth * tvHeight * 4 );
-		Com_Memset( data, 0, tvWidth * tvHeight * 4 );
-		postproc.tv.texture = R_CreateImage( "***tv output screen texture***", data, tvWidth, tvHeight, qfalse, qfalse, GL_CLAMP_TO_EDGE  );
-		ri.Hunk_FreeTempMemory( data );
-	}
-
-	// leilei - motion blur textures!
-
-	if (r_motionblur->integer > 2){
-	data = ri.Hunk_AllocateTempMemory( postproc.screen.width * postproc.screen.height * 4 );
-	Com_Memset( data, 0, postproc.screen.width * postproc.screen.height * 4 );
-	postproc.motion1.texture = R_CreateImage( "***motionblur1 texture***", data, postproc.screen.width, postproc.screen.height, qfalse, qfalse, GL_CLAMP_TO_EDGE  );
-	postproc.motion2.texture = R_CreateImage( "***motionblur2 texture***", data, postproc.screen.width, postproc.screen.height, qfalse, qfalse, GL_CLAMP_TO_EDGE  );
-	postproc.motion3.texture = R_CreateImage( "***motionblur3 texture***", data, postproc.screen.width, postproc.screen.height, qfalse, qfalse, GL_CLAMP_TO_EDGE  );
-	postproc.motion4.texture = R_CreateImage( "***motionblur4 texture***", data, postproc.screen.width, postproc.screen.height, qfalse, qfalse, GL_CLAMP_TO_EDGE  );
-	postproc.motion5.texture = R_CreateImage( "***motionblur5 texture***", data, postproc.screen.width, postproc.screen.height, qfalse, qfalse, GL_CLAMP_TO_EDGE  );
-	postproc.mpass1.texture = R_CreateImage( "***motionaccum1 texture***", data, postproc.screen.width, postproc.screen.height, qfalse, qfalse, GL_CLAMP_TO_EDGE  );
-	postproc.mpass2.texture = R_CreateImage( "***motionaccum1 texture***", data, postproc.screen.width, postproc.screen.height, qfalse, qfalse, GL_CLAMP_TO_EDGE  );
-	postproc.mpass3.texture = R_CreateImage( "***motionaccum1 texture***", data, postproc.screen.width, postproc.screen.height, qfalse, qfalse, GL_CLAMP_TO_EDGE  );
-	postproc.mpass4.texture = R_CreateImage( "***motionaccum1 texture***", data, postproc.screen.width, postproc.screen.height, qfalse, qfalse, GL_CLAMP_TO_EDGE  );
-	ri.Hunk_FreeTempMemory( data );
-	}
-
-	// GLSL Depth Buffer
-
-	data = ri.Hunk_AllocateTempMemory( postproc.screen.width * postproc.screen.height *4);
-	Com_Memset( data, 0, postproc.screen.width * postproc.screen.height * 4 );
-	depthimage=1;
-	postproc.depth.texture = R_CreateImage( "***depthbuffer texture***",  data, postproc.screen.width, postproc.screen.height, qfalse, qfalse, GL_CLAMP_TO_EDGE   );
-	depthimage=0;
-	ri.Hunk_FreeTempMemory( data );
-
-	postproc.started = qtrue;
-	force32upload = 0;
-	
-}
-
-// leilei - experimental water effect
-static void R_Water_InitTextures( void )
-{
-	byte	*data;
-
-	// find closer power of 2 to screen size 
-	for (water.screen.width = 1;water.screen.width< glConfig.vidWidth;water.screen.width *= 2);
-	for (water.screen.height = 1;water.screen.height < glConfig.vidHeight;water.screen.height *= 2);
-
-	water.screen.readW = glConfig.vidWidth / (float)water.screen.width;
-	water.screen.readH = glConfig.vidHeight / (float)water.screen.height;
-
-	// find closer power of 2 to effect size 
-	water.work.width = 256;
-	water.work.height = water.work.width * ( glConfig.vidWidth / glConfig.vidHeight );
-
-	for (water.effect.width = 1;water.effect.width < water.work.width;water.effect.width *= 2);
-	for (water.effect.height = 1;water.effect.height < water.work.height;water.effect.height *= 2);
-
-	water.effect.readW = water.work.width / (float)water.effect.width;
-	water.effect.readH = water.work.height / (float)water.effect.height;
-	
-	water.effect2.readW=water.effect.readW;
-	water.effect2.readH=water.effect.readH;
-	water.effect2.width=water.effect.width;
-	water.effect2.height=water.effect.height;
-	
-
-	// disable waters if we can't handle a texture of that size
-	if( water.screen.width > glConfig.maxTextureSize ||
-		water.screen.height > glConfig.maxTextureSize ||
-		water.effect.width > glConfig.maxTextureSize ||
-		water.effect.height > glConfig.maxTextureSize ||
-		water.work.width > glConfig.vidWidth ||
-		water.work.height > glConfig.vidHeight
-	) {
-		ri.Cvar_Set( "r_leiwater", "0" );
-		Com_Printf( S_COLOR_YELLOW"WARNING: 'R_InitWaterTextures' too high resolution for water, effect disabled\n" );
-		return;
-	}
-
-	// leilei - let's not do that water disabling anymore
-	force32upload = 1;
-
-	data = ri.Hunk_AllocateTempMemory( water.screen.width * water.screen.height * 4 );
-	Com_Memset( data, 0, water.screen.width * water.screen.height * 4 );
-	water.screen.texture = R_CreateImage( "***water screen texture***", data, water.screen.width, water.screen.height, qfalse, qfalse, GL_CLAMP_TO_EDGE  );
-	ri.Hunk_FreeTempMemory( data );
-
-	data = ri.Hunk_AllocateTempMemory( water.effect.width * water.effect.height * 4 );
-	Com_Memset( data, 0, water.effect.width * water.effect.height * 4 );
-	tr.waterImage = R_CreateImage( "*water", data, water.effect.width, water.effect.height, IMGTYPE_COLORALPHA, IMGFLAG_CLAMPTOEDGE, 0 );
-
-	//tr.waterImage = R_CreateImage( "*waterimage", data, water.effect.width, water.effect.height, qfalse, qfalse, GL_CLAMP_TO_EDGE  );;
-	ri.Hunk_FreeTempMemory( data );
-	water.started = qtrue;
-	force32upload = 0;
-}
-
 
 
 /*
@@ -601,28 +355,6 @@ void R_InitBloomTextures( void )
 	memset( &bloom, 0, sizeof( bloom ));
 	R_Bloom_InitTextures ();
 }
-
-void R_InitWaterTextures( void )
-{
-	if( !r_leiwater->integer )
-		return;
-	memset( &water, 0, sizeof( water ));
-	R_Water_InitTextures ();
-}
-
-/*
-=================
-R_InitPostprocessTextures
-=================
-*/
-void R_InitPostprocessTextures( void )
-{
-	if( !postprocess )
-		return;
-	memset( &postproc, 0, sizeof( postproc ));
-	R_Postprocess_InitTextures ();
-}
-
 /*
 =================
 R_Bloom_DrawEffect
@@ -899,71 +631,6 @@ static void R_Bloom_BackupScreen( void ) {
 	qglCopyTexSubImage2D( GL_TEXTURE_2D, 0, 0, 0, 0, 0, glConfig.vidWidth, glConfig.vidHeight );
 }
 
-static void R_Water_BackupScreen( void ) {
-	GL_Bind( water.screen.texture );
-	qglCopyTexSubImage2D( GL_TEXTURE_2D, 0, 0, 0, 0, 0, glConfig.vidWidth, glConfig.vidHeight );
-}
-/*
-=================
-R_Postprocess_BackupScreen
-Backup the full original screen to a texture for downscaling and later restoration
-=================
-*/
-static void R_Postprocess_BackupScreen( void ) {
-
-	GL_Bind( postproc.screen.texture );
-	qglCopyTexSubImage2D( GL_TEXTURE_2D, 0, 0, 0, 0, 0, glConfig.vidWidth, glConfig.vidHeight );
-
-	GL_Bind( postproc.depth.texture );
-	qglCopyTexSubImage2D( GL_TEXTURE_2D, 0, 0, 0, 0, 0, glConfig.vidWidth, glConfig.vidHeight );
-
-		
-}
-
-static void R_Postprocess_BackupScreenTV( void ) {
-
-	int intdiv;
-	if (r_tvMode->integer > 1) intdiv = 2;
-	else intdiv = 1;
-
-
-	GL_TexEnv( GL_MODULATE );
-	qglScissor( 0, 0, glConfig.vidWidth, glConfig.vidHeight );
-	qglViewport( 0, 0, glConfig.vidWidth, glConfig.vidHeight );
-	qglMatrixMode( GL_PROJECTION );
-    qglLoadIdentity ();
-	qglOrtho( 0, glConfig.vidWidth, glConfig.vidHeight, 0, 0, 1 );
-	qglMatrixMode( GL_MODELVIEW );
-    qglLoadIdentity ();
-
-
-	GL_Bind( postproc.screen.texture );
-	qglCopyTexSubImage2D( GL_TEXTURE_2D, 0, 0, 0, 0, 0, glConfig.vidWidth, glConfig.vidHeight);
-
-
-	//qglCopyTexSubImage2D( GL_TEXTURE_2D, 0, 0, 0, 0, 0, 320, 240);
-
-
-}
-
-
-// leilei - motion blur hack
-void R_MotionBlur_BackupScreen(int which) {
-	if( r_motionblur->integer < 3)
-		return;
-	if (which == 1){ GL_Bind( postproc.motion1.texture ); qglCopyTexSubImage2D( GL_TEXTURE_2D, 0, 0, 0, 0, 0, glConfig.vidWidth, glConfig.vidHeight ); }  // gather thee samples
-	if (which == 2){ GL_Bind( postproc.motion2.texture ); qglCopyTexSubImage2D( GL_TEXTURE_2D, 0, 0, 0, 0, 0, glConfig.vidWidth, glConfig.vidHeight ); }
-	if (which == 3){ GL_Bind( postproc.motion3.texture ); qglCopyTexSubImage2D( GL_TEXTURE_2D, 0, 0, 0, 0, 0, glConfig.vidWidth, glConfig.vidHeight ); }
-	if (which == 4){ GL_Bind( postproc.motion4.texture ); qglCopyTexSubImage2D( GL_TEXTURE_2D, 0, 0, 0, 0, 0, glConfig.vidWidth, glConfig.vidHeight ); } 
-	if (which == 5){ GL_Bind( postproc.motion5.texture ); qglCopyTexSubImage2D( GL_TEXTURE_2D, 0, 0, 0, 0, 0, glConfig.vidWidth, glConfig.vidHeight ); }
-	if (which == 11){ GL_Bind( postproc.mpass1.texture ); qglCopyTexSubImage2D( GL_TEXTURE_2D, 0, 0, 0, 0, 0, glConfig.vidWidth, glConfig.vidHeight ); }	// to accum
-	if (which == 12){ GL_Bind( postproc.mpass1.texture ); qglCopyTexSubImage2D( GL_TEXTURE_2D, 0, 0, 0, 0, 0, glConfig.vidWidth, glConfig.vidHeight ); }	// to accum
-	if (which == 13){ GL_Bind( postproc.mpass1.texture ); qglCopyTexSubImage2D( GL_TEXTURE_2D, 0, 0, 0, 0, 0, glConfig.vidWidth, glConfig.vidHeight ); }	// to accum
-	if (which == 14){ GL_Bind( postproc.mpass1.texture ); qglCopyTexSubImage2D( GL_TEXTURE_2D, 0, 0, 0, 0, 0, glConfig.vidWidth, glConfig.vidHeight ); }	// to accum
-	if (which == 18){ GL_Bind( postproc.screen.texture ); qglCopyTexSubImage2D( GL_TEXTURE_2D, 0, 0, 0, 0, 0, glConfig.vidWidth, glConfig.vidHeight ); }	// to accum
-	
-	
-}
 /*
 =================
 R_Bloom_RestoreScreen
@@ -987,16 +654,6 @@ static void R_Bloom_RestoreScreen( void ) {
 			bloom.work.height / (float)bloom.screen.height );
 	}
 }
-
-static void R_Water_RestoreScreen( void ) {
-	GL_State( GLS_DEPTHTEST_DISABLE | GLS_SRCBLEND_ONE | GLS_DSTBLEND_ZERO );
-	GL_Bind( water.screen.texture );
-	qglColor4f( 1,1,1, 1 );
-		R_Bloom_Quad( water.screen.width, water.screen.height, 0, 0,
-					1.f,
-					1.f );
-}
- 
 /*
 =================
 R_Bloom_RestoreScreen_Postprocessed
@@ -1004,6 +661,57 @@ Restore the temporary framebuffer section we used with the backup texture
 =================
 */
 extern int mpasses;
+
+static void ID_INLINE R_Bloom_QuadTV( int width, int height, float texX, float texY, float texWidth, float texHeight, int aa ) {
+	int x = 0;
+	int y = 0;
+	float raa = r_retroAA->value;
+	if (raa < 1) raa = 1;
+
+	float xpix = 1.0f / width  / (4 / raa);
+	float ypix = 1.0f / height / (4 / raa);
+	float xaa;
+	float yaa;
+	x = 0;
+	y = 0;
+
+	
+
+	if (aa == 0){	xaa = 0; yaa = 0;   }
+	if (aa == 1){	xaa = -xpix; yaa = ypix;   }
+	if (aa == 2){	xaa = -xpix; yaa = -ypix;   }
+	if (aa == 3){	xaa = xpix; yaa = -ypix;   }
+	if (aa == 4){	xaa = xpix; yaa = ypix;   }
+
+
+
+	//y += tvHeight - height;
+	width += x;
+	height += y;
+	
+	texWidth += texX;
+	texHeight += texY;
+
+	if (!aa){
+	qglViewport( 0, 0, tvWidth, tvHeight );
+	qglScissor( 0, 0, tvWidth, tvHeight );
+	}
+	qglBegin( GL_QUADS );	
+	//GL_State( GLS_DEPTHTEST_DISABLE | GLS_SRCBLEND_ONE | GLS_DSTBLEND_ONE );
+	if (aa)
+	qglColor4f( 0.25, 0.25, 0.25, 1 );						
+	qglTexCoord2f(	texX + xaa,						texHeight + yaa);	
+	qglVertex2f(	x,							y	);
+	qglTexCoord2f(	texX + xaa,						texY + yaa	);				
+	qglVertex2f(	x,							height	);	
+	qglTexCoord2f(	texWidth + xaa,					texY	+ yaa );				
+	qglVertex2f(	width,						height	);	
+	qglTexCoord2f(	texWidth + xaa,					texHeight + yaa	);	
+	qglVertex2f(	width,						y	);				
+	qglEnd ();
+}
+
+
 static void R_Bloom_RestoreScreen_Postprocessed( void ) {
 	glslProgram_t	*program;
 	if (leifxmode)
@@ -1016,6 +724,9 @@ static void R_Bloom_RestoreScreen_Postprocessed( void ) {
 	if (leifxmode == 777){ if (vertexShaders) R_GLSL_UseProgram(tr.motionBlurProgram); program=tr.programs[tr.motionBlurProgram];}
 	if (leifxmode == 778){ if (vertexShaders) R_GLSL_UseProgram(tr.motionBlurProgram); program=tr.programs[tr.motionBlurProgram];}
 	if (leifxmode == 779){ if (vertexShaders) R_GLSL_UseProgram(tr.motionBlurPostProgram); program=tr.programs[tr.motionBlurPostProgram];}
+	if (leifxmode == 632){ if (vertexShaders) R_GLSL_UseProgram(tr.NTSCEncodeProgram); program=tr.programs[tr.NTSCEncodeProgram];}
+	if (leifxmode == 633){ if (vertexShaders) R_GLSL_UseProgram(tr.NTSCDecodeProgram); program=tr.programs[tr.NTSCDecodeProgram];}
+	if (leifxmode == 634){ if (vertexShaders) R_GLSL_UseProgram(tr.NTSCBleedProgram); program=tr.programs[tr.NTSCBleedProgram];}
 	if (leifxmode == 666){ if (vertexShaders) R_GLSL_UseProgram(tr.BrightnessProgram); program=tr.programs[tr.BrightnessProgram];}
 	if (leifxmode == 1236){ if (vertexShaders) R_GLSL_UseProgram(tr.CRTProgram); program=tr.programs[tr.CRTProgram];}
 	
@@ -1035,10 +746,11 @@ static void R_Bloom_RestoreScreen_Postprocessed( void ) {
 	if (program->u_ScreenToNextPixelY > -1) R_GLSL_SetUniform_u_ScreenToNextPixelY(program, (float)1.0/(float)glConfig.vidHeight);
 
 	// leilei - for TV shaders
-//	if (program->u_ActualScreenSizeX > -1) R_GLSL_SetUniform_u_ActualScreenSizeX(program, tvWidth);
+	if (program->u_ActualScreenSizeX > -1) R_GLSL_SetUniform_u_ActualScreenSizeX(program, tvWidth);
+	if (program->u_ActualScreenSizeY > -1) R_GLSL_SetUniform_u_ActualScreenSizeY(program, tvHeight);
 
-//	if (program->u_ActualScreenSizeY > -1) R_GLSL_SetUniform_u_ActualScreenSizeY(program, tvHeight);
-
+	//if (program->u_Time > -1) R_GLSL_SetUniform_Time(program, backEnd.refdef.time);
+	if (program->u_Time > -1) R_GLSL_SetUniform_Time(program, ScreenFrameCount);
 
 
 	// Brightness stuff
@@ -1048,7 +760,28 @@ static void R_Bloom_RestoreScreen_Postprocessed( void ) {
 	if (program->u_CC_Saturation > -1) R_GLSL_SetUniform_u_CC_Saturation(program, 1.0);
 	if (program->u_CC_Contrast > -1) R_GLSL_SetUniform_u_CC_Contrast(program, 1.0);
 
+	// Lazy wrapper for ruby/retroarch shaders, because i'm lazy at modifying them. haha. Will probably be removed in the future if things suck.
+/*
+	{
+	float		rts_x, rts_y; 
+	float		ris_x, ris_y; 
+	float		ros_x, ros_y;
 
+	rts_x	=	glConfig.vidWidth;
+	rts_y	=	glConfig.vidHeight;
+
+	ris_x	=	glConfig.vidWidth;
+	ris_y	=	glConfig.vidHeight;
+
+	ros_x	=	tvWidth;
+	ros_y	=	tvHeight;
+
+	if (program->rubyTextureSize 	> -1) R_GLSL_SetUniform_rubyTextureSize(program, rts_x, rts_y);
+	if (program->rubyInputSize 	> -1) R_GLSL_SetUniform_rubyInputSize(program, 	 ris_x, ris_y);
+	if (program->rubyOutputSize 	> -1) R_GLSL_SetUniform_rubyOutputSize(program,  ros_x, ros_y);
+
+	}
+*/
 
 
 
@@ -1271,44 +1004,194 @@ void R_BloomScreen( void )
 
 
 
-static void R_WaterWorks( void )
+void R_BloomInit( void ) {
+	memset( &bloom, 0, sizeof( bloom ));
+
+	r_bloom = ri.Cvar_Get( "r_bloom", "0", CVAR_ARCHIVE );
+	r_bloom_alpha = ri.Cvar_Get( "r_bloom_alpha", "0.3", CVAR_ARCHIVE );
+	r_bloom_diamond_size = ri.Cvar_Get( "r_bloom_diamond_size", "8", CVAR_ARCHIVE );
+	r_bloom_intensity = ri.Cvar_Get( "r_bloom_intensity", "1.3", CVAR_ARCHIVE );
+	r_bloom_darken = ri.Cvar_Get( "r_bloom_darken", "4", CVAR_ARCHIVE );
+	r_bloom_sample_size = ri.Cvar_Get( "r_bloom_sample_size", "256", CVAR_ARCHIVE|CVAR_LATCH ); // Tcpp: I prefer 256 to 128
+	r_bloom_fast_sample = ri.Cvar_Get( "r_bloom_fast_sample", "0", CVAR_ARCHIVE|CVAR_LATCH );
+	r_bloom_cascade = ri.Cvar_Get( "r_bloom_cascade", "0", CVAR_ARCHIVE );
+	r_bloom_cascade_blur = ri.Cvar_Get( "r_bloom_cascade_blur", ".4", CVAR_ARCHIVE );
+	r_bloom_cascade_intensity= ri.Cvar_Get( "r_bloom_cascade_intensity", "20", CVAR_ARCHIVE );
+	r_bloom_cascade_alpha = ri.Cvar_Get( "r_bloom_cascade_alpha", "0.15", CVAR_ARCHIVE );
+	r_bloom_cascade_dry = ri.Cvar_Get( "r_bloom_cascade_dry", "0.8", CVAR_ARCHIVE );
+	r_bloom_dry = ri.Cvar_Get( "r_bloom_dry", "1", CVAR_ARCHIVE );
+	r_bloom_reflection = ri.Cvar_Get( "r_bloom_reflection", "0", CVAR_ARCHIVE );
+	r_bloom_sky_only = ri.Cvar_Get( "r_bloom_sky_only", "0", CVAR_ARCHIVE );
+}
+
+
+
+
+
+// =================================================================
+// GLSL POST PROCESSING
+// =================================================================
+
+
+
+
+
+/*
+=================
+R_Postprocess_InitTextures
+=================
+*/
+static void R_Postprocess_InitTextures( void )
 {
-	int		i, j, k;
-	float	intensity, scale, *diamond;
+	byte	*data;
+	int vidinted = glConfig.vidHeight * 0.55f;
+	int intdiv = 1;
+
+	force32upload = 1;
+	// find closer power of 2 to screen size 
+	for (postproc.screen.width = 1;postproc.screen.width< glConfig.vidWidth;postproc.screen.width *= 2);
+
+//	if (r_tvMode->integer > 1)	// interlaced
+
+//	for (postproc.screen.height = 1;postproc.screen.height < vidinted;postproc.screen.height *= 2);
+//else
+	for (postproc.screen.height = 1;postproc.screen.height < glConfig.vidHeight;postproc.screen.height *= 2);
+
+	if (r_tvMode->integer > 1)	
+		intdiv = 2;
+
+	postproc.screen.readW = glConfig.vidWidth / (float)postproc.screen.width;
+	postproc.screen.readH = glConfig.vidHeight / (float)postproc.screen.height;
 
 
-	qglColor4f( 1.0f, 1.0f, 1.0f, 1.0f );
-	GL_Bind( water.screen.texture );
-	//GL_State( GLS_DEPTHTEST_DISABLE | GLS_SRCBLEND_ONE | GLS_DSTBLEND_ZERO );
-	R_Bloom_Quad( water.work.width, water.work.height, 0, 0, water.screen.readW, water.screen.readH );
-	//Copy downscaled framebuffer into a texture
-	GL_Bind( tr.waterImage );
-	qglCopyTexSubImage2D( GL_TEXTURE_2D, 0, 0, 0, 0, 0, water.work.width, water.work.height );
-}											
 
-void R_WaterScreen( void )
-{
-	if( !r_leiwater->integer )
+
+	// find closer power of 2 to effect size 
+	postproc.work.width = r_bloom_sample_size->integer;
+	postproc.work.height = postproc.work.width * ( glConfig.vidWidth / glConfig.vidHeight );
+
+	for (postproc.effect.width = 1;postproc.effect.width < postproc.work.width;postproc.effect.width *= 2);
+	for (postproc.effect.height = 1;postproc.effect.height < postproc.work.height;postproc.effect.height *= 2);
+
+	postproc.effect.readW = postproc.work.width / (float)postproc.effect.width;
+	postproc.effect.readH = postproc.work.height / (float)postproc.effect.height;
+
+//	postproc.screen.readH /= intdiv; // interlacey
+
+
+	// disable blooms if we can't handle a texture of that size
+	if( 	postproc.screen.width > glConfig.maxTextureSize ||
+			postproc.screen.height > glConfig.maxTextureSize 
+	) {
+		ri.Cvar_Set( "r_postprocess", "none" );
+		Com_Printf( S_COLOR_YELLOW"WARNING: 'R_InitPostprocessTextures' too high resolution for postprocessing, effect disabled\n" );
+		postprocess=0;
 		return;
-	if ( backEnd.donewater )
-		return;
-	if ( !backEnd.doneSurfaces )
-		return;
-	backEnd.donewater= qtrue;
-	if( !water.started ) {
-		R_Water_InitTextures();
-		if( !water.started )
-			return;
 	}
 
-	if ( !backEnd.projection2D )
-		RB_SetGL2D();
+	force32upload = 1;
+
+	data = ri.Hunk_AllocateTempMemory( postproc.screen.width * postproc.screen.height * 4 );
+	Com_Memset( data, 0, postproc.screen.width * postproc.screen.height * 4 );
+	postproc.screen.texture = R_CreateImage( "***postproc screen texture***", data, postproc.screen.width, postproc.screen.height, qfalse, qfalse, GL_CLAMP_TO_EDGE  );
+	ri.Hunk_FreeTempMemory( data );
+	
+	// leilei - tv output texture
+
+	if (r_tvMode->integer){
+		// find closer power of 2 to screen size 
+		for (postproc.tv.width = 1;postproc.tv.width< tvWidth;postproc.tv.width *= 2);
+		for (postproc.tv.height = 1;postproc.tv.height < tvHeight;postproc.tv.height *= 2);
+	
+		//postproc.tv.height /= intdiv; // interlacey
+		
+
+		postproc.tv.readW = tvWidth / (float)postproc.tv.width;
+		postproc.tv.readH = tvHeight / (float)postproc.tv.height;
+	
+		// find closer power of 2 to effect size 
+		postproc.tvwork.width = r_bloom_sample_size->integer;
+		postproc.tvwork.height = postproc.tvwork.width * ( tvWidth / tvHeight );
+
+	//	postproc.tvwork.height /= intdiv; // interlacey
+	
+		for (postproc.tveffect.width = 1;postproc.tveffect.width < postproc.tvwork.width;postproc.tveffect.width *= 2);
+if (intdiv > 1)
+		for (postproc.tveffect.height = 1;(postproc.tveffect.height/2) < postproc.tvwork.height;postproc.tveffect.height *= 2);
+		else
+		for (postproc.tveffect.height = 1;postproc.tveffect.height < postproc.tvwork.height;postproc.tveffect.height *= 2);
+
+		postproc.tveffect.readW = postproc.tvwork.width / (float)postproc.tveffect.width;
+		postproc.tveffect.readH = postproc.tvwork.height / (float)postproc.tveffect.height;
+	
+
+	
+		data = ri.Hunk_AllocateTempMemory( tvWidth * tvHeight * 4 );
+		Com_Memset( data, 0, tvWidth * tvHeight * 4 );
+		postproc.tv.texture = R_CreateImage( "***tv output screen texture***", data, tvWidth, tvHeight, qfalse, qfalse, GL_CLAMP_TO_EDGE  );
+		ri.Hunk_FreeTempMemory( data );
+	}
+
+	// leilei - motion blur textures!
+
+	if (r_motionblur->integer > 2){
+	data = ri.Hunk_AllocateTempMemory( postproc.screen.width * postproc.screen.height * 4 );
+	Com_Memset( data, 0, postproc.screen.width * postproc.screen.height * 4 );
+	postproc.motion1.texture = R_CreateImage( "***motionblur1 texture***", data, postproc.screen.width, postproc.screen.height, qfalse, qfalse, GL_CLAMP_TO_EDGE  );
+	postproc.motion2.texture = R_CreateImage( "***motionblur2 texture***", data, postproc.screen.width, postproc.screen.height, qfalse, qfalse, GL_CLAMP_TO_EDGE  );
+	postproc.motion3.texture = R_CreateImage( "***motionblur3 texture***", data, postproc.screen.width, postproc.screen.height, qfalse, qfalse, GL_CLAMP_TO_EDGE  );
+	postproc.motion4.texture = R_CreateImage( "***motionblur4 texture***", data, postproc.screen.width, postproc.screen.height, qfalse, qfalse, GL_CLAMP_TO_EDGE  );
+	postproc.motion5.texture = R_CreateImage( "***motionblur5 texture***", data, postproc.screen.width, postproc.screen.height, qfalse, qfalse, GL_CLAMP_TO_EDGE  );
+	postproc.mpass1.texture = R_CreateImage( "***motionaccum1 texture***", data, postproc.screen.width, postproc.screen.height, qfalse, qfalse, GL_CLAMP_TO_EDGE  );
+	postproc.mpass2.texture = R_CreateImage( "***motionaccum1 texture***", data, postproc.screen.width, postproc.screen.height, qfalse, qfalse, GL_CLAMP_TO_EDGE  );
+	postproc.mpass3.texture = R_CreateImage( "***motionaccum1 texture***", data, postproc.screen.width, postproc.screen.height, qfalse, qfalse, GL_CLAMP_TO_EDGE  );
+	postproc.mpass4.texture = R_CreateImage( "***motionaccum1 texture***", data, postproc.screen.width, postproc.screen.height, qfalse, qfalse, GL_CLAMP_TO_EDGE  );
+	ri.Hunk_FreeTempMemory( data );
+	}
+
+	// GLSL Depth Buffer
+
+	data = ri.Hunk_AllocateTempMemory( postproc.screen.width * postproc.screen.height *4);
+	Com_Memset( data, 0, postproc.screen.width * postproc.screen.height * 4 );
+	depthimage=1;
+	postproc.depth.texture = R_CreateImage( "***depthbuffer texture***",  data, postproc.screen.width, postproc.screen.height, qfalse, qfalse, GL_CLAMP_TO_EDGE   );
+	depthimage=0;
+	ri.Hunk_FreeTempMemory( data );
+
+	postproc.started = qtrue;
+	force32upload = 0;
+	
+}
+
+/*
+=================
+R_InitPostprocessTextures
+=================
+*/
+void R_InitPostprocessTextures( void )
+{
+	if( !postprocess )
+		return;
+	memset( &postproc, 0, sizeof( postproc ));
+	R_Postprocess_InitTextures ();
+}
 
 
-	//// All we want to do is copy the thing
-	R_Water_BackupScreen();
-	R_WaterWorks ();
-	R_Water_RestoreScreen();	
+/*
+=================
+R_Postprocess_BackupScreen
+Backup the full original screen to a texture for downscaling and later restoration
+=================
+*/
+static void R_Postprocess_BackupScreen( void ) {
+
+	GL_Bind( postproc.screen.texture );
+	qglCopyTexSubImage2D( GL_TEXTURE_2D, 0, 0, 0, 0, 0, glConfig.vidWidth, glConfig.vidHeight );
+
+	GL_Bind( postproc.depth.texture );
+	qglCopyTexSubImage2D( GL_TEXTURE_2D, 0, 0, 0, 0, 0, glConfig.vidWidth, glConfig.vidHeight );
+
+		
 }
 
 
@@ -1359,6 +1242,18 @@ void R_PostprocessScreen( void )
 }
 
 
+
+void R_PostprocessingInit(void) {
+	memset( &postproc, 0, sizeof( postproc ));
+}
+
+
+// =================================================================
+// LEIFX FILTER EFFECTS
+// =================================================================
+
+
+
 static void ID_INLINE R_LeiFX_Pointless_Quad( int width, int height, float texX, float texY, float texWidth, float texHeight ) {
 	int x = 0;
 	int y = 0;
@@ -1371,6 +1266,7 @@ static void ID_INLINE R_LeiFX_Pointless_Quad( int width, int height, float texX,
 	texHeight += texY;
 
 	qglBegin( GL_QUADS );							
+
 	qglTexCoord2f(	texX,						texHeight	);	
 	qglVertex2f(	x,							y	);
 
@@ -1488,69 +1384,24 @@ void R_LeiFXPostprocessFilterScreen( void )
 
 }
 
-// tvmode doesn't do any actual postprocessing yet (ntsc, shadow mask etc)
 
-float tvtime;
 
-void R_TVScreen( void )
+// =================================================================
+// NTSC EFFECTS
+// =================================================================
+
+
+
+void R_NTSCScreen( void )
 {
-	if( !r_tvMode->integer)
+	if( !r_ntsc->integer)
 		return;
-	if ( backEnd.donetv)
+	if ( backEnd.donentsc)
 		return;
 	if ( !vertexShaders )
 		return;		// leilei - cards without support for this should not ever activate this
-	if( !postproc.started ) {
-		force32upload = 1;
-		R_Postprocess_InitTextures();
-		if( !postproc.started )
-			return;
-	}
-
-//	if ( !backEnd.projection2D )
-//		RB_SetGL2D();
-
-
-
-		force32upload = 1;
-
-//	postprocess = 1;
-
-	if (backEnd.refdef.time > tvtime){
-		tvinterlace *= -1;
-	tvtime = backEnd.refdef.time + (1000.0f / 60); // 60hz
-	}
-		
-	tvinter = tvinterlace;
-	if (tvinter < 0) tvinter = 0;
-	if (r_tvMode->integer < 2) tvinter = 0;
-
-	leifxmode = 1234;		// just show it through to tvWidth/tvHeight
-
-	if (r_tvMode->integer > 2)
-		leifxmode = 1236;		// run it through a shader
-	//R_Postprocess_BackupScreen();
-	R_Postprocess_BackupScreenTV();
-
-	R_Bloom_RestoreScreen_Postprocessed();
-	
-	backEnd.donetv = qtrue;
-
-	force32upload = 0;
-	
-
-}
-
-
-// leilei - old 2000 console-style antialiasing/antiflickering
-void R_RetroAAScreen( void )
-{
-	if( !r_retroAA->integer)
-		return;
-	if ( backEnd.doneraa)
-		return;
-	if ( !vertexShaders )
-		return;		// leilei - cards without support for this should not ever activate this
+//	if ( !backEnd.doneSurfaces )
+//		return;
 	if( !postproc.started ) {
 		force32upload = 1;
 		R_Postprocess_InitTextures();
@@ -1560,168 +1411,70 @@ void R_RetroAAScreen( void )
 
 	if ( !backEnd.projection2D )
 		RB_SetGL2D();
-	force32upload = 1;
-
-	leifxmode = 1233;		// just show it through to tvWidth/tvHeight
-	//R_Postprocess_BackupScreen();
-	R_Postprocess_BackupScreen();
-	R_Bloom_RestoreScreen_Postprocessed();
-	
-	backEnd.doneraa = qtrue;
-
-	force32upload = 0;
-	
-
-}
-
-
-
-
-void R_AnimeScreen( void )
-{
-	if( !r_anime->integer)
-		return;
-	if ( backEnd.doneanime)
-		return;
-	if ( !backEnd.doneSurfaces )
-		return;
-	if ( !vertexShaders )
-		return;		// leilei - cards without support for this should not ever activate this
-	if( !postproc.started ) {
 		force32upload = 1;
-		R_Postprocess_InitTextures();
-		if( !postproc.started )
-			return;
-	}
 
-	if ( !backEnd.projection2D )
-	RB_SetGL2D();
+	int ntsc_bleed	= 0;
+	int ntsc_encode = 0;
+	int ntsc_decode = 0;
 
-	force32upload = 1;
+	// TODO: Switch it up
+	if (r_ntsc->integer == 1) ntsc_bleed = 1;
+	else if (r_ntsc->integer == 2){ ntsc_bleed = 1; ntsc_encode = 1; ntsc_decode = 1; }
+	else if (r_ntsc->integer == 3){ ntsc_bleed = 0; ntsc_encode = 1; ntsc_decode = 1; }
+	else if (r_ntsc->integer == 4){ ntsc_bleed = 1; ntsc_encode = 1; ntsc_decode = 1; }
+	else if (r_ntsc->integer > 6){ ntsc_bleed = 666; ntsc_encode = 0; ntsc_decode = 0; }
+	else { ntsc_bleed = 0; ntsc_encode = 1; ntsc_decode = 0; }
+	
 
-	leifxmode = 888;			// anime effect - outlines, desat, bloom and other crap to go with it
+
+//	qglTexParameterf( GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST );
+//	qglTexParameterf( GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST );
+
 	R_LeiFX_Stupid_Hack();
-	R_Postprocess_BackupScreen();
-	R_Bloom_RestoreScreen_Postprocessed();
-	leifxmode = 999;			// film effect - to blur things slightly, and add some grain and chroma stuff
-        R_LeiFX_Stupid_Hack();
-	R_Postprocess_BackupScreen();
-	R_Bloom_RestoreScreen_Postprocessed();
-	backEnd.doneanime = qtrue;
+		if (ntsc_encode){
+		leifxmode = 632;		// Encode to composite
+		R_Postprocess_BackupScreen();
+		R_Bloom_RestoreScreen_Postprocessed();
+		}
+
+
+		if (ntsc_decode){
+		leifxmode = 633;		// Decode to RGB
+		R_Postprocess_BackupScreen();
+		R_Bloom_RestoreScreen_Postprocessed();
+		}
+
+		if (ntsc_bleed){
+		leifxmode = 634;		// Encode to YUV and decode to RGB
+		R_Postprocess_BackupScreen();
+		R_Bloom_RestoreScreen_Postprocessed();
+		}
+
+
+
+		if (ntsc_bleed == 666){
+		leifxmode = 634;		// Encode to YUV and decode to RGB EXCESSIVELY
+		int passasses = r_ntsc->integer;
+		int j;
+		for (j=0;j<passasses;j++)
+			{
+				R_Postprocess_BackupScreen();
+				R_Bloom_RestoreScreen_Postprocessed();
+			}
+		
+
+		}
+
+	backEnd.donentsc = qtrue;
 
 			force32upload = 0;
 	
 
 }
 
-
-
-
-void R_MblurScreen( void )
-{
-	if( r_motionblur->integer < 3)
-		return;
-	if ( backEnd.donemblur)
-		return;
-	if ( !backEnd.doneSurfaces )
-		return;
-	if ( !vertexShaders )
-		return;		// leilei - cards without support for this should not ever activate this
-	if( !postproc.started ) {
-		force32upload = 1;
-		R_Postprocess_InitTextures();
-		if( !postproc.started )
-			return;
-	}
-
-	if ( !backEnd.projection2D )
-	RB_SetGL2D();
-
-	force32upload = 1;
-
-	leifxmode = 777;			// accumulate frames for the motion blur buffer
-	R_LeiFX_Stupid_Hack();
-	R_Postprocess_BackupScreen();
-	R_Bloom_RestoreScreen_Postprocessed();
-	force32upload = 0;
-}
-
-void R_MblurScreenPost( void )
-{
-	if( r_motionblur->integer < 3)
-		return;
-	if ( !backEnd.doneSurfaces )
-		return;
-	if ( !vertexShaders )
-		return;		// leilei - cards without support for this should not ever activate this
-	if( !postproc.started ) {
-		force32upload = 1;
-		R_Postprocess_InitTextures();
-		if( !postproc.started )
-			return;
-	}
-
-	backEnd.donemblur = qtrue;
-
-	if ( !backEnd.projection2D )
-	RB_SetGL2D();
-
-	force32upload = 1;
-
-	leifxmode = 770;			// accumulate frames for the motion blur buffer
-	R_LeiFX_Stupid_Hack();
-//	R_Postprocess_BackupScreen();
-	R_Bloom_RestoreScreen_Postprocessed();
-	force32upload = 0;
-}
-
-
-
-void R_BloomInit( void ) {
-	memset( &bloom, 0, sizeof( bloom ));
-
-	r_bloom = ri.Cvar_Get( "r_bloom", "0", CVAR_ARCHIVE );
-	r_bloom_alpha = ri.Cvar_Get( "r_bloom_alpha", "0.3", CVAR_ARCHIVE );
-	r_bloom_diamond_size = ri.Cvar_Get( "r_bloom_diamond_size", "8", CVAR_ARCHIVE );
-	r_bloom_intensity = ri.Cvar_Get( "r_bloom_intensity", "1.3", CVAR_ARCHIVE );
-	r_bloom_darken = ri.Cvar_Get( "r_bloom_darken", "4", CVAR_ARCHIVE );
-	r_bloom_sample_size = ri.Cvar_Get( "r_bloom_sample_size", "256", CVAR_ARCHIVE|CVAR_LATCH ); // Tcpp: I prefer 256 to 128
-	r_bloom_fast_sample = ri.Cvar_Get( "r_bloom_fast_sample", "0", CVAR_ARCHIVE|CVAR_LATCH );
-	r_bloom_cascade = ri.Cvar_Get( "r_bloom_cascade", "0", CVAR_ARCHIVE );
-	r_bloom_cascade_blur = ri.Cvar_Get( "r_bloom_cascade_blur", ".4", CVAR_ARCHIVE );
-	r_bloom_cascade_intensity= ri.Cvar_Get( "r_bloom_cascade_intensity", "20", CVAR_ARCHIVE );
-	r_bloom_cascade_alpha = ri.Cvar_Get( "r_bloom_cascade_alpha", "0.15", CVAR_ARCHIVE );
-	r_bloom_cascade_dry = ri.Cvar_Get( "r_bloom_cascade_dry", "0.8", CVAR_ARCHIVE );
-	r_bloom_dry = ri.Cvar_Get( "r_bloom_dry", "1", CVAR_ARCHIVE );
-	r_bloom_reflection = ri.Cvar_Get( "r_bloom_reflection", "0", CVAR_ARCHIVE );
-	r_bloom_sky_only = ri.Cvar_Get( "r_bloom_sky_only", "0", CVAR_ARCHIVE );
-}
-
-void R_WaterInit( void ) {
-	memset( &water, 0, sizeof( water ));
-}
-
-
-void R_PostprocessingInit(void) {
-	memset( &postproc, 0, sizeof( postproc ));
-}
-
-
-
-
-
-
-
-
-/* 
-============================================================================== 
- 
-	Alternate brightness
-
-	Because X11 sucks.
- 
-============================================================================== 
-*/ 
+// =================================================================
+// ALTERNATE SCREEN BRIGHTNESS
+// =================================================================
 
 extern cvar_t *r_alternateBrightness;
 // shamelessly ripped off from tr_bloom.c
@@ -1827,13 +1580,9 @@ void R_AltBrightnessInit( void ) {
 
 
 
-/* 
-============================================================================== 
- 
-	Film postprocess
-
-============================================================================== 
-*/ 
+// =================================================================
+// FILM POSTPROCESS
+// =================================================================
 
 void R_FilmScreen( void )
 {
@@ -1885,3 +1634,473 @@ void R_FilmScreen( void )
 
 
 }
+
+
+
+
+
+// =================================================================
+// OLD-STYLE ANTIALIASING
+// =================================================================
+
+
+
+// leilei - old 2000 console-style antialiasing/antiflickering
+void R_RetroAAScreen( void )
+{
+	if( !r_retroAA->integer)
+		return;
+	if ( backEnd.doneraa)
+		return;
+	if ( !vertexShaders )
+		return;		// leilei - cards without support for this should not ever activate this
+	if( !postproc.started ) {
+		force32upload = 1;
+		R_Postprocess_InitTextures();
+		if( !postproc.started )
+			return;
+	}
+
+	if ( !backEnd.projection2D )
+		RB_SetGL2D();
+	force32upload = 1;
+
+	leifxmode = 1233;		// just show it through to tvWidth/tvHeight
+	//R_Postprocess_BackupScreen();
+	R_Postprocess_BackupScreen();
+	R_Bloom_RestoreScreen_Postprocessed();
+	
+	backEnd.doneraa = qtrue;
+
+	force32upload = 0;
+	
+
+}
+
+
+
+
+
+
+
+// =================================================================
+// !GLSL!
+// ANIME SHADERS
+// =================================================================
+
+
+
+
+
+void R_AnimeScreen( void )
+{
+	if( !r_anime->integer)
+		return;
+	if ( backEnd.doneanime)
+		return;
+	if ( !backEnd.doneSurfaces )
+		return;
+	if ( !vertexShaders )
+		return;		// leilei - cards without support for this should not ever activate this
+	if( !postproc.started ) {
+		force32upload = 1;
+		R_Postprocess_InitTextures();
+		if( !postproc.started )
+			return;
+	}
+
+	if ( !backEnd.projection2D )
+	RB_SetGL2D();
+
+	force32upload = 1;
+
+	leifxmode = 888;			// anime effect - outlines, desat, bloom and other crap to go with it
+	R_LeiFX_Stupid_Hack();
+	R_Postprocess_BackupScreen();
+	R_Bloom_RestoreScreen_Postprocessed();
+	leifxmode = 999;			// film effect - to blur things slightly, and add some grain and chroma stuff
+        R_LeiFX_Stupid_Hack();
+	R_Postprocess_BackupScreen();
+	R_Bloom_RestoreScreen_Postprocessed();
+	backEnd.doneanime = qtrue;
+
+			force32upload = 0;
+	
+
+}
+
+
+
+
+
+
+
+
+// =================================================================
+// !GLSL!
+// MOTION BLUR EFFECT
+// =================================================================
+
+
+// leilei - motion blur hack
+void R_MotionBlur_BackupScreen(int which) {
+	if( r_motionblur->integer < 3)
+		return;
+	if (which == 1){ GL_Bind( postproc.motion1.texture ); qglCopyTexSubImage2D( GL_TEXTURE_2D, 0, 0, 0, 0, 0, glConfig.vidWidth, glConfig.vidHeight ); }  // gather thee samples
+	if (which == 2){ GL_Bind( postproc.motion2.texture ); qglCopyTexSubImage2D( GL_TEXTURE_2D, 0, 0, 0, 0, 0, glConfig.vidWidth, glConfig.vidHeight ); }
+	if (which == 3){ GL_Bind( postproc.motion3.texture ); qglCopyTexSubImage2D( GL_TEXTURE_2D, 0, 0, 0, 0, 0, glConfig.vidWidth, glConfig.vidHeight ); }
+	if (which == 4){ GL_Bind( postproc.motion4.texture ); qglCopyTexSubImage2D( GL_TEXTURE_2D, 0, 0, 0, 0, 0, glConfig.vidWidth, glConfig.vidHeight ); } 
+	if (which == 5){ GL_Bind( postproc.motion5.texture ); qglCopyTexSubImage2D( GL_TEXTURE_2D, 0, 0, 0, 0, 0, glConfig.vidWidth, glConfig.vidHeight ); }
+	if (which == 11){ GL_Bind( postproc.mpass1.texture ); qglCopyTexSubImage2D( GL_TEXTURE_2D, 0, 0, 0, 0, 0, glConfig.vidWidth, glConfig.vidHeight ); }	// to accum
+	if (which == 12){ GL_Bind( postproc.mpass1.texture ); qglCopyTexSubImage2D( GL_TEXTURE_2D, 0, 0, 0, 0, 0, glConfig.vidWidth, glConfig.vidHeight ); }	// to accum
+	if (which == 13){ GL_Bind( postproc.mpass1.texture ); qglCopyTexSubImage2D( GL_TEXTURE_2D, 0, 0, 0, 0, 0, glConfig.vidWidth, glConfig.vidHeight ); }	// to accum
+	if (which == 14){ GL_Bind( postproc.mpass1.texture ); qglCopyTexSubImage2D( GL_TEXTURE_2D, 0, 0, 0, 0, 0, glConfig.vidWidth, glConfig.vidHeight ); }	// to accum
+	if (which == 18){ GL_Bind( postproc.screen.texture ); qglCopyTexSubImage2D( GL_TEXTURE_2D, 0, 0, 0, 0, 0, glConfig.vidWidth, glConfig.vidHeight ); }	// to accum
+	
+	
+}
+
+
+void R_MblurScreen( void )
+{
+	if( r_motionblur->integer < 3)
+		return;
+	if ( backEnd.donemblur)
+		return;
+	if ( !backEnd.doneSurfaces )
+		return;
+	if ( !vertexShaders )
+		return;		// leilei - cards without support for this should not ever activate this
+	if( !postproc.started ) {
+		force32upload = 1;
+		R_Postprocess_InitTextures();
+		if( !postproc.started )
+			return;
+	}
+
+	if ( !backEnd.projection2D )
+	RB_SetGL2D();
+
+
+		
+
+	force32upload = 1;
+
+	leifxmode = 777;			// accumulate frames for the motion blur buffer
+	R_LeiFX_Stupid_Hack();
+	R_Postprocess_BackupScreen();
+	R_Bloom_RestoreScreen_Postprocessed();
+	force32upload = 0;
+}
+
+void R_MblurScreenPost( void )
+{
+	if( r_motionblur->integer < 3)
+		return;
+	if ( !backEnd.doneSurfaces )
+		return;
+	if ( !vertexShaders )
+		return;		// leilei - cards without support for this should not ever activate this
+	if( !postproc.started ) {
+		force32upload = 1;
+		R_Postprocess_InitTextures();
+		if( !postproc.started )
+			return;
+	}
+
+	backEnd.donemblur = qtrue;
+
+	if ( !backEnd.projection2D )
+	RB_SetGL2D();
+
+	force32upload = 1;
+
+	leifxmode = 770;			// accumulate frames for the motion blur buffer
+	R_LeiFX_Stupid_Hack();
+//	R_Postprocess_BackupScreen();
+	R_Bloom_RestoreScreen_Postprocessed();
+	force32upload = 0;
+}
+
+
+
+// =================================================================
+// TV MODE
+// =================================================================
+
+static void R_Postprocess_BackupScreenTV( void ) {
+
+	int intdiv;
+	if (r_tvMode->integer > 1) intdiv = 2;
+	else intdiv = 1;
+
+
+	GL_TexEnv( GL_MODULATE );
+	qglScissor( 0, 0, glConfig.vidWidth, glConfig.vidHeight );
+	qglViewport( 0, 0, glConfig.vidWidth, glConfig.vidHeight );
+	qglMatrixMode( GL_PROJECTION );
+    qglLoadIdentity ();
+	qglOrtho( 0, glConfig.vidWidth, glConfig.vidHeight, 0, 0, 1 );
+	qglMatrixMode( GL_MODELVIEW );
+    qglLoadIdentity ();
+
+
+	GL_Bind( postproc.screen.texture );
+	qglCopyTexSubImage2D( GL_TEXTURE_2D, 0, 0, 0, 0, 0, glConfig.vidWidth, glConfig.vidHeight);
+
+
+	//qglCopyTexSubImage2D( GL_TEXTURE_2D, 0, 0, 0, 0, 0, 320, 240);
+
+
+}
+
+static void R_Postprocess_ScaleTV( void ) {
+
+//	int intdiv;
+//	if (r_tvMode->integer > 1) intdiv = 2;
+//	else intdiv = 1;
+
+
+	GL_TexEnv( GL_MODULATE );
+	qglScissor( 0, 0, glConfig.vidWidth, glConfig.vidHeight );
+	qglViewport( 0, 0, glConfig.vidWidth, glConfig.vidHeight );
+	qglMatrixMode( GL_PROJECTION );
+    qglLoadIdentity ();
+//	qglOrtho( 0, glConfig.vidWidth, glConfig.vidHeight, 0, 0,1 );
+//	qglMatrixMode( GL_MODELVIEW );
+ //   qglLoadIdentity ();
+
+
+	
+}
+
+
+
+// tvmode doesn't do any actual postprocessing yet (ntsc, shadow mask etc)
+
+float tvtime;
+
+void R_TVScreen( void )
+{
+	if( !r_tvMode->integer)
+		return;
+	if ( backEnd.donetv)
+		return;
+	if ( !vertexShaders )
+		return;		// leilei - cards without support for this should not ever activate this
+	if( !postproc.started ) {
+		force32upload = 1;
+		R_Postprocess_InitTextures();
+		if( !postproc.started )
+			return;
+	}
+
+//	if ( !backEnd.projection2D )
+//		RB_SetGL2D();
+
+
+
+		force32upload = 1;
+
+//	postprocess = 1;
+
+	if (backEnd.refdef.time > tvtime){
+		tvinterlace *= -1;
+	tvtime = backEnd.refdef.time + (1000.0f / 60); // 60hz
+	}
+		
+	tvinter = tvinterlace;
+	if (tvinter < 0) tvinter = 0;
+	if (r_tvMode->integer < 2) tvinter = 0;
+	tvinter = 0;
+
+	leifxmode = 1234;		// just show it through to tvWidth/tvHeight
+
+	//if (r_tvMode->integer > 2)
+	//	leifxmode = 1236;		// run it through a shader
+	//R_Postprocess_BackupScreen();
+
+	if (r_tvMode->integer > 10)
+	{
+	R_Postprocess_ScaleTV();
+	}
+	else
+	{
+	R_Postprocess_BackupScreenTV();
+
+	R_Bloom_RestoreScreen_Postprocessed();
+	}
+	
+	backEnd.donetv = qtrue;
+
+	force32upload = 0;
+	
+
+}
+
+
+
+
+
+
+
+// =================================================================
+// WATER BUFFER TEST
+// =================================================================
+
+
+static struct {
+	struct {
+		image_t	*texture;
+		int		width, height;
+		float	readW, readH;
+	} effect;
+	struct {
+		image_t	*texture;
+		int		width, height;
+		float	readW, readH;
+	} effect2;
+	struct {
+		image_t	*texture;
+		int		width, height;
+		float	readW, readH;
+	} screen;
+	struct {
+		int		width, height;
+	} work;
+	qboolean started;
+} water;
+
+// leilei - experimental water effect
+static void R_Water_InitTextures( void )
+{
+	byte	*data;
+
+	// find closer power of 2 to screen size 
+	for (water.screen.width = 1;water.screen.width< glConfig.vidWidth;water.screen.width *= 2);
+	for (water.screen.height = 1;water.screen.height < glConfig.vidHeight;water.screen.height *= 2);
+
+	water.screen.readW = glConfig.vidWidth / (float)water.screen.width;
+	water.screen.readH = glConfig.vidHeight / (float)water.screen.height;
+
+	// find closer power of 2 to effect size 
+	water.work.width = 256;
+	water.work.height = water.work.width * ( glConfig.vidWidth / glConfig.vidHeight );
+
+	for (water.effect.width = 1;water.effect.width < water.work.width;water.effect.width *= 2);
+	for (water.effect.height = 1;water.effect.height < water.work.height;water.effect.height *= 2);
+
+	water.effect.readW = water.work.width / (float)water.effect.width;
+	water.effect.readH = water.work.height / (float)water.effect.height;
+	
+	water.effect2.readW=water.effect.readW;
+	water.effect2.readH=water.effect.readH;
+	water.effect2.width=water.effect.width;
+	water.effect2.height=water.effect.height;
+	
+
+	// disable waters if we can't handle a texture of that size
+	if( water.screen.width > glConfig.maxTextureSize ||
+		water.screen.height > glConfig.maxTextureSize ||
+		water.effect.width > glConfig.maxTextureSize ||
+		water.effect.height > glConfig.maxTextureSize ||
+		water.work.width > glConfig.vidWidth ||
+		water.work.height > glConfig.vidHeight
+	) {
+		ri.Cvar_Set( "r_leiwater", "0" );
+		Com_Printf( S_COLOR_YELLOW"WARNING: 'R_InitWaterTextures' too high resolution for water, effect disabled\n" );
+		return;
+	}
+
+	// leilei - let's not do that water disabling anymore
+	force32upload = 1;
+
+	data = ri.Hunk_AllocateTempMemory( water.screen.width * water.screen.height * 4 );
+	Com_Memset( data, 0, water.screen.width * water.screen.height * 4 );
+	water.screen.texture = R_CreateImage( "***water screen texture***", data, water.screen.width, water.screen.height, qfalse, qfalse, GL_CLAMP_TO_EDGE  );
+	ri.Hunk_FreeTempMemory( data );
+
+	data = ri.Hunk_AllocateTempMemory( water.effect.width * water.effect.height * 4 );
+	Com_Memset( data, 0, water.effect.width * water.effect.height * 4 );
+	tr.waterImage = R_CreateImage( "*water", data, water.effect.width, water.effect.height, IMGTYPE_COLORALPHA, IMGFLAG_CLAMPTOEDGE, 0 );
+
+	//tr.waterImage = R_CreateImage( "*waterimage", data, water.effect.width, water.effect.height, qfalse, qfalse, GL_CLAMP_TO_EDGE  );;
+	ri.Hunk_FreeTempMemory( data );
+	water.started = qtrue;
+	force32upload = 0;
+}
+
+
+
+
+void R_InitWaterTextures( void )
+{
+	if( !r_leiwater->integer )
+		return;
+	memset( &water, 0, sizeof( water ));
+	R_Water_InitTextures ();
+}
+
+
+
+static void R_Water_BackupScreen( void ) {
+	GL_Bind( water.screen.texture );
+	qglCopyTexSubImage2D( GL_TEXTURE_2D, 0, 0, 0, 0, 0, glConfig.vidWidth, glConfig.vidHeight );
+}
+
+static void R_WaterWorks( void )
+{
+	int		i, j, k;
+	float	intensity, scale, *diamond;
+
+
+	qglColor4f( 1.0f, 1.0f, 1.0f, 1.0f );
+	GL_Bind( water.screen.texture );
+	//GL_State( GLS_DEPTHTEST_DISABLE | GLS_SRCBLEND_ONE | GLS_DSTBLEND_ZERO );
+	R_Bloom_Quad( water.work.width, water.work.height, 0, 0, water.screen.readW, water.screen.readH );
+	//Copy downscaled framebuffer into a texture
+	GL_Bind( tr.waterImage );
+	qglCopyTexSubImage2D( GL_TEXTURE_2D, 0, 0, 0, 0, 0, water.work.width, water.work.height );
+}											
+
+
+static void R_Water_RestoreScreen( void ) {
+	GL_State( GLS_DEPTHTEST_DISABLE | GLS_SRCBLEND_ONE | GLS_DSTBLEND_ZERO );
+	GL_Bind( water.screen.texture );
+	qglColor4f( 1,1,1, 1 );
+		R_Bloom_Quad( water.screen.width, water.screen.height, 0, 0,
+					1.f,
+					1.f );
+}
+ 
+
+void R_WaterInit( void ) {
+	memset( &water, 0, sizeof( water ));
+}
+
+
+void R_WaterScreen( void )
+{
+	if( !r_leiwater->integer )
+		return;
+	if ( backEnd.donewater )
+		return;
+	if ( !backEnd.doneSurfaces )
+		return;
+	backEnd.donewater= qtrue;
+	if( !water.started ) {
+		R_Water_InitTextures();
+		if( !water.started )
+			return;
+	}
+
+	if ( !backEnd.projection2D )
+		RB_SetGL2D();
+
+
+	//// All we want to do is copy the thing
+	R_Water_BackupScreen();
+	R_WaterWorks ();
+	R_Water_RestoreScreen();	
+}
+

@@ -139,6 +139,11 @@ static glslProgram_t *R_GLSL_AllocProgram(void) {
 	program->u_ActualScreenSizeX					= -1;
 	program->u_ActualScreenSizeY					= -1;
 
+	program->rubyInputSize					= -1;
+	program->rubyOutputSize					= -1;
+	program->rubyTextureSize					= -1;
+	program->rubyFrameCount					= -1;
+
 	
 	tr.programs[tr.numPrograms] = program;
 	tr.numPrograms++;
@@ -256,6 +261,17 @@ static void R_GLSL_ParseProgram(glslProgram_t *program, char *_text) {
 					R_GLSL_SetUniform_Texture7(program, 7);
 				} else {
 					ri.Printf(PRINT_WARNING, "WARNING: uniform sampler2D %s unrecognized in program %s\n", token, program->name);
+				}
+			} else if (!Q_stricmp(token, "vec2")) {
+				token = COM_ParseExt(text, qfalse);
+				if (!Q_stricmp(token, "rubyTextureSize;")) {
+					program->rubyTextureSize = qglGetUniformLocationARB(program->program, "rubyTextureSize");
+				} else if (!Q_stricmp(token, "rubyInputSize;")) {
+					program->rubyInputSize = qglGetUniformLocationARB(program->program, "rubyInputSize");
+				} else if (!Q_stricmp(token, "rubyOutputSize;")) {
+					program->rubyOutputSize = qglGetUniformLocationARB(program->program, "rubyOutputSize");
+				} else {
+					ri.Printf(PRINT_WARNING, "WARNING: uniform vec2 %s unrecognized in program %s\n", token, program->name);
 				}
 			} else if (!Q_stricmp(token, "vec3")) {
 				token = COM_ParseExt(text, qfalse);
@@ -2562,6 +2578,20 @@ static qboolean ParseStage( shaderStage_t *stage, char **text )
 			else if ( !Q_stricmp( token, "exactVertex" ) )
 			{
 				stage->rgbGen = CGEN_EXACT_VERTEX;
+			}
+			else if ( !Q_stricmp( token, "vertexLighting" ) )	// leilei - vertex WITH a lighting pass after
+			{
+				stage->rgbGen = CGEN_VERTEX_LIT;
+				if ( stage->alphaGen == 0 ) {
+					stage->alphaGen = AGEN_VERTEX;
+				}
+			}
+			else if ( !Q_stricmp( token, "vertexLighting2" ) )	// leilei - second vertex color
+			{
+				stage->rgbGen = CGEN_VERTEX_LIT;
+				if ( stage->alphaGen == 0 ) {
+					stage->alphaGen = AGEN_VERTEX;
+				}
 			}
 			else if ( !Q_stricmp( token, "lightingDiffuse" ) )
 			{

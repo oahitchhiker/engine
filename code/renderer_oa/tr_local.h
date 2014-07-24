@@ -184,7 +184,8 @@ typedef enum {
 	CGEN_LIGHTING_FLAT_AMBIENT,		// leilei - cel hack
 	CGEN_LIGHTING_FLAT_DIRECT,
 	CGEN_FOG,				// standard fog
-	CGEN_CONST				// fixed color
+	CGEN_CONST,				// fixed color
+	CGEN_VERTEX_LIT			// leilei - tess.vertexColors * tr.identityLight * ambientlight*directlight
 } colorGen_t;
 
 typedef enum {
@@ -860,6 +861,19 @@ typedef struct {
 	GLint			u_mpasses;	// How many passes of Motion do we have anyhow?
 
 
+// leilei - 'compatibility' with ruby shader vars (HACK HACK HACK)
+
+	GLint			rubyInputSize;
+	vec3_t			v_rubyInputSize;
+
+	GLint			rubyOutputSize;
+	vec3_t			v_rubyOutputSize;
+
+	GLint			rubyTextureSize;
+	vec3_t			v_rubyTextureSize;
+
+	GLfloat			rubyFrameCount;
+
 
 // leilei - Color control
 
@@ -1029,6 +1043,7 @@ typedef struct {
 	qboolean	donewater;		// leilei - done water this frame
 	qboolean	donetv;		// leilei - tv this frame
 	qboolean	doneraa;	// leilei - done aa'ing this frame
+	qboolean	donentsc;	// leilei - done ntsc'ing this frame
 	qboolean	doneSurfaces;   // done any 3d surfaces already
 	trRefEntity_t	entity2D;	// currentEntity will point at this when doing 2D rendering
 } backEndState_t;
@@ -1090,6 +1105,9 @@ typedef struct {
 	qhandle_t				motionBlurPostProgram;	// leilei
 	qhandle_t				BrightnessProgram;	// leilei
 	qhandle_t				CRTProgram;	// leilei
+	qhandle_t				NTSCEncodeProgram;	// leilei
+	qhandle_t				NTSCDecodeProgram;	// leilei
+	qhandle_t				NTSCBleedProgram;	// leilei
 
 	int						numPrograms;
 	glslProgram_t			*programs[MAX_PROGRAMS];
@@ -1297,7 +1315,10 @@ extern cvar_t	*r_alternateBrightness;		// leilei - alternate brightness
 extern cvar_t	*r_leifx;	// Leilei - leifx nostalgia filter
 extern cvar_t	*r_leiwater;	// Leilei - water test
 
+extern cvar_t	*r_ntsc;	// Leilei - ntsc
+
 extern cvar_t	*r_tvMode;	// Leilei - tv faking mode
+extern cvar_t	*r_tvConsoleMode;	// Leilei - tv faking mode
 
 extern cvar_t	*r_retroAA;	// Leilei - old console anti aliasing
 
@@ -1838,6 +1859,35 @@ static ID_INLINE void R_GLSL_SetUniform_u_ActualScreenSizeY(glslProgram_t *progr
 }
 
 
+static ID_INLINE void R_GLSL_SetUniform_rubyTextureSize(glslProgram_t *program, const GLint value, const GLint valub) {
+//	if (VectorCompare(program->v_rubyTextureSize, value))
+//		return;
+//	VectorCopy(value, program->v_rubyTextureSize);
+//	program->v_rubyTextureSize[0] = value;
+//	program->v_rubyTextureSize[1] = valub;
+//	qglUniform3fARB(program->rubyTextureSize, value, valub, 1.0);
+}
+
+static ID_INLINE void R_GLSL_SetUniform_rubyInputSize(glslProgram_t *program, const GLint value, const GLint valub) {
+//	if (VectorCompare(program->v_rubyInputSize, value))
+//		return;
+//	program->v_rubyInputSize[0] = value;
+//	program->v_rubyInputSize[1] = valub;
+	//VectorCopy(vec2(value, valub), program->v_rubyInputSize);
+//	qglUniform3fARB(program->rubyInputSize, value, valub, 1.0);
+}
+
+static ID_INLINE void R_GLSL_SetUniform_rubyOutputSize(glslProgram_t *program, const GLint value, const GLint valub) {
+//	if (VectorCompare(program->v_rubyOutputSize, value))
+//		return;
+//	VectorCopy(value, program->v_rubyOutputSize);
+//	program->v_rubyOutputSize[0] = value;
+//	program->v_rubyOutputSize[1] = valub;
+//	qglUniform3fARB(program->rubyOutputSize, value, valub, 1.0);
+}
+
+
+
 static ID_INLINE void R_GLSL_SetUniform_Mpass1(glslProgram_t *program, GLint value) {qglUniform1iARB(program->u_mpass1, value);}
 static ID_INLINE void R_GLSL_SetUniform_Mpass2(glslProgram_t *program, GLint value) {qglUniform1iARB(program->u_mpass2, value);}
 static ID_INLINE void R_GLSL_SetUniform_Mpass3(glslProgram_t *program, GLint value) {qglUniform1iARB(program->u_mpass3, value);}
@@ -2193,7 +2243,7 @@ void R_WaterInit( void );
 void R_BloomScreen( void );
 void R_WaterScreen( void );
 void R_AnimeScreen( void );
-
+void R_NTSCScreen( void );
 // Postprocessing
 void R_PostprocessScreen( void );
 void R_PostprocessingInit(void);
