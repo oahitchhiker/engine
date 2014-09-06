@@ -268,7 +268,7 @@ RB_CalcBulgeVertexes
 
 ========================
 */
-void RB_CalcBulgeVertexes( deformStage_t *ds ) {
+void OldRB_CalcBulgeVertexes( deformStage_t *ds ) {
 	int i;
 	const float *st = ( const float * ) tess.texCoords[0];
 	float		*xyz = ( float * ) tess.xyz;
@@ -290,6 +290,46 @@ void RB_CalcBulgeVertexes( deformStage_t *ds ) {
 		xyz[2] += normal[2] * scale;
 	}
 }
+
+
+// leilei - adapted a bit from the jk2 source, for performance
+
+void RB_CalcBulgeVertexes( deformStage_t *ds ) {
+	int i;
+	float		*xyz = ( float * ) tess.xyz;
+	float		*normal = ( float * ) tess.normal;
+
+	if ( ds->bulgeSpeed == 0.0f && ds->bulgeWidth == 0.0f )
+	{
+		// We don't have a speed and width, so just use height to expand uniformly
+		for ( i = 0; i < tess.numVertexes; i++, xyz += 4, normal += 4 ) 
+		{
+			xyz[0] += normal[0] * ds->bulgeHeight;
+			xyz[1] += normal[1] * ds->bulgeHeight;
+			xyz[2] += normal[2] * ds->bulgeHeight;
+		}	
+	}
+	else
+	{
+		const float *st = ( const float * ) tess.texCoords[0];
+		float		now;
+	
+		now = backEnd.refdef.time * ds->bulgeSpeed * 0.001f;
+	for ( i = 0; i < tess.numVertexes; i++, xyz += 4, st += 4, normal += 4 ) {
+		int		off;
+		float scale;
+
+		off = (float)( FUNCTABLE_SIZE / (M_PI*2) ) * ( st[0] * ds->bulgeWidth + now );
+
+		scale = tr.sinTable[ off & FUNCTABLE_MASK ] * ds->bulgeHeight;
+			
+		xyz[0] += normal[0] * scale;
+		xyz[1] += normal[1] * scale;
+		xyz[2] += normal[2] * scale;
+	}
+	}
+}
+
 
 
 /*
@@ -1573,318 +1613,54 @@ static void RB_CalcDiffuseColor_scalar( unsigned char *colors )
 }
 
 
-// leilei - use FIVE (!) lighting points. Very expensive!
-static void RB_CalcDiffuseColor_crazy( unsigned char *colors )
-{
-	int				i, j, k;
-	float			*v, *normal;
-	float			incoming, incomingA;
-	trRefEntity_t	*ent;
-	int				ambientLightInt;
-	vec3_t			ambientLight;
-	vec3_t			lightDir, lightDirA;
-	vec3_t			directedLight, directedLightA;
-	int				numVertexes;
-	ent = backEnd.currentEntity;
-	ambientLightInt = ent->ambientLightInt;
-	VectorCopy( ent->ambientLight, ambientLight );
-	VectorCopy( ent->directedLight, directedLight );
-	VectorCopy( ent->directedLightA, directedLightA );
-	VectorCopy( ent->lightDir, lightDir );
-	VectorCopy( ent->lightDirA, lightDirA );
-
-	ambientLight[0] *= 0.5f;
-	ambientLight[1] *= 0.5f;
-	ambientLight[2] *= 0.5f;
-
-	v = tess.xyz[0];
-	normal = tess.normal[0];
-
-	numVertexes = tess.numVertexes;
-
-
-	for (i = 0 ; i < numVertexes ; i++, v += 4, normal += 4) {
-		incoming = DotProduct (normal, lightDir);
-		incomingA = DotProduct (normal, lightDirA);
-		if ( incoming <= 0 ) {
-			*(int *)&colors[i*4] = ambientLightInt;
-			continue;
-		} 
-		j = ri.ftol(ambientLight[0] + incoming * directedLight[0]);
-		k = ri.ftol(ambientLight[0] + incomingA * directedLightA[0]);
-		j += k;
-		if ( j > 255 ) {
-			j = 255;
-		}
-		colors[i*4+0] = j;
-
-		j = ri.ftol(ambientLight[1] + incoming * directedLight[1]);
-		k = ri.ftol(ambientLight[1] + incomingA * directedLightA[1]);
-		j += k;
-		if ( j > 255 ) {
-			j = 255;
-		}
-		colors[i*4+1] = j;
-
-		j = ri.ftol(ambientLight[2] + incoming * directedLight[2]);
-		k = ri.ftol(ambientLight[2] + incomingA * directedLightA[2]);
-		j += k;
-		if ( j > 255 ) {
-			j = 255;
-		}
-		colors[i*4+2] = j;
-
-		colors[i*4+3] = 255;
-	}
-}
-
-/*
-static void RB_CalcDiffuseColor_crafzy( unsigned char *colors )
-{
-	int				i, j, jA;
-	float			*v, *normal;
-	float			incoming, incomingA, incomingB, incomingC, incomingD;
-	trRefEntity_t	*ent;
-	int				ambientLightInt;
-	vec3_t			ambientLight;
-	vec3_t			lightDir, lightDirA;
-	vec3_t			directedLight, directedLightA;
-	int				numVertexes;
-	ent = backEnd.currentEntity;
-	ambientLightInt = ent->ambientLightInt;
-	VectorCopy( ent->ambientLight, ambientLight );
-	VectorCopy( ent->directedLight, directedLight );
-	VectorCopy( ent->lightDir, lightDir );
-
-	VectorCopy( ent->directedLightA, directedLightA );
-	VectorCopy( ent->lightDirA, lightDirA );
-
-
-	// Actually, in reality, I disabled B, C and D as I figured out a more sane way to do things.
-
-	// debug light positions
-	{
-	vec3_t	temp;
-	vec3_t	temp2;
-
-
-	AnglesToAxis(lightDirA, temp);
-	AnglesToAxis(lightDir, temp2);
-
-	GL_Bind( tr.whiteImage );
-	qglColor3f (1,1,1);
-	qglDepthRange( 0, 0 );	// never occluded
-	GL_State( GLS_POLYMODE_LINE | GLS_DEPTHMASK_TRUE );
-	qglBegin (GL_LINES);
-	qglVertex3fv (temp);
-	qglVertex3fv (temp2);
-	qglEnd ();
-	qglDepthRange( 0, 1 );
-	}
-
-	if (lightDirA[0] == 666){
-	VectorCopy( ent->directedLight, directedLightA );
-	VectorCopy( ent->lightDir, lightDirA );
-	}
-
-
-		
-
-	int eg;
-
-	for (eg=0; eg<3;eg++){
-		//ambientLight[eg]  /= 3;
-		directedLight[eg]  *= 0.5f;
-		directedLightA[eg]  *= 0.5f;
-		}
-
-	v = tess.xyz[0];
-	normal = tess.normal[0];
-
-	numVertexes = tess.numVertexes;
-	for (i = 0 ; i < numVertexes ; i++, v += 4, normal += 4) {
-		incoming = DotProduct (normal, lightDir);
-		incomingA = DotProduct (normal, lightDirA);
-
-		if ( incomingA <= 0 ) {	VectorCopy(directedLight, directedLightA); incomingA = incoming;	} 
-		if ( incoming <= 0 ) {
-			*(int *)&colors[i*4] = ambientLightInt;
-			continue;
-		} 
-		j = ri.ftol(ambientLight[0] + (incoming * directedLight[0]));
-
-		jA = ri.ftol(ambientLight[0] + (incomingA * directedLightA[0]));
-		if ( j > 255 ) { j = 255; }
-		if ( jA > 255 ) { jA = 255; }
-		colors[i*4+0] = (j + jA) /2;
-
-		j = ri.ftol(ambientLight[1] + (incoming * directedLight[1]));
-		jA = ri.ftol(ambientLight[1] + (incomingA * directedLightA[1]));
-		if ( j > 255 ) {
-			j = 255;
-		}
-		if ( jA > 255 ) { jA = 255; }
-		colors[i*4+1] = (j + jA) /2;
-
-		j = ri.ftol(ambientLight[2] + (incoming * directedLight[2]));
-		jA = ri.ftol(ambientLight[2] + (incomingA * directedLightA[2]));
-		if ( j > 255 ) {
-			j = 255;
-		}
-		if ( jA > 255 ) { jA = 255; }
-		colors[i*4+2] = (j + jA) /2;
-		colors[i*4+3] = 255;
-	}
-}
-
-*/
-
-// leilei - some slower, but bolder way of lighting
-// i sure hope gcc unrolls this.
-static void RB_CalcDiffuseColor_alternative( unsigned char *colors )
+void RB_CalcDiffuseColor_Specular( unsigned char *colors )
 {
 	int				i, j;
+	int 		speccap = 0;
+	float		spec;
 	float			*v, *normal;
 	float			incoming;
-	float			incoming2;
 	trRefEntity_t	*ent;
 	int				ambientLightInt;
 	vec3_t			ambientLight;
-	vec3_t			ambDir;
 	vec3_t			lightDir;
 	vec3_t			directedLight;
 	int				numVertexes;
+	int 	shadecap = 200; // was 127
 	ent = backEnd.currentEntity;
-	float ilength;
-	int d, l, b;
-	vec3_t viewer, reflected;
 	ambientLightInt = ent->ambientLightInt;
 	VectorCopy( ent->ambientLight, ambientLight );
 	VectorCopy( ent->directedLight, directedLight );
 	VectorCopy( ent->lightDir, lightDir );
-	VectorCopy( ent->lightDir, ambDir );
-	VectorCopy( lightOrigin, ambDir );
-	VectorNormalizeFast( ambDir );
+
+
 
 	v = tess.xyz[0];
 	normal = tess.normal[0];
 
 	numVertexes = tess.numVertexes;
 	for (i = 0 ; i < numVertexes ; i++, v += 4, normal += 4) {
-		incoming = DotProduct (normal, lightDir) * 0.6;
-		incoming2 = DotProduct (normal, ambDir) * 2;
-		if (incoming < 0) incoming = 0;
-		if (incoming2 < 0) incoming2 *= -0.7; // invert for fake rim effect
-		if (incoming2 < 0.9f) incoming2 = 0.9f; // clamp out black
+		incoming = DotProduct (normal, lightDir);
+		if ( incoming <= 0 ) {
+			*(int *)&colors[i*4] = ambientLightInt;
+			continue;
+		} 
+			
 
-		// add specular to ambient incoming
+		// Specular
+		
 		{
-
-			VectorSubtract( lightOrigin, v, ambDir );
-			ilength = Q_rsqrt( DotProduct( ambDir, ambDir ) );
-			VectorNormalizeFast( ambDir );
+			float ilength;
+			int b;
+			vec3_t		viewer,  reflected;
+			float		l, d;
+		//	int			b;
 	
-			// calculate the specular color
-			d = DotProduct (normal, ambDir);
-		//	d *= ilength;
-	
-			// we don't optimize for the d < 0 case since this tends to
-			// cause visual artifacts such as faceted "snapping"
-			reflected[0] = normal[0]*2*d - ambDir[0];
-			reflected[1] = normal[1]*2*d - ambDir[1];
-			reflected[2] = normal[2]*2*d - ambDir[2];
-	
-			VectorSubtract (backEnd.or.viewOrigin, v, viewer);
-			//ilength = Q_rsqrt( DotProduct( viewer, viewer ) );
-			l = DotProduct (reflected, viewer);
-			l *= ilength;
-	
-			if (l < 0) {
-				b = 0;
-				l = 0;
-			} else {
-				l = l*l;
-				l = l*l;
-			}
-	
-
-
-
-		}
-		incoming2 *= l;
-
-		j = ri.ftol(ambientLight[0] * incoming2) + ri.ftol(incoming * directedLight[0]);
-		if ( j > 255 ) {
-			j = 255;
-		}
-		colors[i*4+0] = j;
-
-		j = ri.ftol(ambientLight[1] * incoming2) + ri.ftol(incoming * directedLight[1]);
-		if ( j > 255 ) {
-			j = 255;
-		}
-		colors[i*4+1] = j;
-
-		j = ri.ftol(ambientLight[2] * incoming2) + ri.ftol(incoming * directedLight[2]);
-		if ( j > 255 ) {
-			j = 255;
-		}
-		colors[i*4+2] = j;
-
-		colors[i*4+3] = 255;
-	}
-}
-
-
-
-
-static void RB_CalcDiffuseColor_crazyew( unsigned char *colors )
-{
-	int				i, j;
-	float			*v, *normal;
-	float			incoming;
-	float			incoming2;
-	trRefEntity_t	*ent;
-	int				ambientLightInt;
-	vec3_t			ambientLight;
-	vec3_t			ambDir;
-	vec3_t			lightDir, lightDirA, lightDirB;
-	vec3_t			directedLight, directedLightA;
-	int				numVertexes;
-	ent = backEnd.currentEntity;
-	float ilength;
-	int d, l, b;
-	vec3_t viewer, reflected;
-	ambientLightInt = ent->ambientLightInt;
-	VectorCopy( ent->ambientLight, ambientLight );
-	VectorCopy( ent->directedLight, directedLight );
-	VectorCopy( ent->directedLightA, directedLightA );
-	VectorCopy( ent->lightDir, lightDir );
-	VectorCopy( ent->lightDirA, lightDirA );
-	//VectorCopy( lightOrigin, lightDirB );
-	VectorNormalizeFast( lightDirB );
-
-	v = tess.xyz[0];
-	normal = tess.normal[0];
-
-	numVertexes = tess.numVertexes;
-	for (i = 0 ; i < numVertexes ; i++, v += 4, normal += 4) {
-		incoming = DotProduct (normal, lightDir) * 0.8;
-	//	incoming2 = DotProduct (normal, lightDirA) * 2;
-		if (incoming < 0) incoming = 0;
-	//	if (incoming2 < 0) incoming2 *= -0.7; // invert for fake rim effect
-	//	if (incoming2 < 0.9f) incoming2 = 0.9f; // clamp out black
-
-		// add specular to ambient incoming
-		{
-
 			VectorCopy( backEnd.currentEntity->lightDir, lightDir );
-			//ilength = Q_rsqrt( DotProduct( ambDir, ambDir ) );
-			VectorNormalizeFast( ambDir );
+			VectorNormalizeFast( lightDir );
 	
 			// calculate the specular color
-			d = DotProduct (normal, ambDir);
-		//	d *= ilength;
+			d = DotProduct (normal, lightDir);
 	
 			// we don't optimize for the d < 0 case since this tends to
 			// cause visual artifacts such as faceted "snapping"
@@ -1898,95 +1674,43 @@ static void RB_CalcDiffuseColor_crazyew( unsigned char *colors )
 			l *= ilength;
 	
 			if (l < 0) {
-				b = 0;
-				l = 0;
+				spec = 0;
 			} else {
 				l = l*l;
 				l = l*l;
+				spec = l * 0.2f;
+				if (spec > 1) {
+					spec = 1;
+				}
 			}
-	
-
-
-
 		}
-		incoming2 += l;
 
-		j = ri.ftol(ambientLight[0]) + ri.ftol(incoming * directedLight[0]) + ri.ftol(incoming2 * directedLightA[0]);
-
-		if ( j > 255 ) {
-			j = 255;
-		}
-		colors[i*4+0] = j;
-
-		j = ri.ftol(ambientLight[1]) + ri.ftol(incoming * directedLight[1]) + ri.ftol(incoming2 * directedLightA[1]);
-
-		if ( j > 255 ) {
-			j = 255;
-		}
-		colors[i*4+1] = j;
-
-		j = ri.ftol(ambientLight[2]) + ri.ftol(incoming * directedLight[2]) + ri.ftol(incoming2 * directedLightA[2]);
-		if ( j > 255 ) {
-			j = 255;
-		}
-		colors[i*4+2] = j;
-
-		colors[i*4+3] = 255;
-	}
-}
-
-// simple faster one without a direction of any kind, should be similar to q2/hl
-static void RB_CalcDiffuseColor_lame( unsigned char *colors )
-{
-	int				i, j;
-	float			*v, *normal;
-	float			incoming;
-	trRefEntity_t	*ent;
-	int				ambientLightInt;
-	vec3_t			ambientLight;
-	vec3_t			lightDir;
-	vec3_t			directedLight;
-	int				numVertexes;
-	ent = backEnd.currentEntity;
-	ambientLightInt = ent->ambientLightInt;
-	VectorCopy( ent->ambientLight, ambientLight );
-	VectorCopy( ent->directedLight, directedLight );
-
-
-	lightDir[0] = 0;
-	lightDir[1] = 0;
-	lightDir[2] = 1;
-
-	v = tess.xyz[0];
-	normal = tess.normal[0];
-
-	numVertexes = tess.numVertexes;
-	for (i = 0 ; i < numVertexes ; i++, v += 4, normal += 4) {
-		incoming = DotProduct (normal, lightDir);
-		if ( incoming <= 0 ) {
-			*(int *)&colors[i*4] = ambientLightInt;
-			continue;
-		} 
 		j = ri.ftol(ambientLight[0] + incoming * directedLight[0]);
-		if ( j > 255 ) {
-			j = 255;
-		}
+		if ( j > shadecap ) j = shadecap ;
+		j += ri.ftol(spec * directedLight[0]);
+
+		if ( j > 255) j = 255;
 		colors[i*4+0] = j;
 
 		j = ri.ftol(ambientLight[1] + incoming * directedLight[1]);
-		if ( j > 255 ) {
-			j = 255;
-		}
+		if ( j > shadecap ) j = shadecap ;
+		j += ri.ftol(spec * directedLight[1]);
+
+		if ( j > 255) j = 255;
+
+
 		colors[i*4+1] = j;
 
 		j = ri.ftol(ambientLight[2] + incoming * directedLight[2]);
-		if ( j > 255 ) {
-			j = 255;
-		}
+		if ( j > shadecap ) j = shadecap ;
+		j += ri.ftol(spec * directedLight[2]);
+		if ( j > 255) j = 255;
 		colors[i*4+2] = j;
+
 		colors[i*4+3] = 255;
 	}
 }
+
 
 
 void RB_CalcDiffuseColor( unsigned char *colors )
@@ -1999,14 +1723,10 @@ void RB_CalcDiffuseColor( unsigned char *colors )
 	}
 #endif
 
-	if (r_shadeMode->integer == 2)
-	RB_CalcDiffuseColor_alternative( colors );
-	else if (r_shadeMode->integer == 3)
-	RB_CalcDiffuseColor_lame( colors );
-	else if (r_shadeMode->integer == 6)
-	RB_CalcDiffuseColor_crazy( colors );
-	else
+
+	// leilei - reduced it to just this, r_shadeMode deprecated. :(
 	RB_CalcDiffuseColor_scalar( colors );
+
 
 }
 

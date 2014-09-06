@@ -56,6 +56,7 @@ cvar_t	*r_verbose;
 cvar_t	*r_ignore;
 
 cvar_t	*r_detailTextures;
+cvar_t	*r_shadeSpecular;
 
 cvar_t	*r_znear;
 cvar_t	*r_zproj;
@@ -1281,6 +1282,7 @@ void R_Register( void )
 
 	r_texdump = ri.Cvar_Get( "r_texdump", "0", CVAR_CHEAT );	// leilei - debug - texture dumping
 
+	r_shadeSpecular = ri.Cvar_Get( "r_shadeSpecular", "1", CVAR_ARCHIVE | CVAR_LATCH ); // leilei - our models look best with these
 
 	// make sure all the commands added here are also
 	// removed in R_Shutdown

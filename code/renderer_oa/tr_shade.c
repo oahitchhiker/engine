@@ -809,6 +809,8 @@ static void ProjectDlightTexture( void ) {
 }
 
 
+
+
 /*
 ===================
 RB_FogPass
@@ -1003,6 +1005,18 @@ static void ComputeColors( shaderStage_t *pStage )
 		case CGEN_ONE_MINUS_ENTITY:
 			RB_CalcColorFromOneMinusEntity( ( unsigned char * ) tess.svars.colors );
 			break;
+		case CGEN_LIGHTING_DIFFUSE_SPECULAR:		// leilei - specular hack
+			RB_CalcDiffuseColor_Specular( ( unsigned char * ) tess.svars.colors );
+			if(r_monolightmaps->integer)
+			{
+				int scale;
+				for(i = 0; i < tess.numVertexes; i++)
+				{
+					scale = LUMA(tess.svars.colors[i][0], tess.svars.colors[i][1], tess.svars.colors[i][2]);
+		 			tess.svars.colors[i][0] = tess.svars.colors[i][1] = tess.svars.colors[i][2] = scale;
+				}
+			}
+			break;
 	}
 
 	//
@@ -1177,18 +1191,10 @@ static void ComputeTexCoords( shaderStage_t *pStage ) {
 			RB_CalcFogTexCoords( ( float * ) tess.svars.texcoords[b] );
 			break;
 		case TCGEN_ENVIRONMENT_MAPPED:
-			if ( r_envMode->integer == 1 ) { 
-				RB_CalcEnvironmentTexCoordsNew( ( float * ) tess.svars.texcoords[b] ); 
-			} // new dancing one
-			else if ( r_envMode->integer == 2 ) { 
-				RB_CalcEnvironmentTexCoordsJO( ( float * ) tess.svars.texcoords[b] ); 
-			} // JO's
-			else if ( r_envMode->integer == 3 ) { 
-				RB_CalcEnvironmentTexCoordsR( ( float * ) tess.svars.texcoords[b] ); 
-			} // Q3R's
-			else { 
-				RB_CalcEnvironmentTexCoords( ( float * ) tess.svars.texcoords[b] ); 
-			} // old one
+			RB_CalcEnvironmentTexCoords( ( float * ) tess.svars.texcoords[b] ); 
+			break;
+		case TCGEN_ENVIRONMENT_MAPPED_WATER:
+			RB_CalcEnvironmentTexCoordsJO( ( float * ) tess.svars.texcoords[b] ); 			
 			break;
 		case TCGEN_ENVIRONMENT_CELSHADE_MAPPED:
 			RB_CalcEnvironmentCelShadeTexCoords( ( float * ) tess.svars.texcoords[b] );
@@ -1544,14 +1550,6 @@ static void RB_IterateStagesGeneric( shaderCommands_t *input )
 			R_DrawElements( input->numIndexes, input->indexes );
 		}
 
-		// odin's patch adapted
-		if ( r_envMode->integer == 2) {
-			if ( pStage->bundle[0].tcGen == TCGEN_ENVIRONMENT_MAPPED ) {
-				qglDisable(GL_TEXTURE_GEN_S);
-				qglDisable(GL_TEXTURE_GEN_T);
-				qglDisable(GL_TEXTURE_GEN_R);
-			}
-		}
 		}
 
 		// allow skipping out to show just lightmaps during development

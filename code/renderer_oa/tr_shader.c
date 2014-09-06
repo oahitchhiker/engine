@@ -2617,6 +2617,13 @@ static qboolean ParseStage( shaderStage_t *stage, char **text )
 			{
 				stage->rgbGen = CGEN_ONE_MINUS_VERTEX;
 			}
+			else if ( !Q_stricmp( token, "lightingSpecularDiffuse" ) )	// leilei - use special specular calculation if overbrights and r_shadeSpecular is enabled
+			{
+				if ( r_shadeSpecular->integer && tr.overbrightBits )
+				stage->rgbGen = CGEN_LIGHTING_DIFFUSE_SPECULAR;
+			  else
+				stage->rgbGen = CGEN_LIGHTING_DIFFUSE;
+			}
 			else
 			{
 				ri.Printf( PRINT_WARNING, "WARNING: unknown rgbGen parameter '%s' in shader '%s'\n", token, shader.name );
@@ -2721,6 +2728,10 @@ static qboolean ParseStage( shaderStage_t *stage, char **text )
 			else if ( !Q_stricmp( token, "eyeright" ) )		// leilei - eye tracking
 			{
 				stage->bundle[0].tcGen = TCGEN_EYE_RIGHT;
+			}
+			else if ( !Q_stricmp( token, "environmentWater" ) )
+			{
+				stage->bundle[0].tcGen = TCGEN_ENVIRONMENT_MAPPED_WATER;	// leilei - water's envmaps
 			}
 			else if ( !Q_stricmp( token, "lightmap" ) )
 			{

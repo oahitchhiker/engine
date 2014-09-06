@@ -185,7 +185,8 @@ typedef enum {
 	CGEN_LIGHTING_FLAT_DIRECT,
 	CGEN_FOG,				// standard fog
 	CGEN_CONST,				// fixed color
-	CGEN_VERTEX_LIT			// leilei - tess.vertexColors * tr.identityLight * ambientlight*directlight
+	CGEN_VERTEX_LIT,			// leilei - tess.vertexColors * tr.identityLight * ambientlight*directlight
+	CGEN_LIGHTING_DIFFUSE_SPECULAR		// leilei - LIGHTING_DIFFUSE, capped by specular exponent
 } colorGen_t;
 
 typedef enum {
@@ -196,6 +197,7 @@ typedef enum {
 	TCGEN_ENVIRONMENT_MAPPED,
 	TCGEN_ENVIRONMENT_CELSHADE_MAPPED,
 	TCGEN_ENVIRONMENT_CELSHADE_LEILEI,	// leilei - cel hack
+	TCGEN_ENVIRONMENT_MAPPED_WATER,	// leilei - fake water reflection
 	TCGEN_EYE_LEFT,				// eyes
 	TCGEN_EYE_RIGHT,			// eyes
 	TCGEN_FOG,
@@ -745,7 +747,10 @@ typedef struct {
 	vec3_t		lightGridSize;
 	vec3_t		lightGridInverseSize;
 	int			lightGridBounds[3];
+
+
 	byte		*lightGridData;
+
 
 
 	int			numClusters;
@@ -1303,8 +1308,9 @@ extern	cvar_t	*r_lensReflection2;
 extern	cvar_t	*r_lensReflectionBrightness;
 
 extern cvar_t	*r_ext_paletted_texture;		// leilei - Paletted Texture
-extern	cvar_t	*r_envMode;		
+//extern	cvar_t	*r_envMode;		
 extern	cvar_t	*r_specMode;		
+extern  cvar_t	*r_shadeSpecular;		// leilei - allows the special specular diffuse shading
 //extern	cvar_t	*r_waveMode;	
 
 extern	cvar_t	*r_flaresDlight;
@@ -2077,7 +2083,7 @@ void	RB_CalcSpecularAlphaNew( unsigned char *alphas );
 void	RB_CalcDiffuseColor( unsigned char *colors );
 void	RB_CalcUniformColor( unsigned char *colors );
 void	RB_CalcDynamicColor( unsigned char *colors );
-
+void	RB_CalcDiffuseColor_Specular( unsigned char *colors );	// leilei - specular hack
 void	RB_CalcFlatAmbient( unsigned char *colors ); // leilei - cel hack
 void	RB_CalcFlatDirect( unsigned char *colors ); // leilei - cel hack
 
