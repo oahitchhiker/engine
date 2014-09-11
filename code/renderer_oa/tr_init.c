@@ -40,7 +40,6 @@ static void GfxInfo_f( void );
 cvar_t  *com_altivec;
 #endif
 
-cvar_t	*r_shadeMode;
 
 cvar_t	*r_flareSize;
 cvar_t	*r_flareFade;
@@ -190,7 +189,6 @@ cvar_t	*r_flareQuality;	// testing quality of the flares.
 cvar_t	*r_flareSun;		// type of flare to use for the sun
 
 cvar_t	*r_specMode;
-cvar_t	*r_envMode;
 //cvar_t	*r_waveMode;
 cvar_t	*r_flaresDlight;
 //cvar_t	*r_flaresSurfradii;
@@ -1200,7 +1198,6 @@ void R_Register( void )
 	r_lightmap = ri.Cvar_Get ("r_lightmap", "0", 0 );
 	r_portalOnly = ri.Cvar_Get ("r_portalOnly", "0", CVAR_CHEAT );
 
-	r_shadeMode = ri.Cvar_Get ("r_shadeMode", "0", CVAR_ARCHIVE);
 
 	r_flareSize = ri.Cvar_Get ("r_flareSize", "40", CVAR_CHEAT);
 	r_flareFade = ri.Cvar_Get ("r_flareFade", "7", CVAR_CHEAT);
@@ -1242,7 +1239,6 @@ void R_Register( void )
 
 
 
-	r_envMode = ri.Cvar_Get( "r_envMode", "1" , CVAR_ARCHIVE ); 
 	r_specMode = ri.Cvar_Get( "r_specMode", "1" , CVAR_ARCHIVE ); 	
 	//r_waveMode = ri.Cvar_Get( "r_waveMode", "0" , CVAR_ARCHIVE );
 	

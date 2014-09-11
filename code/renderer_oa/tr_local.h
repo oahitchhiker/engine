@@ -1194,7 +1194,6 @@ extern char		 depthimage;
 //
 // cvars
 //
-extern cvar_t	*r_shadeMode; // leilei - alternate shading modes
 
 extern cvar_t	*r_flareSize;
 extern cvar_t	*r_flareFade;
@@ -1308,7 +1307,6 @@ extern	cvar_t	*r_lensReflection2;
 extern	cvar_t	*r_lensReflectionBrightness;
 
 extern cvar_t	*r_ext_paletted_texture;		// leilei - Paletted Texture
-//extern	cvar_t	*r_envMode;		
 extern	cvar_t	*r_specMode;		
 extern  cvar_t	*r_shadeSpecular;		// leilei - allows the special specular diffuse shading
 //extern	cvar_t	*r_waveMode;	
