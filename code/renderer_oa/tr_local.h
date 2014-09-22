@@ -1312,6 +1312,10 @@ extern  cvar_t	*r_shadeSpecular;		// leilei - allows the special specular diffus
 //extern	cvar_t	*r_waveMode;	
 
 extern	cvar_t	*r_flaresDlight;
+extern	cvar_t	*r_flaresDlightShrink;
+extern	cvar_t	*r_flaresDlightFade;
+extern	cvar_t	*r_flaresDlightOpacity;
+extern	cvar_t	*r_flaresDlightScale;
 //extern	cvar_t	*r_flaresSurfradii;
 
 extern cvar_t	*r_alternateBrightness;		// leilei - alternate brightness

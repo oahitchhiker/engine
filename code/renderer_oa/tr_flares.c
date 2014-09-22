@@ -233,7 +233,9 @@ void RB_AddFlare(srfFlare_t *surface, int fogNum, vec3_t point, vec3_t color, ve
 	VectorCopy( color, f->color );
 
 
-
+	if ( (r_flaresDlightFade->integer) && (type == 1) ) {	// leilei - dynamic light flares fading instantly
+		f->fadeTime = -666;
+	}
 
 
 
@@ -256,7 +258,32 @@ void RB_AddFlare(srfFlare_t *surface, int fogNum, vec3_t point, vec3_t color, ve
 	f->theshader = surface->shadder;
 	else
 	f->theshader = tr.flareShader;
-	
+
+
+	if ( (type == 1) && (r_flaresDlightScale->value) ) {	// leilei - dynamic light flare scale
+		float ef = r_flaresDlightScale->value;
+			if (ef > 1.0f) ef = 1.0f;
+			if (ef < 0.01f) ef = 0.01f;
+			
+		f->radius *= ef;
+	}
+
+	if ( (type == 1) && (r_flaresDlightOpacity->value) ) {	// leilei - dynamic light flare scale
+		float ef = r_flaresDlightOpacity->value;
+			if (ef > 1.0f) ef = 1.0f;
+			if (ef < 0.1f) ef = 0.1f;
+			
+		f->color[0] *= ef;
+		f->color[1] *= ef;
+		f->color[2] *= ef;
+	}
+
+
+//	if ( (r_flaresDlightShrink->integer) && (type == 1) ) 	// leilei - dynamic light flares shrinking when close
+//	{
+
+
+//	}	
 
 
 }
@@ -279,6 +306,7 @@ void RB_AddDlightFlares( void ) {
 
 	if(tr.world)
 		fog = tr.world->fogs;
+
 
 	for (i=0 ; i<backEnd.refdef.num_dlights ; i++, l++) {
 
@@ -315,16 +343,82 @@ FLARE BACK END
 ===============================================================================
 */
 
+
+/*
+==================
+RB_TestFlareFast
+
+faster simple one.
+==================
+*/
+static void RB_TestFlareFast( flare_t *f ) {
+	float			depth;
+	qboolean		visible;
+	float			fade;
+	float			screenZ;
+	
+
+	backEnd.pc.c_flareTests++;
+
+//	visible = 1; // it's visible damnit
+	// doing a readpixels is as good as doing a glFinish(), so
+	// don't bother with another sync
+	glState.finishCalled = qfalse;
+
+	// read back the z buffer contents
+
+	qglReadPixels( f->windowX, f->windowY, 1, 1, GL_DEPTH_COMPONENT, GL_FLOAT, &depth );
+
+
+	screenZ = backEnd.viewParms.projectionMatrix[14] / 
+		( ( 2*depth - 1 ) * backEnd.viewParms.projectionMatrix[11] - backEnd.viewParms.projectionMatrix[10] );
+
+	visible = ( -f->eyeZ - -screenZ ) < 24;
+
+
+	if ( visible ) {
+		if ( !f->visible ) {
+			f->visible = qtrue;
+			f->fadeTime = backEnd.refdef.time - 1;
+		}
+		{
+			fade = 1;	// instant fade
+		}
+	} else {
+		if ( f->visible ) {
+			f->visible = qfalse;
+			f->fadeTime = backEnd.refdef.time - 1;
+		}
+		fade = 0;	// instant appear
+	}
+
+	if ( fade < 0 ) {
+		fade = 0;
+	}
+	if ( fade > 1 ) {
+		fade = 1;
+	}
+
+	f->drawIntensity = fade;
+
+}
+
 /*
 ==================
 RB_TestFlare
 ==================
 */
-void RB_TestFlare( flare_t *f ) {
+static void RB_TestFlare( flare_t *f ) {
 	float			depth;
 	qboolean		visible;
 	float			fade;
 	float			screenZ;
+
+	if (f->fadeTime == -666)
+		{
+			RB_TestFlareFast(f);
+			return;
+		}
 
 	backEnd.pc.c_flareTests++;
 
@@ -371,50 +465,6 @@ void RB_TestFlare( flare_t *f ) {
 }
 
 
-/*
-==================
-RB_TestFlareFast
-
-faster simple one.
-==================
-*/
-void RB_TestFlareFast( flare_t *f ) {
-	qboolean		visible;
-	float			fade;
-	
-
-	backEnd.pc.c_flareTests++;
-
-	visible = 1; // it's visible damnit
-
-
-	if ( visible ) {
-		if ( !f->visible ) {
-			f->visible = qtrue;
-			f->fadeTime = backEnd.refdef.time - 1;
-		}
-		{
-			fade = 1;	// instant fade
-		}
-	} else {
-		if ( f->visible ) {
-			f->visible = qfalse;
-			f->fadeTime = backEnd.refdef.time - 1;
-		}
-		fade = 0;	// instant appear
-	}
-
-	if ( fade < 0 ) {
-		fade = 0;
-	}
-	if ( fade > 1 ) {
-		fade = 1;
-	}
-
-	f->drawIntensity = fade;
-
-}
-
 
 /*
 ==================
@@ -441,6 +491,16 @@ void RB_RenderFlare( flare_t *f ) {
 	else
 		distance = -f->eyeZ;
 
+	if ( (r_flaresDlightShrink->integer) && (f->type == 1) ) 	// leilei - dynamic light flares shrinking when close
+	{
+
+		float newd = distance / (48.0f);
+		if (newd > 1) newd = 1.0f;
+
+		flaredsize *= newd;
+	}	
+
+
 	if(!f->radius)
 		f->radius = 0.0f;	// leilei - don't do a radius if there is no radius at all!
 
@@ -462,7 +522,10 @@ void RB_RenderFlare( flare_t *f ) {
 
 	size = flaredsize * ( (r_flareSize->value) /640.0f + 8 / distance );
 
+
+
 	}
+
 
 
 
@@ -501,6 +564,9 @@ void RB_RenderFlare( flare_t *f ) {
 	else
 	VectorScale(f->color, f->drawIntensity * intensity, color);
 
+
+
+	
 
 
 // Calculations for fogging

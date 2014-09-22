@@ -191,6 +191,10 @@ cvar_t	*r_flareSun;		// type of flare to use for the sun
 cvar_t	*r_specMode;
 //cvar_t	*r_waveMode;
 cvar_t	*r_flaresDlight;
+cvar_t	*r_flaresDlightShrink;
+cvar_t	*r_flaresDlightFade;
+cvar_t	*r_flaresDlightOpacity;
+cvar_t	*r_flaresDlightScale;
 //cvar_t	*r_flaresSurfradii;
 cvar_t	*r_alternateBrightness;		// leilei - linux overbright fix
 cvar_t	*r_mockvr;		// Leilei - for debugging PVR only!
@@ -569,11 +573,24 @@ void RB_TakeScreenshotJPEG(int x, int y, int width, int height, char *fileName)
 RB_TakeScreenshotCmd
 ==================
 */
+
+extern int tvWidth;
+extern int tvHeight;
+
 const void *RB_TakeScreenshotCmd( const void *data ) {
 	const screenshotCommand_t	*cmd;
 	
 	cmd = (const screenshotCommand_t *)data;
 	
+	// leilei - hack for tvmode
+	if (r_tvMode->integer){
+
+			if (cmd->jpeg)
+				RB_TakeScreenshotJPEG( cmd->x, cmd->y, tvWidth, tvHeight, cmd->fileName);
+			else
+				RB_TakeScreenshot( cmd->x, cmd->y, tvWidth, tvHeight, cmd->fileName);
+		}
+
 	if (cmd->jpeg)
 		RB_TakeScreenshotJPEG( cmd->x, cmd->y, cmd->width, cmd->height, cmd->fileName);
 	else
@@ -1249,6 +1266,10 @@ void R_Register( void )
 	r_flareQuality = ri.Cvar_Get( "r_flareQuality", "0" , CVAR_ARCHIVE);	// use fast flares for default
 	r_flareMethod = ri.Cvar_Get( "r_flareMethod", "0" , CVAR_ARCHIVE);	
 	r_flaresDlight = ri.Cvar_Get( "r_flaresDlight", "0" , CVAR_ARCHIVE );	// dynamic light flares 
+	r_flaresDlightShrink = ri.Cvar_Get( "r_flaresDlightShrink", "1" , CVAR_ARCHIVE );	// dynamic light flares shrinking when close (reducing muzzleflash blindness)
+	r_flaresDlightFade = ri.Cvar_Get( "r_flaresDlightFade", "0" , CVAR_ARCHIVE | CVAR_CHEAT );	// dynamic light flares fading (workaround clipping bug)
+	r_flaresDlightOpacity = ri.Cvar_Get( "r_flaresDlightOpacity", "0.5" , CVAR_ARCHIVE );	// dynamic light flares (workaround poor visibility)
+	r_flaresDlightScale = ri.Cvar_Get( "r_flaresDlightScale", "0.7" , CVAR_ARCHIVE );	// dynamic light flares (workaround poor visibility)
 	r_flareSun = ri.Cvar_Get( "r_flareSun", "0" , CVAR_ARCHIVE);	// it's 0 because mappers expect 0.
 
 
