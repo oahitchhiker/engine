@@ -204,6 +204,7 @@ cvar_t	*r_ntsc;		// Leilei - ntsc / composite signals
 //cvar_t	*r_tvMode;		// Leilei - tv fake mode
 cvar_t	*r_retroAA;		// Leilei - old console AA
 cvar_t	*r_anime;		// Leilei - anime filter
+cvar_t	*r_palletize;		// Leilei - palletization
 cvar_t	*r_leidebug;		// Leilei - debug
 cvar_t	*r_leidebugeye;		// Leilei - eye debug
 cvar_t	*r_leiwater;		// Leilei - water effect test
@@ -1289,6 +1290,7 @@ void R_Register( void )
 	r_motionblur_fps = ri.Cvar_Get( "r_motionblur_fps", "60", 0);	
 
 	r_anime = ri.Cvar_Get( "r_anime", "0" , CVAR_ARCHIVE | CVAR_LATCH);	
+	r_palletize = ri.Cvar_Get( "r_palletize", "0" , CVAR_ARCHIVE | CVAR_LATCH);	
 	r_leidebug = ri.Cvar_Get( "r_leidebug", "0" , CVAR_CHEAT);	
 	r_leidebugeye = ri.Cvar_Get( "r_leidebugeye", "0" , CVAR_CHEAT);	
 	r_slowness = ri.Cvar_Get( "r_slowness", "0" , CVAR_ARCHIVE);	// it's 0 because you want it to be the fastest possible by default.
@@ -1313,6 +1315,7 @@ void R_Register( void )
 	ri.Cmd_AddCommand( "screenshotJPEG", R_ScreenShotJPEG_f );
 	ri.Cmd_AddCommand( "gfxinfo", GfxInfo_f );
 	ri.Cmd_AddCommand( "minimize", GLimp_Minimize );
+	ri.Cmd_AddCommand( "paletteglsldump", R_GLSLPalette_f );
 }
 
 
@@ -1434,6 +1437,10 @@ void R_GLSL_Init(void) {
 	Q_strncpyz(programVertexObjects[0], "glsl/anime_film_vp.glsl", sizeof(programVertexObjects[0]));
 	Q_strncpyz(programFragmentObjects[0], "glsl/anime_film_fp.glsl", sizeof(programFragmentObjects[0]));
 	tr.animeFilmProgram = RE_GLSL_RegisterProgram("anime_film", (const char *)programVertexObjects, 1, (const char *)programFragmentObjects, 1);
+
+	Q_strncpyz(programVertexObjects[0], "glsl/palette_vp.glsl", sizeof(programVertexObjects[0]));
+	Q_strncpyz(programFragmentObjects[0], "glsl/palette_fp.glsl", sizeof(programFragmentObjects[0]));
+	tr.paletteProgram = RE_GLSL_RegisterProgram("palette", (const char *)programVertexObjects, 1, (const char *)programFragmentObjects, 1);
 
 
 	Q_strncpyz(programVertexObjects[0], "glsl/leifx_dither_vp.glsl", sizeof(programVertexObjects[0]));

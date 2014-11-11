@@ -4881,6 +4881,12 @@ static void CreateExternalShaders( void ) {
 	tr.placeholderTextureAvail = 0;
 	tr.placeholderModelAvail = 0;
 	tr.placeholderAvail = 0;
+	tr.placeholderSkyAvail = 0;
+	tr.placeholderWaterAvail = 0;
+	tr.placeholderLavaAvail = 0;
+	tr.placeholderSlimeAvail = 0;
+	tr.placeholderFogAvail = 0;
+
 
 
 
@@ -4919,11 +4925,21 @@ static void CreateExternalShaders( void ) {
 //	leilei - placeholder shaders
 	tr.placeholderTextureShader = R_FindShader( "placeholder_texture", LIGHTMAP_NONE, qtrue );
 	tr.placeholderModelShader = R_FindShader( "placeholder_model", LIGHTMAP_NONE, qtrue );
+	tr.placeholderSkyShader = R_FindShader( "placeholder_sky_retro", LIGHTMAP_NONE, qtrue );
+	tr.placeholderWaterShader = R_FindShader( "placeholder_water", LIGHTMAP_NONE, qtrue );
+	tr.placeholderSlimeShader = R_FindShader( "placeholder_slime", LIGHTMAP_NONE, qtrue );
+	tr.placeholderLavaShader = R_FindShader( "placeholder_lava", LIGHTMAP_NONE, qtrue );
+	tr.placeholderFogShader = R_FindShader( "placeholder_fog", LIGHTMAP_NONE, qtrue );
 	tr.placeholderShader = R_FindShader( "placeholder_model", LIGHTMAP_NONE, qtrue );
 
 	if(!tr.placeholderTextureShader->defaultShader) 	tr.placeholderTextureAvail = 1;
 	if(!tr.placeholderModelShader->defaultShader) 		tr.placeholderModelAvail = 1;
 	if(!tr.placeholderShader->defaultShader) 		tr.placeholderAvail = 1;
+	if(!tr.placeholderSkyShader->defaultShader) 		tr.placeholderSkyAvail = 1;
+	if(!tr.placeholderWaterShader->defaultShader) 		tr.placeholderWaterAvail = 1;
+	if(!tr.placeholderLavaShader->defaultShader) 		tr.placeholderLavaAvail = 1;
+	if(!tr.placeholderSlimeShader->defaultShader) 		tr.placeholderSlimeAvail = 1;
+	if(!tr.placeholderFogShader->defaultShader) 		tr.placeholderFogAvail = 1;
 
 
 }

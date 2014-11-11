@@ -142,6 +142,7 @@ int 	tvinterlace = 1;
 int 	tvinter= 1;
 extern int tvWidth;
 extern int tvHeight;
+extern float tvAspectW;	// aspect correction
 extern int vresWidth;
 extern int vresHeight;
 /* 
@@ -665,10 +666,12 @@ extern int mpasses;
 static void ID_INLINE R_Bloom_QuadTV( int width, int height, float texX, float texY, float texWidth, float texHeight, int aa ) {
 	int x = 0;
 	int y = 0;
+	float aspcenter = 0;
+	int aspoff = 0;
 	float raa = r_retroAA->value;
 	if (raa < 1) raa = 1;
 
-	float xpix = 1.0f / width  / (4 / raa);
+	float xpix = 1.0f / width / (4 / raa);
 	float ypix = 1.0f / height / (4 / raa);
 	float xaa;
 	float yaa;
@@ -692,9 +695,29 @@ static void ID_INLINE R_Bloom_QuadTV( int width, int height, float texX, float t
 	texWidth += texX;
 	texHeight += texY;
 
+	if (tvAspectW != 1.0){
+		aspcenter = tvWidth * ((1.0f - tvAspectW) / 2);
+		// leilei - also do a quad that is 100% black, hiding our actual rendered viewport
+
+	//	qglViewport	(0, 0, 	tvWidth, tvHeight );
+	//	qglScissor	(0, 0,	tvWidth, tvHeight );
+		qglBegin( GL_QUADS );	
+		qglColor4f( 0.0, 0.0, 0.0, 1 );		
+		qglVertex2f(0,0	);
+		qglVertex2f(0,height);	
+		qglVertex2f(width,height);	
+		qglVertex2f(width,0);	
+		qglEnd ();
+		qglColor4f( 1.0, 1.0, 1.0, 1 );	
+	}
+
+
+	//aspcenter = 0;
+	aspoff = tvWidth * tvAspectW;
+
 	if (!aa){
-	qglViewport( 0, 0, tvWidth, tvHeight );
-	qglScissor( 0, 0, tvWidth, tvHeight );
+	qglViewport(aspcenter, 0, 	(tvWidth * tvAspectW), tvHeight );
+	qglScissor(aspcenter, 0,	(tvWidth * tvAspectW), tvHeight );
 	}
 	qglBegin( GL_QUADS );	
 	//GL_State( GLS_DEPTHTEST_DISABLE | GLS_SRCBLEND_ONE | GLS_DSTBLEND_ONE );
@@ -729,6 +752,7 @@ static void R_Bloom_RestoreScreen_Postprocessed( void ) {
 	if (leifxmode == 634){ if (vertexShaders) R_GLSL_UseProgram(tr.NTSCBleedProgram); program=tr.programs[tr.NTSCBleedProgram];}
 	if (leifxmode == 666){ if (vertexShaders) R_GLSL_UseProgram(tr.BrightnessProgram); program=tr.programs[tr.BrightnessProgram];}
 	if (leifxmode == 1236){ if (vertexShaders) R_GLSL_UseProgram(tr.CRTProgram); program=tr.programs[tr.CRTProgram];}
+	if (leifxmode == 1997){ if (vertexShaders) R_GLSL_UseProgram(tr.paletteProgram); program=tr.programs[tr.paletteProgram];}
 	
 	}
 	else
@@ -1057,8 +1081,8 @@ static void R_Postprocess_InitTextures( void )
 //else
 	for (postproc.screen.height = 1;postproc.screen.height < glConfig.vidHeight;postproc.screen.height *= 2);
 
-	if (r_tvMode->integer > 1)	
-		intdiv = 2;
+//	if (r_tvMode->integer > 1)	
+//		intdiv = 2;
 
 	postproc.screen.readW = glConfig.vidWidth / (float)postproc.screen.width;
 	postproc.screen.readH = glConfig.vidHeight / (float)postproc.screen.height;
@@ -1586,6 +1610,8 @@ void R_AltBrightnessInit( void ) {
 
 void R_FilmScreen( void )
 {
+	vec3_t tone, toneinv, tonecont;
+	vec3_t tonework;
 
 	if( !r_film->integer )
 		return;
@@ -1594,7 +1620,42 @@ void R_FilmScreen( void )
 	if ( !backEnd.projection2D )
 		RB_SetGL2D();
 	backEnd.doneFilm = qtrue;
+
+		// set up our colors, this is our default
+		tone[0] = 0.8f;
+		tone[1] = 0.9f;
+		tone[2] = 1.0f;
+	//VectorCopy( backEnd.currentEntity->ambientLight, tone );
+		if (backEnd.currentEntity){
+			if (backEnd.currentEntity->ambientLight[0] > 0.001f && backEnd.currentEntity->ambientLight[1] > 0.001f && backEnd.currentEntity->ambientLight[2] > 0.001f){
+				tone[0] = backEnd.currentEntity->ambientLight[0];
+				tone[1] = backEnd.currentEntity->ambientLight[1];
+				tone[2] = backEnd.currentEntity->ambientLight[2];
+			}
+		}
+
+	//	VectorNormalize(tone);
+
+		tone[0] *= 0.3 + 0.7;
+		tone[1] *= 0.3 + 0.7;
+		tone[2] *= 0.3 + 0.7;
+
+	//	tone[0] = 1.6f;
+	//	tone[1] = 1.2f;
+	//	tone[2] = 0.7f;
+
+
+		// TODO: Get overexposure to flares raising this faking "HDR"
+		tonecont[0] = 0.0f;
+		tonecont[1] = 0.0f;
+		tonecont[2] = 0.0f;
 	
+
+		// inverted
+
+		toneinv[0] = tone[0] * -1 + 1 + tonecont[0];
+		toneinv[1] = tone[1] * -1 + 1 + tonecont[1];
+		toneinv[2] = tone[2] * -1 + 1 + tonecont[2];
 
 		// darken vignette.
 		GL_State( GLS_DEPTHTEST_DISABLE | GLS_SRCBLEND_DST_COLOR | GLS_DSTBLEND_ZERO);GL_Bind( tr.dlightImage );	GL_Cull( CT_TWO_SIDED );
@@ -1605,12 +1666,15 @@ void R_FilmScreen( void )
 
 		// brighten.
 		GL_State( GLS_DEPTHTEST_DISABLE | GLS_SRCBLEND_DST_COLOR | GLS_DSTBLEND_ONE);GL_Bind( tr.dlightImage );	GL_Cull( CT_TWO_SIDED );
-		qglColor4f( 0.941177, 0.952941, 0.968628, 1.0f );
+		//qglColor4f( 0.941177, 0.952941, 0.968628, 1.0f );
+		qglColor4f( (0.9f + (tone[0] * 0.5)), (0.9f + (tone[1] * 0.5)), (0.9f + (tone[2] * 0.5)), 1.0f );
+
 		R_Brighter_Quad( glConfig.vidWidth, glConfig.vidHeight, 0.25f, 0.25f, 0.48f, 0.48f );
 
-		// invoort.
+		// invert.
 		GL_State( GLS_DEPTHTEST_DISABLE | GLS_SRCBLEND_ONE_MINUS_DST_COLOR | GLS_DSTBLEND_ONE_MINUS_SRC_COLOR);GL_Bind( tr.whiteImage );	GL_Cull( CT_TWO_SIDED );
-		qglColor4f(0.85098, 0.85098, 0.815686, 1.0f );
+	//	qglColor4f(0.85098, 0.85098, 0.815686, 1.0f );
+		qglColor4f( (0.8f + (toneinv[0] * 0.5)), (0.8f + (toneinv[1] * 0.5)), (0.8f + (toneinv[2] * 0.5)), 1.0f );
 		R_Brighter_Quad( glConfig.vidWidth, glConfig.vidHeight, 0, 0, 1, 1 );
 
 		// brighten.
@@ -1626,7 +1690,8 @@ void R_FilmScreen( void )
 
 		// brighten.
 		GL_State( GLS_DEPTHTEST_DISABLE | GLS_SRCBLEND_DST_COLOR | GLS_DSTBLEND_SRC_COLOR);GL_Bind( tr.whiteImage );	GL_Cull( CT_TWO_SIDED );
-		qglColor4f(  0.866667, 0.847059, 0.776471, 1.0f );
+	//	qglColor4f(  0.866667, 0.847059, 0.776471, 1.0f );
+		qglColor4f( (0.73f + (toneinv[0] * 0.4)), (0.73f + (toneinv[1] * 0.4)), (0.73f + (toneinv[2] * 0.4)), 1.0f );
 		R_Brighter_Quad( glConfig.vidWidth, glConfig.vidHeight, 0, 0, 1, 1 );
 
 
@@ -1831,8 +1896,8 @@ void R_MblurScreenPost( void )
 static void R_Postprocess_BackupScreenTV( void ) {
 
 	int intdiv;
-	if (r_tvMode->integer > 1) intdiv = 2;
-	else intdiv = 1;
+//	if (r_tvMode->integer > 1) intdiv = 2;
+	 intdiv = 1;
 
 
 	GL_TexEnv( GL_MODULATE );
@@ -1855,10 +1920,6 @@ static void R_Postprocess_BackupScreenTV( void ) {
 }
 
 static void R_Postprocess_ScaleTV( void ) {
-
-//	int intdiv;
-//	if (r_tvMode->integer > 1) intdiv = 2;
-//	else intdiv = 1;
 
 
 	GL_TexEnv( GL_MODULATE );
@@ -1911,7 +1972,7 @@ void R_TVScreen( void )
 		
 	tvinter = tvinterlace;
 	if (tvinter < 0) tvinter = 0;
-	if (r_tvMode->integer < 2) tvinter = 0;
+	if (r_tvMode->integer < 100) tvinter = 0;
 	tvinter = 0;
 
 	leifxmode = 1234;		// just show it through to tvWidth/tvHeight
@@ -1920,7 +1981,7 @@ void R_TVScreen( void )
 	//	leifxmode = 1236;		// run it through a shader
 	//R_Postprocess_BackupScreen();
 
-	if (r_tvMode->integer > 10)
+	if (r_tvMode->integer > 100)
 	{
 	R_Postprocess_ScaleTV();
 	}
@@ -1940,6 +2001,48 @@ void R_TVScreen( void )
 
 
 
+
+
+
+// =================================================================
+// PALLETIZING
+// =================================================================
+
+
+
+
+void R_PaletteScreen( void )
+{
+	if( !r_palletize->integer)
+		return;
+	if ( backEnd.donepalette)
+		return;
+	if ( !backEnd.doneSurfaces )
+		return;
+	if ( !vertexShaders )
+		return;		// leilei - cards without support for this should not ever activate this
+	if( !postproc.started ) {
+		force32upload = 1;
+		R_Postprocess_InitTextures();
+		if( !postproc.started )
+			return;
+	}
+
+	if ( !backEnd.projection2D )
+	RB_SetGL2D();
+
+	force32upload = 1;
+
+	leifxmode = 1997;			// anime effect - outlines, desat, bloom and other crap to go with it
+	R_LeiFX_Stupid_Hack();
+	R_Postprocess_BackupScreen();
+	R_Bloom_RestoreScreen_Postprocessed();
+	backEnd.donepalette = qtrue;
+
+	force32upload = 0;
+	
+
+}
 
 
 

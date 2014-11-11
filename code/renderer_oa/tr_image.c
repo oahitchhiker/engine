@@ -180,6 +180,41 @@ void R_SetPalette ( const unsigned char *palette)
 
 }
 
+// leilei - for palettizing GLSL shaders, dump palette values to console
+void R_GLSLPalette ( const unsigned char *palette)
+{
+	int		i;
+
+	int red, green, blue;
+	float redf, greenf, bluef;
+
+	if ( palette )
+	{
+
+		for ( i = 0; i < 256; i++ )
+		{
+
+			red = d_8to24table[i] & 0xff;
+			green = ( d_8to24table[i] >> 8 ) & 0xff;
+			blue = ( d_8to24table[i] >> 16 ) & 0xff;
+			redf = (d_8to24table[i] & 0xff)  		* 0.003921568627451;
+			greenf = (( d_8to24table[i] >> 8 ) & 0xff) 	* 0.003921568627451;
+			bluef = (( d_8to24table[i] >> 16 ) & 0xff) 	* 0.003921568627451;
+			//ri.Printf( PRINT_ALL, "    vec3(%i, %i, %i),\n", red, green, blue );
+			ri.Printf( PRINT_ALL, "    vec3(%f, %f, %f),\n", redf, greenf, bluef );
+
+		}
+	}
+
+
+}
+
+void R_GLSLPalette_f ( )
+{
+	R_GLSLPalette(palettemain);
+
+}
+
 void R_InitPalette( void ) {
 
 	byte           *buff;
@@ -2193,12 +2228,14 @@ image_t	*R_FindImageFile( const char *name, imgType_t type, imgFlags_t flags )
 	//
 	// load the pic from disk
 	//
-	oldtime = backEnd.refdef.floatTime;
+	//oldtime = backEnd.refdef.floatTime;
+	oldtime = ri.Milliseconds() * 100;
 	R_LoadImage( name, &pic, &width, &height );
 	if ( pic == NULL ) {
 		return NULL;
 	}
-	loadtime = backEnd.refdef.floatTime - oldtime;
+	loadtime = (ri.Milliseconds() * 100) - oldtime;
+//	loadtime = backEnd.refdef.floatTime - oldtime;
 
 
 	image = R_CreateImage( ( char * ) name, pic, width, height, type, flags, 0 );

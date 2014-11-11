@@ -907,6 +907,12 @@ void CL_DemoCompleted( void )
 					CL_DemoFrameDurationSDev( ) );
 			Com_Printf( "%s", buffer );
 
+
+			// leilei - shove some abridged info in a cvar for display in the UI
+			{
+			Cvar_Set( "ui_timedemoResult", va("%3.1f fps %3.1f seconds", clc.timeDemoFrames*1000.0 / time,  time/1000.0) );
+
+			}
 			// Write a log of all the frame durations
 			if( cl_timedemoLog && strlen( cl_timedemoLog->string ) > 0 )
 			{
@@ -3093,6 +3099,9 @@ void CL_ShutdownRef( void ) {
 #endif
 }
 
+
+extern int vresWidth;
+extern int vresHeight;
 /*
 ============
 CL_InitRenderer

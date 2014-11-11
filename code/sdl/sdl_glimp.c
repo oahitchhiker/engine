@@ -53,6 +53,7 @@ int tvMode;	// leilei - tvmode
 int tvWidth;
 int tvHeight;
 int tvinterlace;	// leilei - interlace value for height
+float tvAspectW;	// leilei - for aspect correction
 
 //int vresWidth;		
 //int vresHeight;		
@@ -75,6 +76,7 @@ cvar_t *r_allowSoftwareGL; // Don't abort out if a hardware visual can't be obta
 cvar_t *r_tvMode; // leilei - tv mode - force 480i rendering, which is then stretched and interlaced
 cvar_t *r_tvConsoleMode; // leilei - tv mode
 cvar_t *r_tvModeAspect; // leilei - tv mode - to do widescreen and low res tv etc
+cvar_t *r_tvModeForceAspect; // leilei - tv mode - to force the screen into its native aspect
 cvar_t *r_motionblur; // leilei - moved here to set up accumulation bits
 cvar_t *r_allowResize; // make window resizable
 cvar_t *r_conMode; // leilei - console mode - force native resolutions of various consoles
@@ -479,8 +481,11 @@ static int GLimp_SetMode(int mode, qboolean fullscreen, qboolean noborder)
 	vresHeight = glConfig.vidHeight;
 
 
+
+
 	vresWidth = 640;
 	vresHeight = 480;
+	//tvAspectW = 1.0; // no change
 
 	if( r_tvMode->integer ){
 
@@ -491,17 +496,42 @@ static int GLimp_SetMode(int mode, qboolean fullscreen, qboolean noborder)
 	glConfig.vidHeight = 480;
 
 
-		// leilei - make it use an aspect-corrected lower resolution that's always 640 wide for the width, but variable height
-	if( r_tvModeAspect->integer ){
-		float aspe = 640.0f / tvWidth;
-		glConfig.vidWidth = tvWidth * aspe;
-		glConfig.vidHeight = tvHeight * aspe;
+	if( r_tvMode->integer == 96 ){
+	glConfig.vidWidth = 320;
+	glConfig.vidHeight = 200;
+	}
+	if( r_tvMode->integer == 97 ){
+	glConfig.vidWidth = 320;
+	glConfig.vidHeight = 240;
+	}
 
-		}
+		// leilei - make it use an aspect-corrected lower resolution that's always 640 wide for the width, but variable height
+	
 		// then change the gl port..
 
 	vresWidth = tvWidth;
 	vresHeight = tvHeight;
+
+	if( r_tvModeForceAspect->integer ){
+	//	glConfig.vidHeight = tvHeight * aspe;
+		float thv = tvHeight / glConfig.vidHeight;		// 720 / 480 = 1.5
+		float thw = tvWidth / glConfig.vidWidth;		// 1280 / 640 = 2
+		float chv = glConfig.vidHeight / tvHeight;		// 640 / 1280 = 0.5
+		float chw = glConfig.vidHeight / tvWidth;		// 480 / 720 = 0.66666666
+		float chvw = tvHeight * chw;				// 720 * 0.6666 = 480
+		float chwv = tvWidth * chw;				// 1280 * 0.6666 = 853
+		//float ttw = glConfig.vidWidth / (tvWidth * chw);			// 640 / 853 = 0.75 = ASPECT VALUE
+		float ttw = (float)glConfig.vidWidth / ((float)tvWidth * (float)((float)glConfig.vidHeight/(float)tvHeight));			// 640 / 853 = 0.75 = ASPECT VALUE
+
+		//float tth = tvWidth * chv; // lower...
+	//	float ttw = glConfig.vidWidth / tth;
+//jj
+		tvAspectW = ttw; // let's try this first to see if we can get it to our renderer
+
+		//tvAspectW = 0.75f; // let's try this first to see if we can get it to our renderer
+
+		}
+
 	}
 	// leilei - tv mode hack end
 
@@ -531,6 +561,15 @@ static int GLimp_SetMode(int mode, qboolean fullscreen, qboolean noborder)
 
 
 	screen = vidscreen;
+
+
+if( r_tvModeAspect->integer ){
+		float aspe = 640.0f / tvWidth;
+		glConfig.vidWidth = tvWidth * aspe;
+		glConfig.vidHeight = tvHeight * aspe;
+
+		}
+		// then change the gl port..
 
 
 
@@ -787,6 +826,7 @@ void GLimp_Init( void )
 // leilei - tv mode hack
 	r_tvMode = ri.Cvar_Get( "r_tvMode", "0", CVAR_LATCH | CVAR_ARCHIVE );
 	r_tvModeAspect = ri.Cvar_Get( "r_tvModeAspect", "0", CVAR_LATCH | CVAR_ARCHIVE ); // yes
+	r_tvModeForceAspect = ri.Cvar_Get( "r_tvModeForceAspect", "0", CVAR_LATCH | CVAR_ARCHIVE ); // yes
 
 	r_tvConsoleMode = ri.Cvar_Get( "r_tvConsoleMode", "0", CVAR_LATCH | CVAR_ARCHIVE );
 

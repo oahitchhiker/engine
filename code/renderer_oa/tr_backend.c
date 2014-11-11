@@ -1665,10 +1665,10 @@ const void	*RB_SwapBuffers( const void *data ) {
 		RB_DrawAccumBlur ();
 	}
 	R_BrightScreen();		// leilei - alternate brightness - do it here so we hit evereything
-	R_RetroAAScreen();		// leilei - then apply 'anti aliasing'
 
-	R_NTSCScreen();
-
+	R_RetroAAScreen();		// leilei - then apply 'anti aliasing' (hint: IT'S NOT really antialiasing)
+	R_PaletteScreen();		// leilei - then we palette our overbrighted antialiased screen.
+	R_NTSCScreen();			// leilei - then we get it through a DAC 
 	R_TVScreen();			// leilei - tv operation comes last, this is a SCREEN
 
 
@@ -1711,6 +1711,7 @@ const void	*RB_SwapBuffers( const void *data ) {
 	backEnd.doneFilm = qfalse;
 	backEnd.doneleifx = qfalse;
 	backEnd.doneanime = qfalse;
+	backEnd.donepalette = qfalse;
 	backEnd.donemblur = qfalse;
 	backEnd.doneSurfaces = qfalse;
 	backEnd.doneSun	     = qfalse;

@@ -1625,22 +1625,45 @@ void RB_CalcDiffuseColor_Specular( unsigned char *colors )
 	vec3_t			ambientLight;
 	vec3_t			lightDir;
 	vec3_t			directedLight;
+	vec3_t			specularLight;
 	int				numVertexes;
 	int 	shadecap = 200; // was 127
 	ent = backEnd.currentEntity;
 	ambientLightInt = ent->ambientLightInt;
 	VectorCopy( ent->ambientLight, ambientLight );
 	VectorCopy( ent->directedLight, directedLight );
+	VectorCopy( ent->directedLight, specularLight );
 	VectorCopy( ent->lightDir, lightDir );
 
+	// averaging colors test
+/*
+	{
+		int rf;
+		for (rf=0;rf<3;rf++){
+			//directedLight[rf] = ambientLight[rf] + directedLight[rf] / 2;
+			//ambientLight[rf] = pow((ambientLight[rf] / 255), (directedLight[rf] / 255)) * 255;
+			specularLight[rf] -= ambientLight[rf];
+			ambientLight[rf] = ambientLight[rf] + ambientLight[rf] + (directedLight[rf] / 512);
 
 
+			//shadecap += directedLight[rf];
+			if (specularLight[rf] < 0) specularLight[rf] = 0;
+			if (ambientLight[rf] > 255) ambientLight[rf] = 255;
+
+			}
+		//shadecap /= 3;
+
+			ambientLightInt *= 1.5;			
+
+	}
+*/
 	v = tess.xyz[0];
 	normal = tess.normal[0];
 
 	numVertexes = tess.numVertexes;
 	for (i = 0 ; i < numVertexes ; i++, v += 4, normal += 4) {
 		incoming = DotProduct (normal, lightDir);
+	
 		if ( incoming <= 0 ) {
 			*(int *)&colors[i*4] = ambientLightInt;
 			continue;
@@ -1687,14 +1710,14 @@ void RB_CalcDiffuseColor_Specular( unsigned char *colors )
 
 		j = ri.ftol(ambientLight[0] + incoming * directedLight[0]);
 		if ( j > shadecap ) j = shadecap ;
-		j += ri.ftol(spec * directedLight[0]);
+		j += ri.ftol(spec * specularLight[0]);
 
 		if ( j > 255) j = 255;
 		colors[i*4+0] = j;
 
 		j = ri.ftol(ambientLight[1] + incoming * directedLight[1]);
 		if ( j > shadecap ) j = shadecap ;
-		j += ri.ftol(spec * directedLight[1]);
+		j += ri.ftol(spec * specularLight[1]);
 
 		if ( j > 255) j = 255;
 
@@ -1703,7 +1726,7 @@ void RB_CalcDiffuseColor_Specular( unsigned char *colors )
 
 		j = ri.ftol(ambientLight[2] + incoming * directedLight[2]);
 		if ( j > shadecap ) j = shadecap ;
-		j += ri.ftol(spec * directedLight[2]);
+		j += ri.ftol(spec * specularLight[2]);
 		if ( j > 255) j = 255;
 		colors[i*4+2] = j;
 

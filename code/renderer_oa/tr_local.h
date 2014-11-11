@@ -1049,6 +1049,7 @@ typedef struct {
 	qboolean	donetv;		// leilei - tv this frame
 	qboolean	doneraa;	// leilei - done aa'ing this frame
 	qboolean	donentsc;	// leilei - done ntsc'ing this frame
+	qboolean	donepalette;		// leilei - done animeing this frame
 	qboolean	doneSurfaces;   // done any 3d surfaces already
 	trRefEntity_t	entity2D;	// currentEntity will point at this when doing 2D rendering
 } backEndState_t;
@@ -1113,6 +1114,7 @@ typedef struct {
 	qhandle_t				NTSCEncodeProgram;	// leilei
 	qhandle_t				NTSCDecodeProgram;	// leilei
 	qhandle_t				NTSCBleedProgram;	// leilei
+	qhandle_t				paletteProgram;	// leilei
 
 	int						numPrograms;
 	glslProgram_t			*programs[MAX_PROGRAMS];
@@ -1175,9 +1177,20 @@ typedef struct {
 
 	shader_t				*placeholderTextureShader;	// leilei - for map textures
 	shader_t				*placeholderModelShader;	// leilei - for models
+	shader_t				*placeholderSkyShader;		// leilei - for skies
+	shader_t				*placeholderWaterShader;	// leilei - for liquids
+	shader_t				*placeholderLavaShader;		// leilei - for lavas
+	shader_t				*placeholderSlimeShader;	// leilei - for slimes
+	shader_t				*placeholderFogShader;		// leilei - for fogs
 	shader_t				*placeholderShader;		// leilei - for anything else
+	
 	qboolean				placeholderTextureAvail;
 	qboolean				placeholderModelAvail;
+	qboolean				placeholderSkyAvail;
+	qboolean				placeholderWaterAvail;
+	qboolean				placeholderLavaAvail;
+	qboolean				placeholderSlimeAvail;
+	qboolean				placeholderFogAvail;
 	qboolean				placeholderAvail;
 
 } trGlobals_t;
@@ -1326,6 +1339,7 @@ extern cvar_t	*r_leiwater;	// Leilei - water test
 extern cvar_t	*r_ntsc;	// Leilei - ntsc
 
 extern cvar_t	*r_tvMode;	// Leilei - tv faking mode
+extern cvar_t	*r_tvModeForceAspect;	// Leilei - retain aspect of the tv's mode
 extern cvar_t	*r_tvConsoleMode;	// Leilei - tv faking mode
 
 extern cvar_t	*r_retroAA;	// Leilei - old console anti aliasing
@@ -1336,6 +1350,7 @@ extern cvar_t	*r_motionblur;		// Leilei - motionblur
 extern cvar_t	*r_motionblur_fps;		// Leilei - motionblur framerated
 
 extern cvar_t	*r_anime;	// Leilei - anime filter
+extern cvar_t	*r_palletize;	// Leilei - anime filter
 extern cvar_t	*r_leidebug;	// Leilei - debug only!
 extern cvar_t	*r_leidebugeye;	// Leilei - debug only!
 
@@ -1448,6 +1463,7 @@ void	R_SkinList_f( void );
 // https://zerowing.idsoftware.com/bugzilla/show_bug.cgi?id=516
 const void *RB_TakeScreenshotCmd( const void *data );
 void	R_ScreenShot_f( void );
+void	R_GLSLPalette_f( void );
 
 void	R_InitFogTable( void );
 float	R_FogFactor( float s, float t );
@@ -2252,6 +2268,7 @@ void R_BloomScreen( void );
 void R_WaterScreen( void );
 void R_AnimeScreen( void );
 void R_NTSCScreen( void );
+void R_PaletteScreen( void );
 // Postprocessing
 void R_PostprocessScreen( void );
 void R_PostprocessingInit(void);
