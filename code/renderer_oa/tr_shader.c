@@ -37,6 +37,8 @@ static	shader_t*		hashTable[FILE_HASH_SIZE];
 #define MAX_SHADERTEXT_HASH		2048
 static char **shaderTextHashTable[MAX_SHADERTEXT_HASH];
 
+extern cvar_t 	*r_mockvr;
+
 /*
 ================
 return a hash value for the filename
@@ -1044,6 +1046,7 @@ static qboolean ParseStage( shaderStage_t *stage, char **text )
 	char programFragmentObjects[MAX_PROGRAM_OBJECTS][MAX_QPATH];
 	int numVertexObjects = 0;
 	int numFragmentObjects = 0;
+	int leifxmode = 0;	// for picking different dither tanles for blended stuff
 	int depthMaskBits = GLS_DEPTHMASK_TRUE, blendSrcBits = 0, blendDstBits = 0, atestBits = 0, depthFuncBits = 0;
 	qboolean depthMaskExplicit = qfalse;
 
@@ -1053,6 +1056,10 @@ static qboolean ParseStage( shaderStage_t *stage, char **text )
 
 	while ( 1 )
 	{
+	
+	
+
+
 		token = COM_ParseExt( text, qtrue );
 		if ( !token[0] )
 		{
@@ -1199,14 +1206,6 @@ static qboolean ParseStage( shaderStage_t *stage, char **text )
 			if ( !Q_stricmp( token, "$whiteimage" ) )
 			{
 				stage->bundle[0].image[0] = tr.whiteImage;
-				continue;
-			}
-			if ( !Q_stricmp( token, "$waterimage" ) )
-			{
-				stage->bundle[0].image[0] = tr.waterImage;
-
-				imgType_t type = IMGTYPE_COLORALPHA;
-				imgFlags_t flags = IMGFLAG_NONE;
 				continue;
 			}
 			else if ( !Q_stricmp( token, "$lightmap" ) )
@@ -1358,11 +1357,6 @@ static qboolean ParseStage( shaderStage_t *stage, char **text )
 			if ( !Q_stricmp( token, "$whiteimage" ) )
 			{
 				stage->bundle[4].image[0] = tr.whiteImage;
-				continue;
-			}
-			if ( !Q_stricmp( token, "$waterimage" ) )
-			{
-				stage->bundle[4].image[0] = tr.waterImage;
 				continue;
 			}
 			else if ( !Q_stricmp( token, "$lightmap" ) )
@@ -2499,12 +2493,15 @@ static qboolean ParseStage( shaderStage_t *stage, char **text )
 			if ( !Q_stricmp( token, "add" ) ) {
 				blendSrcBits = GLS_SRCBLEND_ONE;
 				blendDstBits = GLS_DSTBLEND_ONE;
+				leifxmode = 1;	// 2x2
 			} else if ( !Q_stricmp( token, "filter" ) ) {
 				blendSrcBits = GLS_SRCBLEND_DST_COLOR;
 				blendDstBits = GLS_DSTBLEND_ZERO;
+				leifxmode = 1;	// 2x2
 			} else if ( !Q_stricmp( token, "blend" ) ) {
 				blendSrcBits = GLS_SRCBLEND_SRC_ALPHA;
 				blendDstBits = GLS_DSTBLEND_ONE_MINUS_SRC_ALPHA;
+				leifxmode = 1;	// 4x4
 			} else {
 				// complex double blends
 				blendSrcBits = NameToSrcBlendMode( token );
@@ -2516,6 +2513,7 @@ static qboolean ParseStage( shaderStage_t *stage, char **text )
 					continue;
 				}
 				blendDstBits = NameToDstBlendMode( token );
+				leifxmode = 1;	// 2x2
 			}
 
 			// clear depth mask for blended surfaces
@@ -2523,6 +2521,8 @@ static qboolean ParseStage( shaderStage_t *stage, char **text )
 			{
 				depthMaskBits = 0;
 			}
+
+
 		}
 		//
 		// rgbGen
@@ -2783,11 +2783,17 @@ static qboolean ParseStage( shaderStage_t *stage, char **text )
 
 			continue;
 		}
+
 		else
 		{
 			ri.Printf( PRINT_WARNING, "WARNING: unknown parameter '%s' in shader '%s'\n", token, shader.name );
 			return qfalse;
 		}
+
+
+
+
+	// END DITHER TEST
 	}
 
 	//
@@ -2803,7 +2809,7 @@ static qboolean ParseStage( shaderStage_t *stage, char **text )
 		}
 	}
 
-
+	
 	//
 	// implicitly assume that a GL_ONE GL_ZERO blend mask disables blending
 	//
@@ -2831,6 +2837,7 @@ static qboolean ParseStage( shaderStage_t *stage, char **text )
 		               blendSrcBits | blendDstBits | 
 					   atestBits | 
 					   depthFuncBits;
+
 
 	return qtrue;
 }
@@ -3419,6 +3426,7 @@ otherwise set to the generic stage function
 */
 static void ComputeStageIteratorFunc( void )
 {
+
 	if (vertexShaders)
 		shader.optimalStageIteratorFunc = RB_GLSL_StageIteratorGeneric;
 	else
@@ -3433,10 +3441,16 @@ static void ComputeStageIteratorFunc( void )
 		return;
 	}
 
+
+
 	if ( r_ignoreFastPath->integer )
 	{
 		return;
 	}
+
+	if (r_leifx->integer)	// try not to use the multitexture shaders so we can blend
+		return; 	// lightmaps with a different dithering table
+
 
 	//
 	// see if this can go into the vertex lit fast path
@@ -3471,6 +3485,7 @@ static void ComputeStageIteratorFunc( void )
 	//
 	// see if this can go into an optimized LM, multitextured path
 	//
+
 	if ( shader.numUnfoggedPasses == 1 )
 	{
 		if ( ( stages[0].rgbGen == CGEN_IDENTITY ) && ( stages[0].alphaGen == AGEN_IDENTITY ) )
@@ -3551,6 +3566,9 @@ static qboolean CollapseMultitexture( void ) {
 	if ( !qglActiveTextureARB ) {
 		return qfalse;
 	}
+
+	if (r_leifx->integer > 1)
+		return qfalse; // don't do this for leifx mode
 
 	// make sure both stages are active
 	if ( !stages[0].active || !stages[1].active ) {
@@ -4003,6 +4021,20 @@ static shader_t *FinishShader( void ) {
     //  vertexLightmap = qtrue;
     //}
 
+		// Try to use leifx dither here instead of postprocess for more authentic overdraw artifacts
+		if (r_leifx->integer > 1)
+		{		
+			pStage->program = RE_GLSL_RegisterProgram("leifxify", "glsl/leifxify_vp.glsl", 1, "glsl/leifxify_fp.glsl", 1);
+			pStage->isGLSL=1;
+		}
+
+		// Mockvr faking of the filtering and alpha precision of PCX2 cards
+		if ((r_mockvr->integer > 1))
+		{		
+			pStage->program = RE_GLSL_RegisterProgram("leivrify", "glsl/leivrify_vp.glsl", 1, "glsl/leivrify_fp.glsl", 1);
+			pStage->isGLSL=1;
+		}
+
 
 
 		//
@@ -4069,9 +4101,11 @@ static shader_t *FinishShader( void ) {
 	//
 	// look for multitexture potential
 	//
+	if (!r_leifx->integer)
 	if ( stage > 1 && CollapseMultitexture() ) {
 		stage--;
 	}
+
 
 	if ( shader.lightmapIndex >= 0 && !hasLightmapStage ) {
 		if (vertexLightmap) {
@@ -4081,6 +4115,7 @@ static shader_t *FinishShader( void ) {
   			shader.lightmapIndex = LIGHTMAP_NONE;
 		}
 	}
+
 
 
 	//

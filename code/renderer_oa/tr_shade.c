@@ -844,6 +844,10 @@ static void RB_FogPass( void ) {
 		GL_State( GLS_SRCBLEND_SRC_ALPHA | GLS_DSTBLEND_ONE_MINUS_SRC_ALPHA );
 	}
 
+	// leilei -  hmm., will integrate additive fog in the future
+	//
+	//	GL_State( GLS_SRCBLEND_SRC_ALPHA | GLS_DSTBLEND_ONE );
+
 	R_DrawElements( tess.numIndexes, tess.indexes );
 }
 
@@ -1526,8 +1530,10 @@ static void RB_IterateStagesGeneric( shaderCommands_t *input )
 		//
 		// do multitexture
 		//
+	
 		if ( pStage->bundle[1].image[0] != 0 )
 		{
+	if (!r_leifx->integer)
 			DrawMultitextured( input, stage );
 		}
 		else
