@@ -475,7 +475,7 @@ static qboolean R_GLSL_LoadProgram(glslProgram_t *program, const char *name, con
 		ri.Hunk_FreeTempMemory(msg);
 
 		/* exit */
-		ri.Printf( PRINT_WARNING,  "Couldn't link shaders for program %s\n", name);
+		ri.Printf( PRINT_WARNING,  "Couldn't link shaders for program %s", name);
 		return qfalse;
 	}
 

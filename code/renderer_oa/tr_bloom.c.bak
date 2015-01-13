@@ -1129,7 +1129,6 @@ static void R_Postprocess_InitTextures( void )
 			postproc.screen.height > glConfig.maxTextureSize 
 	) {
 		ri.Cvar_Set( "r_postprocess", "none" );
-		ri.Cvar_Set( "r_postprocess_multipart", "none" );
 		Com_Printf( S_COLOR_YELLOW"WARNING: 'R_InitPostprocessTextures' too high resolution for postprocessing, effect disabled\n" );
 		postprocess=0;
 		return;

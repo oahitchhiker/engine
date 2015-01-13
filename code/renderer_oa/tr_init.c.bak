@@ -1525,59 +1525,6 @@ void R_GLSL_Init(void) {
 			ri.Printf( PRINT_ALL, "WARNING: Cannot locate postprocessing glsl program %s\n" ,r_postprocess->string);
 		if (tr.postprocessingProgram) postprocess=qtrue;
 		}
-	else if (strcmp( (const char *)r_postprocess_multipart->string, "none" ))
-    {
-  	atchar_big=0;
-	num_frag_segments=1;
-	if (strcmp( (const char *)r_postprocess_multipart->string, "none" ))
-		{
-		sprintf(p,"glsl/postfx_vp.glsl");
-		Q_strncpyz(programVertexObjects[0], (const char *)&p, sizeof(programVertexObjects[0]));
-
-		sprintf(p,"glsl/postfx_init_fp.glsl");
-		Q_strncpyz(programFragmentObjects[0], (const char *)&p, sizeof(programFragmentObjects[0]));
-
-
-        atchar=0;
-getNextFx:
-        q[atchar]=r_postprocess_multipart->string[atchar_big];
-
-            if (q[atchar]=='+' || q[atchar]==0)
-                {
-                q[atchar]=0;
-                sprintf(p,"glsl/%s_post.glsl",q);
-		    ri.Printf( PRINT_ALL, "Loading postprocessing GLSL segment --program %s\n" ,p);
-                Q_strncpyz(programFragmentObjects[num_frag_segments], (const char *)&p, sizeof(programFragmentObjects[num_frag_segments]));
-                num_frag_segments++;
-                if (num_frag_segments>5) { ri.Printf( PRINT_ALL, "WARNING: Too many segments to postprocessing program %s\n" ,r_postprocess_multipart->string); goto gotAll; }
-                q[atchar]=r_postprocess_multipart->string[atchar_big];
-                if (q[atchar]==0) goto gotAll; else { atchar=0;atchar_big++;goto getNextFx;}
-                }
-            atchar++; atchar_big++;
-        goto getNextFx;
-
-gotAll:
-		sprintf(p,"glsl/postfx_end_fp.glsl");
-		Q_strncpyz(programFragmentObjects[num_frag_segments], (const char *)&p, sizeof(programFragmentObjects[num_frag_segments]));
-		num_frag_segments++;
-
-        if (ri.FS_FileIsInPAK (programVertexObjects[0],NULL)!=1) okToCompile=0;
-
-	  postprocess=qfalse;
-        for (i=0;i<num_frag_segments;i++)
-            if (ri.FS_FileIsInPAK (programFragmentObjects[i],NULL)!=1) okToCompile=0;
-        if (okToCompile)
-			{
-			tr.postprocessingProgram = RE_GLSL_RegisterProgram("postprocess", (const char *)programVertexObjects, 1, (const char *)programFragmentObjects, num_frag_segments);
-			if (tr.postprocessingProgram) postprocess=qtrue;
-			}
-		else
-			ri.Printf( PRINT_ALL, "WARNING: Cannot assemble postprocessing program %s\n" ,r_postprocess->string);
-		}
-
-    }
-		R_GLSL_UseProgram(0);
-
 }
 
 

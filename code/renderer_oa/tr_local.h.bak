@@ -1775,19 +1775,6 @@ static ID_INLINE void R_GLSL_SetUniform_ProjectionMatrix(glslProgram_t *program,
 	qglUniformMatrix4fvARB(program->u_ProjectionMatrix, 1, GL_FALSE, value);
 }
 
-static ID_INLINE void R_GLSL_SetUniform_LightmapControl(glslProgram_t *program, int value) {
-	if (program->u_thisStageLightmap == value)
-		return;
-
-	qglUniform1iARB(program->u_thisStageLightmap, value);
-}
-
-static ID_INLINE void R_GLSL_SetUniform_u_etype(glslProgram_t *program, int value) {
-	if (program->u_etype == value)
-		return;
-
-	qglUniform1iARB(program->u_etype, value);
-}
 static ID_INLINE void R_GLSL_SetUniform_TCGen0(glslProgram_t *program, texCoordGen_t value) {
 	if (program->v_TCGen0 == value)
 		return;
@@ -1886,12 +1873,6 @@ static ID_INLINE void R_GLSL_SetUniform_u_ScreenSizeY(glslProgram_t *program, GL
 	qglUniform1iARB(program->u_ScreenSizeY, value);
 }
 
-static ID_INLINE void R_GLSL_SetUniform_u_FBTexSizeX(glslProgram_t *program, GLint value) {
-	qglUniform1iARB(program->u_FBTexSizeX, value);
-}
-static ID_INLINE void R_GLSL_SetUniform_u_FBTexSizeY(glslProgram_t *program, GLint value) {
-	qglUniform1iARB(program->u_FBTexSizeY, value);
-}
 static ID_INLINE void R_GLSL_SetUniform_u_ScreenToNextPixelX(glslProgram_t *program, GLfloat value) {
 	qglUniform1fARB(program->u_ScreenToNextPixelX, value);
 }
@@ -1904,21 +1885,6 @@ static ID_INLINE void R_GLSL_SetUniform_u_zFar(glslProgram_t *program, GLfloat v
 	qglUniform1fARB(program->u_zFar, value);
 }
 
-static ID_INLINE void R_GLSL_SetUniform_u_zNear(glslProgram_t *program, GLfloat value) {
-	qglUniform1fARB(program->u_zNear, value);
-}
-
-static ID_INLINE void R_GLSL_SetUniform_u_SunPos(glslProgram_t *program, const vec3_t value) {
-	qglUniform3fARB(program->u_SunPos, value[0], value[1], value[2]);
-}
-
-static ID_INLINE void R_GLSL_SetUniform_u_rotationBlurPosition(glslProgram_t *program, const vec3_t value) {
-	qglUniform3fARB(program->u_rotationBlurPosition, value[0], value[1], value[2]);
-}
-
-static ID_INLINE void R_GLSL_SetUniform_u_rotationBlurPositionOld(glslProgram_t *program, const vec3_t value) {
-	qglUniform3fARB(program->u_rotationBlurPositionOld, value[0], value[1], value[2]);
-}
 static ID_INLINE void R_GLSL_SetUniform_u_MotionBlurX(glslProgram_t *program, GLfloat value) {
 	qglUniform1fARB(program->u_MotionBlurX, value);
 }

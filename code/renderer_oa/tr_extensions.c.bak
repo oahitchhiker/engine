@@ -268,7 +268,6 @@ void GLimp_InitExtraExtensions()
     if( ri.Cvar_VariableIntegerValue( "com_abnormalExit" ) )
     {
         ri.Cvar_Set( "r_postprocess", "none");
-        ri.Cvar_Set( "r_postprocess_multipart", "none");
         ri.Cvar_Set( "r_ext_vertex_shader", "0");
     }
 

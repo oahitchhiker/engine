@@ -1719,7 +1719,6 @@ const void	*RB_SwapBuffers( const void *data ) {
 	backEnd.donentsc = qfalse;
 	backEnd.donetv = qfalse;
 	backEnd.doneraa = qfalse;
-	glsl_lights=0;
 
 
 	// leilei - artificial slowness (mapper debug) - this might be windows only

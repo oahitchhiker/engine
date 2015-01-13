@@ -2832,7 +2832,7 @@ badshader1:
 	if ( tess.dlightBits && tess.shader->sort <= SS_OPAQUE) {
 		ProjectDlightTexture();
 	}
-    }
+
 	//
 	// now do fog
 	//

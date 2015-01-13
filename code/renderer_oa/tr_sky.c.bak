@@ -826,10 +826,6 @@ Other things could be stuck in here, like birds in the sky, etc
 ================
 */
 void RB_StageIteratorSky( void ) {
-    vec4_t eye;
-    vec4_t screen;
-    vec4_t normalized, window;
-	vec3_t			local;
 	if ( r_fastsky->integer ) {
 		return;
 	}
@@ -867,50 +863,6 @@ void RB_StageIteratorSky( void ) {
 
 	RB_StageIteratorGeneric();
 
-
-    // calculate light scattering (godrays) Sun position in screen coordinates
-    VectorScale(tr.sunDirection,10000.0, oa_SunPos);
-
-    R_TransformModelToClip( oa_SunPos, glState.currentModelViewMatrix, glState.currentProjectionMatrix,
-                                &eye, &screen);
-    R_TransformClipToWindow( screen, &backEnd.viewParms, normalized, window  );
-    oa_SunPos[0]=normalized[0];
-    oa_SunPos[1]=normalized[1];
-    oa_SunPos[2]=window[2];
-
-
-    // calculate old view in screen coordinates
-    // re-using eye variable
-    eye[0]=0.0;
-    eye[1]=0;
-    eye[2]=0.000001;
-
-    //VectorScale(tr.or.axis[1],10000.0, glsl_rotationBlurPosition);
-    //R_LocalPointToWorld (local, glsl_rotationBlurPosition);
-    //VectorScale(tr.viewParms.or.axis,10000.0, glsl_rotationBlurPosition);
-
-    //R_TransformModelToClip( glsl_rotationBlurPosition_old, backEnd.or.modelMatrix,
-	//	backEnd.viewParms.projectionMatrix,
-    //                            &eye, &screen);
-    //R_TransformClipToWindow( screen, &backEnd.viewParms, normalized, window  );
-
-    // For this frame
-    R_TransformModelToClip( glsl_rotationBlurPosition_old, glState.currentModelViewMatrix, glState.currentProjectionMatrix,
-                                &eye, &screen);
-   // R_TransformClipToWindow( screen, &backEnd.viewParms, normalized, window  );
-    //R_TransformClipToWindow( screen, &backEnd.viewParms, normalized, window  );
-
-//Matrix4Copy(glState.currentModelViewProjectionMatrix,MVPMatrixSunPos);
-
-    glsl_rotationBlurPosition[0]=eye[0];//backEnd.viewParms.viewportX + window[0];
-    glsl_rotationBlurPosition[1]=eye[1];;//backEnd.viewParms.viewportY + window[1];
-    glsl_rotationBlurPosition[2]=eye[2];;
-    //ri.Printf (PRINT_ALL, "%f %f %f\n",glsl_rotationBlurPosition[0],glsl_rotationBlurPosition[1],glsl_rotationBlurPosition[2]);
-glsl_rotationBlurPosition_old[0]=backEnd.viewParms.or.origin[0]+1000.0;;
-glsl_rotationBlurPosition_old[1]=backEnd.viewParms.or.origin[1];
-glsl_rotationBlurPosition_old[2]=backEnd.viewParms.or.origin[2];
-    //  For the next frame
-    //VectorAdd( backEnd.viewParms.or.origin, eye, glsl_rotationBlurPosition_old );
 	// draw the inner skybox
 
 
