@@ -1546,7 +1546,7 @@ getNextFx:
                 {
                 q[atchar]=0;
                 sprintf(p,"glsl/%s_post.glsl",q);
-		    ri.Printf( PRINT_ALL, "Loading postprocessing GLSL segment --program %s\n" ,p);
+		    ri.Printf( PRINT_ALL, "-Loading postprocessing GLSL segment --program %s\n" ,p);
                 Q_strncpyz(programFragmentObjects[num_frag_segments], (const char *)&p, sizeof(programFragmentObjects[num_frag_segments]));
                 num_frag_segments++;
                 if (num_frag_segments>5) { ri.Printf( PRINT_ALL, "WARNING: Too many segments to postprocessing program %s\n" ,r_postprocess_multipart->string); goto gotAll; }
@@ -1572,7 +1572,7 @@ gotAll:
 			if (tr.postprocessingProgram) postprocess=qtrue;
 			}
 		else
-			ri.Printf( PRINT_ALL, "WARNING: Cannot assemble postprocessing program %s\n" ,r_postprocess->string);
+			ri.Printf( PRINT_ALL, "-WARNING: Cannot assemble postprocessing program %s\n" ,(const char *)programFragmentObjects); //r_postprocess->string);
 		}
 
     }

@@ -828,7 +828,7 @@ static void R_Bloom_RestoreScreen_Postprocessed( void ) {
 	GL_SelectTexture(0);
 	GL_State( GLS_DEPTHTEST_DISABLE | GLS_SRCBLEND_ONE | GLS_DSTBLEND_ZERO );
 	GL_Bind( postproc.screen.texture );
-	if (program->u_Texture6 > -1)
+//	if (program->u_Texture6 > -1)
 	{
 	GL_SelectTexture(6);
 	GL_State( GLS_DEPTHTEST_DISABLE | GLS_SRCBLEND_ONE | GLS_DSTBLEND_ZERO );
@@ -869,6 +869,13 @@ static void R_Bloom_RestoreScreen_Postprocessed( void ) {
 	GL_State( GLS_DEPTHTEST_DISABLE | GLS_SRCBLEND_ONE | GLS_DSTBLEND_ZERO );
 	GL_Bind( postproc.mpass1.texture );	
 	}
+	else
+	{
+	GL_SelectTexture(6);
+	GL_State( GLS_DEPTHTEST_DISABLE | GLS_SRCBLEND_ONE | GLS_DSTBLEND_ZERO );
+    GL_Bind(tonemap);
+	}
+
 	qglColor4f( 1, 1, 1, 1 );
 
 //	if (leifxmode == 778)

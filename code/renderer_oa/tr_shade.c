@@ -298,9 +298,7 @@ Draws triangle outlines for debugging
 ================
 */
 static void DrawTris (shaderCommands_t *input) {
-	glslProgram_t	*program;
     R_GLSL_UseProgram(tr.defaultProgram);
-	program = tr.programs[glState.currentProgram];
 	GL_Bind( tr.whiteImage );
 	qglColor3f (1,1,1);
 
@@ -1369,32 +1367,15 @@ void xR_RotateForViewer (void)
 }
 
 
-static float	s_flipMatrix[16] = {
-	// convert from our coordinate system (looking down X)
-	// to OpenGL's coordinate system (looking down -Z)
-	0, 0, -1, 0,
-	-1, 0, 0, 0,
-	0, 1, 0, 0,
-	0, 0, 0, 1
-};
-
-	int stage;
+int stage;
 
 // GLSL Feeder
 void GLSL_DefaultProgram_Feeder(shaderStage_t *pStage, shaderCommands_t *input)
 {
  trRefdef_t *refdef;
- viewParms_t *viewParams1;
- vec3_t tempvect;
  int stage, bundle;
-    //float *pointer;
 	glslProgram_t	*program;
 	refdef=&backEnd.refdef;
-/*
-    if (input->shader->polygonOffset) {		qglUseProgramObjectARB(0);
-		glState.currentProgram = 0;
-			return;
-}*/
 
 	trRefEntity_t *ent;
 
@@ -1449,117 +1430,51 @@ void GLSL_DefaultProgram_Feeder(shaderStage_t *pStage, shaderCommands_t *input)
 	if (program->u_LightDirection > -1)
 		R_GLSL_SetUniform_LightDirection(program, backEnd.currentEntity->lightDir);
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 	/* model view matrix */
 	if (program->u_ModelViewMatrix > -1)
-        {//Matrix4Copy(backEnd.or.modelMatrix, glState.currentModelViewMatrix);
-
-
-
-       ent=&tr.currentEntity;
-
-
-//	vec3_t	delta;
-//	float	axisLength;
-
-    //miki
-	//if ( ent->e.reType != RT_MODEL ) {
-	//	*or = viewParms->world;
-	//	return;
-	//}
-        tmp=&tmp1;
-
-// erases the matrix    R_RotateForEntity( backEnd.currentEntity, &backEnd.viewParms, tmp );
-
-
-
-    {
-
-	VectorCopy( ent->e.lightingOrigin, tmp->origin );
-    //ri.Printf( PRINT_ALL, "origin %f, %f %f ........ ", tmp->origin[0],tmp->origin[1],tmp->origin[2] );
-//    VectorAdd(tmp->origin, viewParams1.or.origin,tmp->origin);
-
-//    VectorAdd(ent->e.origin,ent->eyepos,tmp->origin);
-
-
-	VectorCopy( ent->e.axis[0], tmp->axis[0] );
-	VectorCopy( ent->e.axis[1], tmp->axis[1] );
-	VectorCopy( ent->e.axis[2], tmp->axis[2] );
-
-
-
-	glMatrix[0] = tmp->axis[0][0];
-	glMatrix[4] = tmp->axis[1][0];
-	glMatrix[8] = tmp->axis[2][0];
-	glMatrix[12] = tmp->origin[0];
-
-	glMatrix[1] = tmp->axis[0][1];
-	glMatrix[5] = tmp->axis[1][1];
-	glMatrix[9] = tmp->axis[2][1];
-	glMatrix[13] = tmp->origin[1];
-
-	glMatrix[2] = tmp->axis[0][2];
-	glMatrix[6] = tmp->axis[1][2];
-	glMatrix[10] = tmp->axis[2][2];
-	glMatrix[14] = tmp->origin[2];
-
-	glMatrix[0] = 1;
-	glMatrix[4] = 0;
-	glMatrix[8] = 0;
-	glMatrix[12] = tmp->origin[0];
-
-	glMatrix[1] = 0;
-	glMatrix[5] = 1;
-	glMatrix[9] = 0;
-	glMatrix[13] = tmp->origin[1];
-
-	glMatrix[2] = 0;
-	glMatrix[6] = 0;
-	glMatrix[10] = 1;
-	glMatrix[14] = tmp->origin[2];
-
-
-
-	glMatrix[3] = tmp->origin[0];
-	glMatrix[7] = tmp->origin[2];
-	glMatrix[11] = tmp->origin[1];
-	glMatrix[15] = 1;
-
-	//my_GlMultMatrix( glMatrix, viewParams1->world.modelMatrix, tmp->modelMatrix );
-    //Matrix4Copy(glMatrix, tmp->modelMatrix);
-
-}
-
-
-    qglGetFloatv(GL_MODELVIEW_MATRIX, glMatrix);
-    R_GLSL_SetUniform_ModelViewMatrix(program, backEnd.or.modelMatrix );
-
-//    tmp=&backEnd.viewParms->or;
-//    R_GLSL_SetUniform_ModelViewMatrix(program, tmp->modelMatrix);//tmp->modelMatrix);
-    R_GLSL_SetUniform_ModelViewMatrix(program, glMatrix);
-    //R_GLSL_SetUniform_ModelViewMatrix(program, glState.currentModelViewMatrix);//tmp->modelMatrix);
-}
+        {
+	     ent=&tr.currentEntity;
+		 //backEnd.currentEntity;
+         tmp=&tmp1;
+		VectorCopy( ent->e.lightingOrigin, tmp->origin );
+		VectorCopy( ent->e.axis[0], tmp->axis[0] );
+		VectorCopy( ent->e.axis[1], tmp->axis[1] );
+		VectorCopy( ent->e.axis[2], tmp->axis[2] );
+		glMatrix[0] = tmp->axis[0][0];
+		glMatrix[4] = tmp->axis[1][0];
+		glMatrix[8] = tmp->axis[2][0];
+		glMatrix[12] = tmp->origin[0];
+		glMatrix[1] = tmp->axis[0][1];
+		glMatrix[5] = tmp->axis[1][1];
+		glMatrix[9] = tmp->axis[2][1];
+		glMatrix[13] = tmp->origin[1];
+		glMatrix[2] = tmp->axis[0][2];
+		glMatrix[6] = tmp->axis[1][2];
+		glMatrix[10] = tmp->axis[2][2];
+		glMatrix[14] = tmp->origin[2];
+		glMatrix[0] = 1;
+		glMatrix[4] = 0;
+		glMatrix[8] = 0;
+		glMatrix[12] = tmp->origin[0];
+		glMatrix[1] = 0;
+		glMatrix[5] = 1;
+		glMatrix[9] = 0;
+		glMatrix[13] = tmp->origin[1];
+		glMatrix[2] = 0;
+		glMatrix[6] = 0;
+		glMatrix[10] = 1;
+		glMatrix[14] = tmp->origin[2];
+		glMatrix[3] = tmp->origin[0];
+		glMatrix[7] = tmp->origin[2];
+		glMatrix[11] = tmp->origin[1];
+		glMatrix[15] = 1;
+	    qglGetFloatv(GL_MODELVIEW_MATRIX, glMatrix);
+	    R_GLSL_SetUniform_ModelViewMatrix(program, backEnd.or.modelMatrix );
+	    R_GLSL_SetUniform_ModelViewMatrix(program, glMatrix);
+		}
 	/* model view projection matrix */
 	if (program->u_ModelViewProjectionMatrix > -1)
         {
-        //Matrix4Copy(backEnd.or.modelMatrix, glState.currentModelViewMatrix);
-		//Matrix4Multiply(glState.currentProjectionMatrix, glState.currentModelViewMatrix, glState.currentModelViewProjectionMatrix);
-
-        //myMatrix(glState.currentModelViewMatrix,mymat);
 		R_GLSL_SetUniform_ModelViewProjectionMatrix(program, glState.currentProjectionMatrix);
         }
 	/* projection matrix */
@@ -1580,9 +1495,6 @@ void GLSL_DefaultProgram_Feeder(shaderStage_t *pStage, shaderCommands_t *input)
 	if (program->u_TCGen1 > -1)
 		R_GLSL_SetUniform_TCGen1(program, pStage->bundle[1].tcGen);
 
-
-
-
 	/* texture coordinates 0 */
 //	if (program->u_TCGen0 > -1)
 //		R_GLSL_SetUniform_TCGen0(program, pStage->bundle[0].tcGen);
@@ -1598,10 +1510,6 @@ void GLSL_DefaultProgram_Feeder(shaderStage_t *pStage, shaderCommands_t *input)
 		else
 			R_GLSL_SetUniform_TexEnv(program, input->shader->multitextureEnv);
 	}
-
-
-
-
     glsl_lightmapIndex=0;
 
 	/* texture unit 0 */
@@ -1611,9 +1519,6 @@ void GLSL_DefaultProgram_Feeder(shaderStage_t *pStage, shaderCommands_t *input)
 		glsl_lightmapIndex++;
 	}
 
-
-
-
 	/* texture unit 1 */
 	//if (program->u_Texture1 > -1 )
 	if (pStage->bundle[1].image[0])
@@ -1622,63 +1527,33 @@ void GLSL_DefaultProgram_Feeder(shaderStage_t *pStage, shaderCommands_t *input)
 		qglEnable(GL_TEXTURE_2D);
 		R_BindAnimatedImage(&pStage->bundle[1]);
 		glsl_lightmapIndex++;
-/*		if (pStage->bundle[1].tcGen==TCGEN_LIGHTMAP)
-            {
-            qglEnableClientState( GL_TEXTURE_COORD_ARRAY );
-            qglTexCoordPointer( 2, GL_FLOAT, 16, tess.texCoords[0][1] );
-            }
-	*/}
+}
 
-//TCGEN_IDENTITY
 
 int abc;
 abc=0;
-
+//stage=0;
     if ((pStage->bundle[0].isLightmap) || (pStage->bundle[1].isLightmap))
-{
+	{
     for (stage=0;stage<MAX_SHADER_STAGES;stage++) // tess.numPasses
     if (tess.shader->stages[stage]!=NULL && tess.shader->stages[stage]->active)
         for (bundle=0;bundle<NUM_TEXTURE_BUNDLES;bundle++)
             if (tess.shader->stages[stage]->bundle[bundle].isLightmap)  // shader/geometry has a lightmap
             if (tess.shader->stages[stage]->bundle[bundle].image!=NULL)
             {
-            // get the tex coords
-            //ri.Printf( PRINT_WARNING, "+lightmap" );
-            // get the texture location
-            //glsl_lightmapIndex = tess.shader->lightmapIndex;
-            //GL_Bind( tess.xstages[stage]->bundle[bundle].image);// lightmaps[glsl_lightmapIndex]);
-/*		GL_SelectTexture(1);
-		qglEnable(GL_TEXTURE_2D);
-            R_BindAnimatedImage(&tess.shader->stages[stage]->bundle[bundle]);
-            //GL_Bind(tr.lightmaps[tess.shader->lightmapIndex]);
-
-            qglEnableClientState( GL_TEXTURE_COORD_ARRAY );
-            qglTexCoordPointer( 2, GL_FLOAT, 16, tess.texCoords[0][1] );
-*/
             bundle=3000;
             abc=stage;
             stage=3000;
             }
- }
+	}
 
-
-
-    //if 1 or 2 then this texture is lightmap (for default glsl program to handle)
-//    if (pStage->bundle[0].isLightmap)glsl_lightmapIndex = 9;
-//    if (pStage->bundle[1].isLightmap)glsl_lightmapIndex = 10;
-
-
-
-	//}
 
     R_GLSL_SetUniform_LightmapControl(program,glsl_lightmapIndex);
 
-if ((stage>=3000) && (tess.shader->stages[abc]==pStage))
+	if ((stage>=3000) && (tess.shader->stages[abc]==pStage))
             R_GLSL_SetUniform_LightmapControl(program,1);
             else
             R_GLSL_SetUniform_LightmapControl(program,0);
-
-
 
     ent=&tr.currentEntity;
 
@@ -1687,100 +1562,24 @@ if ((stage>=3000) && (tess.shader->stages[abc]==pStage))
     else
     R_GLSL_SetUniform_u_etype(program,1);
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 	if (program->u_NumLights > -1)
 	{
 	qglUniformMatrix3fvARB(program->u_Lightinfo, 32, GL_FALSE, (float *)&glsl_light);
-//	qglUniform1iARB(program->u_NumLights, glsl_lights);
-	if (glsl_lights>0)
-	qglUniform1iARB(program->u_NumLights, glsl_lights);
-	else
-	qglUniform1iARB(program->u_NumLights, 0);
+		if (glsl_lights>0)
+		qglUniform1iARB(program->u_NumLights, glsl_lights);
+		else
+		qglUniform1iARB(program->u_NumLights, 0);
 	}
 
 
-if (input->shader->polygonOffset)
-{
-//return;
-R_GLSL_UseProgram(0);
-
-}
+	if (input->shader->polygonOffset)
+	{
+	R_GLSL_UseProgram(0);
+	}
 
 
 }
 
-
-
-
-
-
-
-
-
-
-
-/*
-
-float	tempEntityMatrix[16];
-void getMVMatrix()
-{
-	vec3_t	origin;
-
-	Com_Memset (&tr.or, 0, sizeof(tr.or));
-	tr.or.axis[0][0] = 1;
-	tr.or.axis[1][1] = 1;
-	tr.or.axis[2][2] = 1;
-	VectorCopy (tr.viewParms.or.origin, tr.or.viewOrigin);
-
-    //tr.currentEntity->e.axis
-    //tr.currentEntity->e.origin
-
-	// transform by the camera placement
-	VectorCopy( tr.viewParms.or.origin, origin );
-
-	viewerMatrix[0] = tr.viewParms.or.axis[0][0];
-	viewerMatrix[4] = tr.viewParms.or.axis[0][1];
-	viewerMatrix[8] = tr.viewParms.or.axis[0][2];
-	viewerMatrix[12] = -origin[0] * viewerMatrix[0] + -origin[1] * viewerMatrix[4] + -origin[2] * viewerMatrix[8];
-
-	viewerMatrix[1] = tr.viewParms.or.axis[1][0];
-	viewerMatrix[5] = tr.viewParms.or.axis[1][1];
-	viewerMatrix[9] = tr.viewParms.or.axis[1][2];
-	viewerMatrix[13] = -origin[0] * viewerMatrix[1] + -origin[1] * viewerMatrix[5] + -origin[2] * viewerMatrix[9];
-
-	viewerMatrix[2] = tr.viewParms.or.axis[2][0];
-	viewerMatrix[6] = tr.viewParms.or.axis[2][1];
-	viewerMatrix[10] = tr.viewParms.or.axis[2][2];
-	viewerMatrix[14] = -origin[0] * viewerMatrix[2] + -origin[1] * viewerMatrix[6] + -origin[2] * viewerMatrix[10];
-
-	viewerMatrix[3] = 0;
-	viewerMatrix[7] = 0;
-	viewerMatrix[11] = 0;
-	viewerMatrix[15] = 1;
-
-	// convert from our coordinate system (looking down X)
-	// to OpenGL's coordinate system (looking down -Z)
-	myGlMultMatrix( viewerMatrix, s_flipMatrix, tr.or.modelMatrix );
-
-	tr.viewParms.world = tr.or;
-
-}*/
 // GLSL Feeder
 void GLSL_Feeder(shaderStage_t *pStage, shaderCommands_t *input)
 {
@@ -1791,9 +1590,6 @@ void GLSL_Feeder(shaderStage_t *pStage, shaderCommands_t *input)
 	if (pStage->program)
 		/* use specified program */
 		R_GLSL_UseProgram(pStage->program);
-	else
-		/* use default program */
-		R_GLSL_UseProgram(tr.defaultProgram);
 
 	program = tr.programs[glState.currentProgram];
 
@@ -1848,13 +1644,8 @@ void GLSL_Feeder(shaderStage_t *pStage, shaderCommands_t *input)
 	/* model view matrix */
 	if (program->u_ModelViewMatrix > -1)
         //if (backEnd.currentEntity=tr.worldEntity)
-    qglGetFloatv(GL_MODELVIEW_MATRIX, glMatrix);
+	    qglGetFloatv(GL_MODELVIEW_MATRIX, glMatrix);
 		R_GLSL_SetUniform_ModelViewMatrix(program, glMatrix);
-//		R_GLSL_SetUniform_ModelViewMatrix(program, glState.currentModelViewMatrix);
-       // else
-        //{
-        //getMVMatrix();
-        //}
 
 	/* model view projection matrix */
 	if (program->u_ModelViewProjectionMatrix > -1)
@@ -1897,27 +1688,16 @@ void GLSL_Feeder(shaderStage_t *pStage, shaderCommands_t *input)
             if (tess.shader->stages[stage]->bundle[bundle].isLightmap)  // shader/geometry has a lightmap
             if (tess.shader->stages[stage]->bundle[bundle].image!=NULL)
             {
-            // get the tex coords
-            //ri.Printf( PRINT_WARNING, "+lightmap" );
-            // get the texture location
-            //glsl_lightmapIndex = tess.shader->lightmapIndex;
-            //GL_Bind( tess.xstages[stage]->bundle[bundle].image);// lightmaps[glsl_lightmapIndex]);
-		GL_SelectTexture(1);
-		qglEnable(GL_TEXTURE_2D);
+			GL_SelectTexture(1);
+			qglEnable(GL_TEXTURE_2D);
             R_BindAnimatedImage(&tess.shader->stages[stage]->bundle[bundle]);
-            //GL_Bind(tr.lightmaps[tess.shader->lightmapIndex]);
-
             qglEnableClientState( GL_TEXTURE_COORD_ARRAY );
             qglTexCoordPointer( 2, GL_FLOAT, 16, tess.texCoords[0][1] );
             bundle=3000;
             stage=3000;
             }
-    //if 1 or 2 then this texture is lightmap (for default glsl program to handle)
     if (pStage->bundle[0].isLightmap)glsl_lightmapIndex = 1;
     if (pStage->bundle[1].isLightmap)glsl_lightmapIndex = 2;
-
-
-
 	}
     if (input->shader->polygonOffset) glsl_lightmapIndex = 3;
     R_GLSL_SetUniform_LightmapControl(program,glsl_lightmapIndex);
@@ -2057,87 +1837,54 @@ void RB_CopyAllLightInfo( void )
 {
 	int				i;
 	dlight_t		*dl;
-		//trRefEntity_t	*ent;
 	float 			origin[3];
 	trRefdef_t *refdef;
 	float		distx;
 
-
-	//float tempmatrix[16];
-
-    //if ( )
-    //{
-    //Matrix4Multiply(backEnd.viewParms.projectionMatrix, tr.viewParms.world.modelMatrix, &tempmatrix[0]);
-    //VectorCopy( tr.sunDirection, oa_SunPos);
-    //for (i=0;i<16;i++) MVPMatrixSunPos[i]=glState.currentModelViewProjectionMatrix[i];//tempmatrix[i];
-    //    }//glState.currentModelViewProjectionMatrix[i];
-
-//or get from opengl
-
 if (!glsl_lights)
 {
-
-
 	refdef=&backEnd.refdef;
 	for ( i = 0 ; i < refdef->num_dlights ; i++ )
-	{
+		{
 			dl = &refdef->dlights[i];
-
-			//glsl_light[i].numlights=i; //refdef->num_dlights;
-	// down x to down -z
-			//ent = backEnd.currentEntity;
 			R_TransformDlights( refdef->num_dlights, refdef->dlights, &backEnd.or );
-
-
 			VectorCopy( dl->transformed, origin );
 			glsl_light[i+1].pos[0] = origin[0];
 			glsl_light[i+1].pos[1] = origin[1];
 			glsl_light[i+1].pos[2] = origin[2];
-					VectorCopy( dl->color, origin );
-					glsl_light[i+1].col[0] = origin[0];
-					glsl_light[i+1].col[1] = origin[1];
-					glsl_light[i+1].col[2] = origin[2];
-
-					glsl_light[i+1].radius[0] = dl->radius;
-	}
-	//glsl_light[0].numlights=refdef->num_dlights;
-
-
-	//qglLoadMatrixf( backEnd.viewParms.world.modelMatrix );
-	//qglTranslatef (backEnd.viewParms.or.origin[0], backEnd.viewParms.or.origin[1], backEnd.viewParms.or.origin[2]);
-
+			VectorCopy( dl->color, origin );
+			glsl_light[i+1].col[0] = origin[0];
+			glsl_light[i+1].col[1] = origin[1];
+			glsl_light[i+1].col[2] = origin[2];
+			glsl_light[i+1].radius[0] = dl->radius;
+		}
 	distx = 	backEnd.viewParms.zFar / 1.75;		// div sqrt(3)
-
-
 	VectorCopy( tr.sunDirection, origin );
-
-
-	//VectorCopy( tr.sunDirection, origin );
 	glsl_light[0].pos[0] = origin[0];
 	glsl_light[0].pos[1] = origin[1];
 	glsl_light[0].pos[2] = origin[2];
-			VectorCopy( tr.sunLight, origin );
-			glsl_light[0].col[0] = origin[0];
-			glsl_light[0].col[1] = origin[1];
-			glsl_light[0].col[2] = origin[2];
-
-			glsl_light[0].radius[0] = distx/2.0;
+	VectorCopy( tr.sunLight, origin );
+	glsl_light[0].col[0] = origin[0];
+	glsl_light[0].col[1] = origin[1];
+	glsl_light[0].col[2] = origin[2];
+	glsl_light[0].radius[0] = distx/2.0;
     glsl_lights=i+1;
 }
 	return;
 
 }
 
-
-typedef struct {
-    GLfloat  x,  y,  z;
-    GLfloat nx, ny, nz;
-    GLfloat tx, ty, tz;
-    GLfloat _tx, _ty, _tz;
-    GLfloat _bx, _by, _bz;
-    GLfloat _nx, _ny, _nz;
-    GLfloat padding[14];
+typedef struct  {    
+GLfloat  x,  y,  z;    
+GLfloat nx, ny, nz;    
+GLfloat tx, ty, tz;    
+GLfloat _tx, _ty, _tz;    
+GLfloat _bx, _by, _bz;    
+GLfloat _nx, _ny, _nz;    
 } vertex_;
+
+
+
 
 void GLSL_computeTangentSpaceMatrix(vertex_ *p0, vertex_ *p1, vertex_ *p2)
 {
@@ -2179,6 +1926,175 @@ void GLSL_computeTangentSpaceMatrix(vertex_ *p0, vertex_ *p1, vertex_ *p2)
 
 
 }
+
+static void RB_GLSL_CalcTangentsNormals(shaderCommands_t *input)
+{
+	int i,j;
+vec3_t temp4;
+vec2_t temp2;
+vertex_ p0,  p1,  p2;
+GLfloat v1x, v1y, v1z, v2x, v2y, v2z, u1x, u1y, u2x, u2y, det;    
+
+	temp4[0]=0;	temp4[1]=0;	temp4[2]=0;
+	for (i=0;i<input->numVertexes;i++)
+	{
+	input->tangent[i][0]=0;
+	input->tangent[i][1]=0;
+	input->tangent[i][2]=0;
+	input->binormal[i][0]=0;
+	input->binormal[i][1]=0;
+	input->binormal[i][2]=0;
+	input->_normal[i][0]=0;
+	input->_normal[i][1]=0;
+	input->_normal[i][2]=0;
+	input->tangents[i]=0;
+	}
+
+	for (i=0;i<input->numIndexes;i+=3)
+	{
+	j=input->indexes[i];
+
+	VectorCopy( input->xyz[j], temp4 );
+	p0.x=temp4[0];
+	p0.y=temp4[1];
+	p0.z=temp4[2];
+
+	VectorCopy( input->normal[j], temp4 );
+	p0.nx=temp4[0];
+	p0.ny=temp4[1];
+	p0.nz=temp4[2];
+	
+	temp2[0]=input->texCoords[j][0][0];
+	temp2[1]=input->texCoords[j][0][1];
+	p0.tx=temp2[0];
+	p0.ty=temp2[1];
+	p0.tz=0;
+
+	j=input->indexes[i+1];
+
+	VectorCopy( input->xyz[j], temp4 );
+	p1.x=temp4[0];
+	p1.y=temp4[1];
+	p1.z=temp4[2];
+
+	VectorCopy( input->normal[j], temp4 );
+	p1.nx=temp4[0];
+	p1.ny=temp4[1];
+	p1.nz=temp4[2];
+	
+	temp2[0]=input->texCoords[j][0][0];
+	temp2[1]=input->texCoords[j][0][1];
+	p1.tx=temp2[0];
+	p1.ty=temp2[1];
+	p1.tz=0;
+
+	j=input->indexes[i+2];
+
+	VectorCopy( input->xyz[j], temp4 );
+	p2.x=temp4[0];
+	p2.y=temp4[1];
+	p2.z=temp4[2];
+
+	VectorCopy( input->normal[j], temp4 );
+	p2.nx=temp4[0];
+	p2.ny=temp4[1];
+	p2.nz=temp4[2];
+	
+	temp2[0]=input->texCoords[j][0][0];
+	temp2[1]=input->texCoords[j][0][1];
+	p2.tx=temp2[0];
+	p2.ty=temp2[1];
+	p2.tz=0;
+
+	v1x = p1.x - p0.x;    
+	v1y = p1.y - p0.y;    
+	v1z = p1.z - p0.z;     
+	v2x = p2.x - p0.x;    
+	v2y = p2.y - p0.y;    
+	v2z = p2.z - p0.z;     
+	u1x = p1.tx - p0.tx;    
+	u1y = p1.ty - p0.ty;     
+	u2x = p2.tx - p0.tx;    
+	u2y = p2.ty - p0.ty;     
+	det = 1.0f/(u1x * u2y - u2x * u1y);     
+
+	
+
+	p0._tx = (v1x * u2y - v2x * u1y) / det;    
+	p0._ty = (v1y * u2y - v2y * u1y) / det;    
+	p0._tz = (v1z * u2y - v2z * u1y) / det;     
+	p0._bx = (v2x * u1x - v1x * u2x) / det;    
+	p0._by = (v2y * u1x - v1y * u2x) / det;    
+	p0._bz = (v2z * u1x - v1z * u2x) / det;     
+	p0._nx = v1y*v2z-v1z*v2y;    
+	p0._ny = v1z*v2x-v1x*v2z;    
+	p0._nz = v1x*v2y-v1y*v2x;
+
+
+	
+
+	j=input->indexes[i];	
+	input->tangent[j][0]+=p0._tx;
+	input->tangent[j][1]+=p0._ty;
+	input->tangent[j][2]+=p0._tz;
+
+	input->binormal[j][0]+=p0._bx;
+	input->binormal[j][1]+=p0._by;
+	input->binormal[j][2]+=p0._bz;
+
+	input->_normal[j][0]=p0._nx;
+	input->_normal[j][1]=p0._ny;
+	input->_normal[j][2]=p0._nz;
+
+	input->tangents[j]++;
+
+	j=input->indexes[i+1];	
+	input->tangent[j][0]+=p0._tx;
+	input->tangent[j][1]+=p0._ty;
+	input->tangent[j][2]+=p0._tz;
+
+	input->binormal[j][0]+=p0._bx;
+	input->binormal[j][1]+=p0._by;
+	input->binormal[j][2]+=p0._bz;
+
+	input->_normal[j][0]=p0._nx;
+	input->_normal[j][1]=p0._ny;
+	input->_normal[j][2]=p0._nz;
+
+	input->tangents[j]++;
+
+	j=input->indexes[i+2];	
+	input->tangent[j][0]+=p0._tx;
+	input->tangent[j][1]+=p0._ty;
+	input->tangent[j][2]+=p0._tz;
+
+	input->binormal[j][0]+=p0._bx;
+	input->binormal[j][1]+=p0._by;
+	input->binormal[j][2]+=p0._bz;
+
+	input->_normal[j][0]=p0._nx;
+	input->_normal[j][1]=p0._ny;
+	input->_normal[j][2]=p0._nz;
+
+	input->tangents[j]++;
+
+	}
+
+	for (i=0;i<=input->numVertexes;i++)
+	{
+	if (input->tangents[i]==0) input->tangents[i]=1;
+	input->tangent[i][0]/=input->tangents[i];
+	input->tangent[i][1]/=input->tangents[i];
+	input->tangent[i][2]/=input->tangents[i];
+	input->binormal[i][0]/=input->tangents[i];
+	input->binormal[i][1]/=input->tangents[i];
+	input->binormal[i][2]/=input->tangents[i];
+	}
+
+
+}
+
+
 /*
 ** RB_IterateStagesGeneric
 */
@@ -2198,15 +2114,11 @@ static void RB_IterateStagesGeneric( shaderCommands_t *input )
 		ComputeColors( pStage );
 		ComputeTexCoords( pStage );
 
- //if (input->shader->polygonOffset) {					return;
-//}
 
-if (input->shader->polygonOffset)
-{
-//return;
-R_GLSL_UseProgram(0);
-
-}
+	if (input->shader->polygonOffset)
+		{
+		R_GLSL_UseProgram(0);
+		}
 
 
 
@@ -2214,8 +2126,7 @@ R_GLSL_UseProgram(0);
 
 
 
-//R_GLSL_UseProgram(tr.defaultProgram);
-		if ( !setArraysOnce )
+	if ( !setArraysOnce )
 		{
 			qglEnableClientState( GL_COLOR_ARRAY );
 			qglColorPointer( 4, GL_UNSIGNED_BYTE, 0, input->svars.colors );
@@ -2223,10 +2134,7 @@ R_GLSL_UseProgram(0);
 
 		if (pStage->isGLSL && vertexShaders && pStage->program && tr.programs[pStage->program]->valid)
 		{
-//            RB_CopyAllLightInfo();
 			GLSL_Feeder(pStage, input);
-//			qglEnableClientState( GL_COLOR_ARRAY );
-//			qglColorPointer( 4, GL_UNSIGNED_BYTE, 0, input->svars.colors );
 			qglEnableVertexAttribArrayARB(6);
 			qglVertexAttribPointerARB(6,3,GL_FLOAT,GL_FALSE,0,input->tangent);
 			qglEnableVertexAttribArrayARB(7);
@@ -2243,9 +2151,7 @@ R_GLSL_UseProgram(0);
 		{
         if (vertexShaders)
         {
-            //RB_CopyAllLightInfo();
 			GLSL_DefaultProgram_Feeder(pStage, input);
-
 			qglEnableVertexAttribArrayARB(6);
 			qglVertexAttribPointerARB(6,3,GL_FLOAT,GL_FALSE,0,input->tangent);
 			qglEnableVertexAttribArrayARB(7);
@@ -2262,7 +2168,7 @@ R_GLSL_UseProgram(0);
 		if ( pStage->bundle[1].image[0] != 0 )
 		{
 			// Here draw world
-	if (!r_leifx->integer)
+		if (!r_leifx->integer)
 			DrawMultitextured( input, stage );
 		}
 		else
@@ -2271,7 +2177,7 @@ R_GLSL_UseProgram(0);
 			{
 				qglTexCoordPointer( 2, GL_FLOAT, 0, input->svars.texcoords[0] );
 			}
-// need good coordinates here, under good conditions
+			// need good coordinates here, under good conditions
 			//
 			// set state
 			//
@@ -2289,7 +2195,7 @@ R_GLSL_UseProgram(0);
         if (vertexShaders)
             GLSL_Clean();
 
-		}
+        }
 
 		// allow skipping out to show just lightmaps during development
 		if ( r_lightmap->integer && ( pStage->bundle[0].isLightmap || pStage->bundle[1].isLightmap ) )
@@ -2307,198 +2213,14 @@ void RB_StageIteratorGeneric( void )
 {
 	shaderCommands_t *input;
 	shader_t		*shader;
-   int i,j;
-    vertex_ p0, p1, p2;
-    vec3_t temp4, temp2;
-
-    GLfloat v1x, v1y, v1z, v2x, v2y, v2z, u1x, u1y, u2x, u2y, det;
 
 	input = &tess;
 	shader = input->shader;
 
 	RB_DeformTessGeometry();
+	RB_GLSL_CalcTangentsNormals(input);
 
 
-
-	temp4[0]=0;	temp4[1]=0;	temp4[2]=0;
-	for (i=0;i<input->numVertexes;i++)
-	{
-	input->tangent[i][0]=0;
-	input->tangent[i][1]=0;
-	input->tangent[i][2]=0;
-	input->binormal[i][0]=0;
-	input->binormal[i][1]=0;
-	input->binormal[i][2]=0;
-	input->_normal[i][0]=0;
-	input->_normal[i][1]=0;
-	input->_normal[i][2]=0;
-	input->tangents[i]=0;
-	}
-
-	//ri.Printf( PRINT_WARNING, "input->numVertexes:%8d input->numIndexes:%8d\n",input->numVertexes,input->numIndexes );
-
-	for (i=0;i<input->numIndexes;i+=3)
-	{
-	j=input->indexes[i];
-
-	VectorCopy( input->xyz[j], temp4 );
-	p0.x=temp4[0];
-	p0.y=temp4[1];
-	p0.z=temp4[2];
-
-	VectorCopy( input->normal[j], temp4 );
-	p0.nx=temp4[0];
-	p0.ny=temp4[1];
-	p0.nz=temp4[2];
-
-	temp2[0]=input->texCoords[j][0][0];
-	temp2[1]=input->texCoords[j][0][1];
-	p0.tx=temp2[0];
-	p0.ty=temp2[1];
-	p0.tz=0;
-
-	j=input->indexes[i+1];
-
-	VectorCopy( input->xyz[j], temp4 );
-	p1.x=temp4[0];
-	p1.y=temp4[1];
-	p1.z=temp4[2];
-
-	VectorCopy( input->normal[j], temp4 );
-	p1.nx=temp4[0];
-	p1.ny=temp4[1];
-	p1.nz=temp4[2];
-
-	temp2[0]=input->texCoords[j][0][0];
-	temp2[1]=input->texCoords[j][0][1];
-	p1.tx=temp2[0];
-	p1.ty=temp2[1];
-	p1.tz=0;
-
-	j=input->indexes[i+2];
-
-	VectorCopy( input->xyz[j], temp4 );
-	p2.x=temp4[0];
-	p2.y=temp4[1];
-	p2.z=temp4[2];
-
-	VectorCopy( input->normal[j], temp4 );
-	p2.nx=temp4[0];
-	p2.ny=temp4[1];
-	p2.nz=temp4[2];
-
-	temp2[0]=input->texCoords[j][0][0];
-	temp2[1]=input->texCoords[j][0][1];
-	p2.tx=temp2[0];
-	p2.ty=temp2[1];
-	p2.tz=0;
-
-	v1x = p1.x - p0.x;
-	v1y = p1.y - p0.y;
-	v1z = p1.z - p0.z;
-	v2x = p2.x - p0.x;
-	v2y = p2.y - p0.y;
-	v2z = p2.z - p0.z;
-	u1x = p1.tx - p0.tx;
-	u1y = p1.ty - p0.ty;
-	u2x = p2.tx - p0.tx;
-	u2y = p2.ty - p0.ty;
-	det = 1.0f/(u1x * u2y - u2x * u1y);
-
-
-
-	p0._tx = (v1x * u2y - v2x * u1y) / det;
-	p0._ty = (v1y * u2y - v2y * u1y) / det;
-	p0._tz = (v1z * u2y - v2z * u1y) / det;
-	p0._bx = (v2x * u1x - v1x * u2x) / det;
-	p0._by = (v2y * u1x - v1y * u2x) / det;
-	p0._bz = (v2z * u1x - v1z * u2x) / det;
-	p0._nx = v1y*v2z-v1z*v2y;
-	p0._ny = v1z*v2x-v1x*v2z;
-	p0._nz = v1x*v2y-v1y*v2x;
-
-
-
-
-	j=input->indexes[i];
-	input->tangent[j][0]+=p0._tx;
-	input->tangent[j][1]+=p0._ty;
-	input->tangent[j][2]+=p0._tz;
-
-	input->binormal[j][0]+=p0._bx;
-	input->binormal[j][1]+=p0._by;
-	input->binormal[j][2]+=p0._bz;
-
-	input->_normal[j][0]=p0._nx;
-	input->_normal[j][1]=p0._ny;
-	input->_normal[j][2]=p0._nz;
-
-	input->tangents[j]++;
-
-	j=input->indexes[i+1];
-	input->tangent[j][0]+=p0._tx;
-	input->tangent[j][1]+=p0._ty;
-	input->tangent[j][2]+=p0._tz;
-
-	input->binormal[j][0]+=p0._bx;
-	input->binormal[j][1]+=p0._by;
-	input->binormal[j][2]+=p0._bz;
-
-	input->_normal[j][0]=p0._nx;
-	input->_normal[j][1]=p0._ny;
-	input->_normal[j][2]=p0._nz;
-
-	input->tangents[j]++;
-
-	j=input->indexes[i+2];
-	input->tangent[j][0]+=p0._tx;
-	input->tangent[j][1]+=p0._ty;
-	input->tangent[j][2]+=p0._tz;
-
-	input->binormal[j][0]+=p0._bx;
-	input->binormal[j][1]+=p0._by;
-	input->binormal[j][2]+=p0._bz;
-
-	input->_normal[j][0]=p0._nx;
-	input->_normal[j][1]=p0._ny;
-	input->_normal[j][2]=p0._nz;
-
-	input->tangents[j]++;
-
-	}
-
-/*	for (i=0;i<=input->numVertexes;i++)
-	{
-	if (input->tangents[i]==0) input->tangents[i]=1;
-	input->tangent[i][0]/=input->tangents[i];
-	input->tangent[i][1]/=input->tangents[i];
-	input->tangent[i][2]/=input->tangents[i];
-	input->binormal[i][0]/=input->tangents[i];
-	input->binormal[i][1]/=input->tangents[i];
-	input->binormal[i][2]/=input->tangents[i];
-	}
-*/
-	//	RB_CopyAllLightInfo(input, input->numIndexes, input->indexes);
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-//R_GLSL_UseProgram(tr.defaultProgram);
 	//
 	// log this call
 	//
@@ -2567,19 +2289,16 @@ void RB_StageIteratorGeneric( void )
 	// call shader function
 	//
 	RB_IterateStagesGeneric( input );
-	//R_GLSL_UseProgram(0);
 
 	// 
 	// now do any dynamic lighting needed
 	//
 	if (!vertexShaders)
 	{
-	//if (vertexShaders) qglPushClientAttrib(GL_CLIENT_ALL_ATTRIB_BITS);
 	if ( tess.dlightBits && tess.shader->sort <= SS_OPAQUE
 		&& !(tess.shader->surfaceFlags & (SURF_NODLIGHT | SURF_SKY) ) ) {
 		ProjectDlightTexture();
 	}
-	//if (vertexShaders) qglPopClientAttrib();
     }
 	//
 	// now do fog
@@ -2614,130 +2333,15 @@ void RB_StageIteratorVertexLitTexture( void )
 {
 	shaderCommands_t *input;
 	shader_t		*shader;
-    int i,j;
-    vertex_ p0, p1, p2;
-    vec3_t temp4, temp2;
 
 	input = &tess;
 	shader = input->shader;
 
+	RB_GLSL_CalcTangentsNormals(input);
 	//
 	// compute colors
 	//
 	RB_CalcDiffuseColor( ( unsigned char * ) tess.svars.colors );
-
-if (vertexShaders)
-{
-
-	temp4[0]=0;	temp4[1]=0;	temp4[2]=0;
-	for (i=0;i<input->numVertexes;i++)
-	{
-	input->tangent[i][0]=0;
-	input->tangent[i][1]=0;
-	input->tangent[i][2]=0;
-	input->binormal[i][0]=0;
-	input->binormal[i][1]=0;
-	input->binormal[i][2]=0;
-	input->_normal[i][0]=0;
-	input->_normal[i][1]=0;
-	input->_normal[i][2]=0;
-	input->tangents[i]=0;
-	}
-
-	//ri.Printf( PRINT_WARNING, "input->numVertexes:%8d input->numIndexes:%8d\n",input->numVertexes,input->numIndexes );
-
-	for (i=0;i<input->numIndexes;i+=3)
-	{
-	j=input->indexes[i];
-
-	VectorCopy( input->xyz[j], temp4 );
-	p0.x=temp4[0];
-	p0.y=temp4[1];
-	p0.z=temp4[2];
-	temp2[0]=input->texCoords[j][0][0];
-	temp2[1]=input->texCoords[j][0][1];
-	p0.tx=temp2[0];
-	p0.ty=temp2[1];
-	p0.tz=0;
-
-	j=input->indexes[i+1];
-
-	VectorCopy( input->xyz[j], temp4 );
-	p1.x=temp4[0];
-	p1.y=temp4[1];
-	p1.z=temp4[2];
-
-	temp2[0]=input->texCoords[j][0][0];
-	temp2[1]=input->texCoords[j][0][1];
-	p1.tx=temp2[0];
-	p1.ty=temp2[1];
-	p1.tz=0;
-
-	j=input->indexes[i+2];
-
-	VectorCopy( input->xyz[j], temp4 );
-	p2.x=temp4[0];
-	p2.y=temp4[1];
-	p2.z=temp4[2];
-
-	temp2[0]=input->texCoords[j][0][0];
-	temp2[1]=input->texCoords[j][0][1];
-	p2.tx=temp2[0];
-	p2.ty=temp2[1];
-	p2.tz=0;
-
-    GLSL_computeTangentSpaceMatrix(&p0,&p1,&p2);
-
-	j=input->indexes[i];
-	input->tangent[j][0]+=p0._tx;
-	input->tangent[j][1]+=p0._ty;
-	input->tangent[j][2]+=p0._tz;
-
-	input->binormal[j][0]+=p0._bx;
-	input->binormal[j][1]+=p0._by;
-	input->binormal[j][2]+=p0._bz;
-
-	input->_normal[j][0]+=p0._nx;
-	input->_normal[j][1]+=p0._ny;
-	input->_normal[j][2]+=p0._nz;
-
-	j=input->indexes[i+1];
-	input->tangent[j][0]+=p0._tx;
-	input->tangent[j][1]+=p0._ty;
-	input->tangent[j][2]+=p0._tz;
-
-	input->binormal[j][0]+=p0._bx;
-	input->binormal[j][1]+=p0._by;
-	input->binormal[j][2]+=p0._bz;
-
-	input->_normal[j][0]+=p0._nx;
-	input->_normal[j][1]+=p0._ny;
-	input->_normal[j][2]+=p0._nz;
-
-	j=input->indexes[i+2];
-	input->tangent[j][0]+=p0._tx;
-	input->tangent[j][1]+=p0._ty;
-	input->tangent[j][2]+=p0._tz;
-
-	input->binormal[j][0]+=p0._bx;
-	input->binormal[j][1]+=p0._by;
-	input->binormal[j][2]+=p0._bz;
-
-	input->_normal[j][0]+=p0._nx;
-	input->_normal[j][1]+=p0._ny;
-	input->_normal[j][2]+=p0._nz;
-
-	}
-
-
-
-
-
-
-
-
-}
-
 
 	//
 	// log this call
@@ -2787,7 +2391,6 @@ if (vertexShaders)
 		if (pStage->isGLSL && vertexShaders && pStage->program && tr.programs[pStage->program]->valid)
 		{
         GL_State( pStage->stateBits );
-            //RB_CopyAllLightInfo();
 			GLSL_Feeder(pStage, input);
 			qglEnableVertexAttribArrayARB(6);
 			qglVertexAttribPointerARB(6,3,GL_FLOAT,GL_FALSE,0,input->tangent);
@@ -2802,7 +2405,6 @@ if (vertexShaders)
 		{
         if (vertexShaders)
         {
-            //RB_CopyAllLightInfo();
 			GLSL_DefaultProgram_Feeder(pStage, input);
 			qglEnableVertexAttribArrayARB(6);
 			qglVertexAttribPointerARB(6,3,GL_FLOAT,GL_FALSE,0,input->tangent);
@@ -2855,125 +2457,10 @@ badshader1:
 void RB_StageIteratorLightmappedMultitexture( void ) {
 	shaderCommands_t *input;
 	shader_t		*shader;
-    int i,j;
-    vertex_ p0, p1, p2;
-    vec3_t temp4, temp2;
-
 	input = &tess;
 	shader = input->shader;
 
-//R_GLSL_UseProgram(tr.defaultProgram);
-if (vertexShaders)
-{
-
-	temp4[0]=0;	temp4[1]=0;	temp4[2]=0;
-	for (i=0;i<input->numVertexes;i++)
-	{
-	input->tangent[i][0]=0;
-	input->tangent[i][1]=0;
-	input->tangent[i][2]=0;
-	input->binormal[i][0]=0;
-	input->binormal[i][1]=0;
-	input->binormal[i][2]=0;
-	input->_normal[i][0]=0;
-	input->_normal[i][1]=0;
-	input->_normal[i][2]=0;
-	input->tangents[i]=0;
-	}
-
-	//ri.Printf( PRINT_WARNING, "input->numVertexes:%8d input->numIndexes:%8d\n",input->numVertexes,input->numIndexes );
-
-	for (i=0;i<input->numIndexes;i+=3)
-	{
-	j=input->indexes[i];
-
-	VectorCopy( input->xyz[j], temp4 );
-	p0.x=temp4[0];
-	p0.y=temp4[1];
-	p0.z=temp4[2];
-	temp2[0]=input->texCoords[j][0][0];
-	temp2[1]=input->texCoords[j][0][1];
-	p0.tx=temp2[0];
-	p0.ty=temp2[1];
-	p0.tz=0;
-
-	j=input->indexes[i+1];
-
-	VectorCopy( input->xyz[j], temp4 );
-	p1.x=temp4[0];
-	p1.y=temp4[1];
-	p1.z=temp4[2];
-
-	temp2[0]=input->texCoords[j][0][0];
-	temp2[1]=input->texCoords[j][0][1];
-	p1.tx=temp2[0];
-	p1.ty=temp2[1];
-	p1.tz=0;
-
-	j=input->indexes[i+2];
-
-	VectorCopy( input->xyz[j], temp4 );
-	p2.x=temp4[0];
-	p2.y=temp4[1];
-	p2.z=temp4[2];
-
-	temp2[0]=input->texCoords[j][0][0];
-	temp2[1]=input->texCoords[j][0][1];
-	p2.tx=temp2[0];
-	p2.ty=temp2[1];
-	p2.tz=0;
-
-    GLSL_computeTangentSpaceMatrix(&p0,&p1,&p2);
-
-	j=input->indexes[i];
-	input->tangent[j][0]+=p0._tx;
-	input->tangent[j][1]+=p0._ty;
-	input->tangent[j][2]+=p0._tz;
-
-	input->binormal[j][0]+=p0._bx;
-	input->binormal[j][1]+=p0._by;
-	input->binormal[j][2]+=p0._bz;
-
-	input->_normal[j][0]+=p0._nx;
-	input->_normal[j][1]+=p0._ny;
-	input->_normal[j][2]+=p0._nz;
-
-	j=input->indexes[i+1];
-	input->tangent[j][0]+=p0._tx;
-	input->tangent[j][1]+=p0._ty;
-	input->tangent[j][2]+=p0._tz;
-
-	input->binormal[j][0]+=p0._bx;
-	input->binormal[j][1]+=p0._by;
-	input->binormal[j][2]+=p0._bz;
-
-	input->_normal[j][0]+=p0._nx;
-	input->_normal[j][1]+=p0._ny;
-	input->_normal[j][2]+=p0._nz;
-
-	j=input->indexes[i+2];
-	input->tangent[j][0]+=p0._tx;
-	input->tangent[j][1]+=p0._ty;
-	input->tangent[j][2]+=p0._tz;
-
-	input->binormal[j][0]+=p0._bx;
-	input->binormal[j][1]+=p0._by;
-	input->binormal[j][2]+=p0._bz;
-
-	input->_normal[j][0]+=p0._nx;
-	input->_normal[j][1]+=p0._ny;
-	input->_normal[j][2]+=p0._nz;
-
-	}
-
-
-
-
-
-
-
-
-}
+	RB_GLSL_CalcTangentsNormals(input);
 	//
 	// log this call
 	//
@@ -3061,6 +2548,11 @@ if (vertexShaders)
         {
             //RB_CopyAllLightInfo();
 			GLSL_DefaultProgram_Feeder(pStage, input);
+
+
+
+
+
 			qglEnableVertexAttribArrayARB(6);
 			qglVertexAttribPointerARB(6,3,GL_FLOAT,GL_FALSE,0,input->tangent);
 			qglEnableVertexAttribArrayARB(7);
