@@ -1791,9 +1791,9 @@ void GLSL_Feeder(shaderStage_t *pStage, shaderCommands_t *input)
 	if (pStage->program)
 		/* use specified program */
 		R_GLSL_UseProgram(pStage->program);
-	else
-		/* use default program */
-		R_GLSL_UseProgram(tr.defaultProgram);
+	// miki  else
+	// miki  	/* use default program */
+	// miki  		R_GLSL_UseProgram(tr.defaultProgram);
 
 	program = tr.programs[glState.currentProgram];
 
@@ -2262,7 +2262,7 @@ R_GLSL_UseProgram(0);
 		if ( pStage->bundle[1].image[0] != 0 )
 		{
 			// Here draw world
-	if (!r_leifx->integer)
+		// miki miki if (!r_leifx->integer)
 			DrawMultitextured( input, stage );
 		}
 		else
@@ -2289,7 +2289,16 @@ R_GLSL_UseProgram(0);
         if (vertexShaders)
             GLSL_Clean();
 
+// miki miki	nije bio u originalu ovaj dio	// odin's patch adapted
+		if ( r_envMode->integer == 2) {
+			if ( pStage->bundle[0].tcGen == TCGEN_ENVIRONMENT_MAPPED ) {
+				qglDisable(GL_TEXTURE_GEN_S);
+				qglDisable(GL_TEXTURE_GEN_T);
+				qglDisable(GL_TEXTURE_GEN_R);
+			}
 		}
+		           // R_GLSL_UseProgram(0);
+        }
 
 		// allow skipping out to show just lightmaps during development
 		if ( r_lightmap->integer && ( pStage->bundle[0].isLightmap || pStage->bundle[1].isLightmap ) )
@@ -2832,7 +2841,7 @@ badshader1:
 	if ( tess.dlightBits && tess.shader->sort <= SS_OPAQUE) {
 		ProjectDlightTexture();
 	}
-
+    }
 	//
 	// now do fog
 	//
