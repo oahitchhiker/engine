@@ -1936,7 +1936,7 @@ vertex_ p0,  p1,  p2;
 GLfloat v1x, v1y, v1z, v2x, v2y, v2z, u1x, u1y, u2x, u2y, det;    
 
 	temp4[0]=0;	temp4[1]=0;	temp4[2]=0;
-	for (i=0;i<input->numVertexes;i++)
+/*	for (i=0;i<input->numVertexes;i++)
 	{
 	input->tangent[i][0]=0;
 	input->tangent[i][1]=0;
@@ -1949,7 +1949,7 @@ GLfloat v1x, v1y, v1z, v2x, v2y, v2z, u1x, u1y, u2x, u2y, det;
 	input->_normal[i][2]=0;
 	input->tangents[i]=0;
 	}
-
+	*/
 	for (i=0;i<input->numIndexes;i+=3)
 	{
 	j=input->indexes[i];
@@ -2042,9 +2042,9 @@ GLfloat v1x, v1y, v1z, v2x, v2y, v2z, u1x, u1y, u2x, u2y, det;
 	input->binormal[j][1]+=p0._by;
 	input->binormal[j][2]+=p0._bz;
 
-	input->_normal[j][0]=p0._nx;
-	input->_normal[j][1]=p0._ny;
-	input->_normal[j][2]=p0._nz;
+	input->_normal[j][0]+=p0._nx;
+	input->_normal[j][1]+=p0._ny;
+	input->_normal[j][2]+=p0._nz;
 
 	input->tangents[j]++;
 
@@ -2057,9 +2057,9 @@ GLfloat v1x, v1y, v1z, v2x, v2y, v2z, u1x, u1y, u2x, u2y, det;
 	input->binormal[j][1]+=p0._by;
 	input->binormal[j][2]+=p0._bz;
 
-	input->_normal[j][0]=p0._nx;
-	input->_normal[j][1]=p0._ny;
-	input->_normal[j][2]=p0._nz;
+	input->_normal[j][0]+=p0._nx;
+	input->_normal[j][1]+=p0._ny;
+	input->_normal[j][2]+=p0._nz;
 
 	input->tangents[j]++;
 
@@ -2072,9 +2072,9 @@ GLfloat v1x, v1y, v1z, v2x, v2y, v2z, u1x, u1y, u2x, u2y, det;
 	input->binormal[j][1]+=p0._by;
 	input->binormal[j][2]+=p0._bz;
 
-	input->_normal[j][0]=p0._nx;
-	input->_normal[j][1]=p0._ny;
-	input->_normal[j][2]=p0._nz;
+	input->_normal[j][0]+=p0._nx;
+	input->_normal[j][1]+=p0._ny;
+	input->_normal[j][2]+=p0._nz;
 
 	input->tangents[j]++;
 
@@ -2083,12 +2083,15 @@ GLfloat v1x, v1y, v1z, v2x, v2y, v2z, u1x, u1y, u2x, u2y, det;
 	for (i=0;i<=input->numVertexes;i++)
 	{
 	if (input->tangents[i]==0) input->tangents[i]=1;
-	input->tangent[i][0]/=input->tangents[i];
-	input->tangent[i][1]/=input->tangents[i];
-	input->tangent[i][2]/=input->tangents[i];
-	input->binormal[i][0]/=input->tangents[i];
-	input->binormal[i][1]/=input->tangents[i];
-	input->binormal[i][2]/=input->tangents[i];
+	input->tangent[i][0]/=(float)input->tangents[i];
+	input->tangent[i][1]/=(float)input->tangents[i];
+	input->tangent[i][2]/=(float)input->tangents[i];
+	input->binormal[i][0]/=(float)input->tangents[i];
+	input->binormal[i][1]/=(float)input->tangents[i];
+	input->binormal[i][2]/=(float)input->tangents[i];
+	input->_normal[i][0]/=(float)input->tangents[i];
+	input->_normal[i][1]/=(float)input->tangents[i];
+	input->_normal[i][2]/=(float)input->tangents[i];
 	}
 
 
