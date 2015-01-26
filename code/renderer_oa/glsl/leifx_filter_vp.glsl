@@ -5,6 +5,8 @@ varying vec2 texture_coordinate2;
 varying vec2 texture_coordinate3;
 varying vec2 texture_coordinate4;
 varying vec2 texture_coordinate5;
+uniform float u_ScreenToNextPixelX;
+uniform float u_ScreenToNextPixelY;
 uniform float u_ScreenSizeX;
 uniform float u_ScreenSizeY;
 

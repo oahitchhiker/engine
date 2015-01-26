@@ -1612,6 +1612,63 @@ static void RB_CalcDiffuseColor_scalar( unsigned char *colors )
 	}
 }
 
+// leilei - reveal normals to GLSL for light processing. HACK HACK HACK HACK HACK HACK
+void RB_CalcNormal( unsigned char *colors )
+{
+	int				i, j;
+	float			*v;
+	float		*normal = ( float * ) tess.normal; 
+	float			incoming;
+	trRefEntity_t	*ent;
+	int				ambientLightInt;
+	vec3_t			ambientLight;
+	vec3_t			lightDir;
+	vec3_t			directedLight;
+	vec3_t			n, m;
+	int				numVertexes;
+	float		mult = r_shownormals->value - 1;
+	ent = backEnd.currentEntity;
+	ambientLightInt = ent->ambientLightInt;
+
+	v = tess.xyz[0];
+	//normal = tess.normal[0];
+
+
+
+	numVertexes = tess.numVertexes;
+	for (i = 0 ; i < numVertexes ; i++, v += 4, normal += 4) {
+		int y;
+		float mid;
+		for (y=0;y<3;y++){
+				n[y] = normal[y];
+				
+//				colors[i*4+y] = n[y];
+			}
+		//VectorNormalize(n);
+
+			mid = n[1] + n[2];
+			if (mid < 0) mid *= -1;
+			
+
+	//		m[0] = 127 - (n[1]*128);
+	//		m[1] = 127 - (n[2]*128);
+	//		m[2] = 255 - (mid*128);
+
+			m[0] = 127 + (n[0]*128);
+			m[1] = 127 + (n[1]*128);
+			m[2] = 127 + (n[2]*128);
+
+
+
+		
+		colors[i*4+0] = m[0];
+		colors[i*4+1] = m[1];
+		colors[i*4+2] = m[2];
+		colors[i*4+3] = 255;
+	}
+}
+
+
 
 void RB_CalcDiffuseColor_Specular( unsigned char *colors )
 {
@@ -1632,7 +1689,9 @@ void RB_CalcDiffuseColor_Specular( unsigned char *colors )
 	ambientLightInt = ent->ambientLightInt;
 	VectorCopy( ent->ambientLight, ambientLight );
 	VectorCopy( ent->directedLight, directedLight );
+
 	VectorCopy( ent->directedLight, specularLight );
+	VectorAdd( ent->ambientLight, directedLight, directedLight );
 	VectorCopy( ent->lightDir, lightDir );
 
 	// averaging colors test
@@ -1701,32 +1760,42 @@ void RB_CalcDiffuseColor_Specular( unsigned char *colors )
 			} else {
 				l = l*l;
 				l = l*l;
-				spec = l * 0.2f;
-				if (spec > 1) {
-					spec = 1;
-				}
+				spec = l * 2.2f;
+				if (spec > 1) 	spec = 1;
 			}
+		//	specularLight[0] += spec;
+		//	specularLight[1] += spec;
+		//	specularLight[2] += spec;
+
+		//	if (specularLight[0] < shadecap) specularLight[0] = 0;
+		//	if (specularLight[1] < shadecap) specularLight[1] = 0;
+		//	if (specularLight[2] < shadecap) specularLight[2] = 0;
+
+		//	if (specularLight[0]) specularLight[0] = 255;
+		//	if (specularLight[1]) 			specularLight[1] = 255;
+		//	if (specularLight[2]) specularLight[2] = 255;
 		}
 
 		j = ri.ftol(ambientLight[0] + incoming * directedLight[0]);
-		if ( j > shadecap ) j = shadecap ;
-		j += ri.ftol(spec * specularLight[0]);
-
+		if ( j > shadecap ) {j = shadecap ; j += ri.ftol(spec * specularLight[0]); }
+		
+	//	j += specularLight[0];
 		if ( j > 255) j = 255;
 		colors[i*4+0] = j;
 
 		j = ri.ftol(ambientLight[1] + incoming * directedLight[1]);
-		if ( j > shadecap ) j = shadecap ;
-		j += ri.ftol(spec * specularLight[1]);
+		if ( j > shadecap ) { j = shadecap ; 		j += ri.ftol(spec * specularLight[1]); }
 
+	//	j += specularLight[1];
 		if ( j > 255) j = 255;
 
 
 		colors[i*4+1] = j;
 
 		j = ri.ftol(ambientLight[2] + incoming * directedLight[2]);
-		if ( j > shadecap ) j = shadecap ;
-		j += ri.ftol(spec * specularLight[2]);
+		if ( j > shadecap ) {j = shadecap ; 		j += ri.ftol(spec * specularLight[2]); }
+
+	//	j += specularLight[2];
 		if ( j > 255) j = 255;
 		colors[i*4+2] = j;
 
