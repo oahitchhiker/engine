@@ -1407,13 +1407,14 @@ void R_LeiFXPostprocessFilterScreen( void )
 
 //	postprocess = 1;
 
-	if (r_leifx->integer == 3){
+/*	if (r_leifx->integer == 3){
 		leifxmode = 2;			// gamma - 1 pass
 	// The stupidest hack in america
 	R_LeiFX_Stupid_Hack();
 		R_Postprocess_BackupScreen();
 		R_Bloom_RestoreScreen_Postprocessed();
 		}
+*/						// Gamma disabled because r_alternateBrightness 2 makes it redundant now.
 	if (r_leifx->integer > 3){
 		leifxmode = 3;			// filter - 4 pass
 	// The stupidest hack in america
@@ -1426,9 +1427,9 @@ void R_LeiFXPostprocessFilterScreen( void )
 		R_Bloom_RestoreScreen_Postprocessed();
 		R_Postprocess_BackupScreen();
 		R_Bloom_RestoreScreen_Postprocessed();
-		leifxmode = 2;	
-		R_Postprocess_BackupScreen();
-		R_Bloom_RestoreScreen_Postprocessed();
+	//	leifxmode = 2;	
+	//	R_Postprocess_BackupScreen();
+	//	R_Bloom_RestoreScreen_Postprocessed();
 		}
 	backEnd.doneleifx = qtrue;
 
@@ -1572,26 +1573,59 @@ void R_BrightItUp (int dst, int src, float intensity)
 
 }
 
+
 void R_BrightScreen( void )
 {
-	
+	int mode;	// 0 = none; 1 = blend; 2 = shader
+	if( !r_alternateBrightness->integer)
+		return;
+	if ( backEnd.doneAltBrightness)
+		return;
 
-	if( !r_alternateBrightness->value)
-		return;
-	if ( backEnd.doneAltBrightness )
-		return;
-	if ( !backEnd.projection2D )
+	if (r_alternateBrightness->integer == 1)
+		mode = 1;	// force use blend
+	if (r_alternateBrightness->integer == 2)
+	{
+		// Automatically determine from capabilities
+		if ( vertexShaders )
+		mode = 2;
+		else
+		mode = 1;
+	}
+
+	// the modern pixel shader way
+	if (mode == 2)
+	{
+		if ( !vertexShaders )
+			return;		// leilei - cards without support for this should not ever activate this
+		if( !postproc.started ) {
+			force32upload = 1;
+			R_Postprocess_InitTextures();
+			if( !postproc.started )
+				return;
+		}
+	
+		if ( !backEnd.projection2D )
 		RB_SetGL2D();
-	//if (!fakeit)
-	backEnd.doneAltBrightness = qtrue;
 	
+		force32upload = 1;
+	
+		leifxmode = 666;			// anime effect - outlines, desat, bloom and other crap to go with it
+		R_LeiFX_Stupid_Hack();
+		R_Postprocess_BackupScreen();
+		R_Bloom_RestoreScreen_Postprocessed();
+		backEnd.doneAltBrightness = qtrue;
+	
+		force32upload = 0;
+	}	
 
-
-	// Handle Overbrights first
-	int eh, ah;
-	if (r_overBrightBits->integer)
-		{
-
+	// the fixed function quad blending way
+	else if (mode == 1)
+	{
+		int eh, ah;
+		if ((r_overBrightBits->integer))
+			{
+	
 			ah = r_overBrightBits->integer;
 			if (ah < 1) ah = 1; if (ah > 2) ah = 2; // clamp so it never looks stupid
 
@@ -1599,31 +1633,16 @@ void R_BrightScreen( void )
 			// Blend method
 			// do a loop for every overbright bit enabled
 
-				if (r_alternateBrightness->integer == 1)
-				for (eh=0; eh<ah; eh++){
-					R_BrightItUp(GLS_SRCBLEND_DST_COLOR, GLS_DSTBLEND_ONE, 1.0f); }
+			for (eh=0; eh<ah; eh++)
+			R_BrightItUp(GLS_SRCBLEND_DST_COLOR, GLS_DSTBLEND_ONE, 1.0f); 
 
-	
+			backEnd.doneAltBrightness = qtrue;
+			}
+
 	}
 	
-
-		if ( !backEnd.projection2D )
-		RB_SetGL2D();
-	// Fragment shader
-	if ((r_alternateBrightness->integer == 2) && (vertexShaders))
-		{
-		force32upload = 1;
-		
-
-		leifxmode = 666;		
-		R_LeiFX_Stupid_Hack();
-		R_Postprocess_BackupScreen();
-		R_Bloom_RestoreScreen_Postprocessed();
-		force32upload = 0;
-
-		}
-	
 }
+
 
 void R_AltBrightnessInit( void ) {
 

@@ -200,7 +200,7 @@ cvar_t	*r_flaresDlightScale;
 cvar_t	*r_alternateBrightness;		// leilei - linux overbright fix
 cvar_t	*r_mockvr;		// Leilei - for debugging PVR only!
 cvar_t	*r_leifx;		// Leilei - leifx nostalgia filter
-cvar_t	*r_vertshader;		// Leilei 
+cvar_t	*r_modelshader;		// Leilei 
 
 cvar_t	*r_ntsc;		// Leilei - ntsc / composite signals
 //cvar_t	*r_tvMode;		// Leilei - tv fake mode
@@ -1279,7 +1279,7 @@ void R_Register( void )
 
 	r_mockvr = ri.Cvar_Get( "r_mockvr", "0" , CVAR_ARCHIVE | CVAR_CHEAT);	
 	r_leifx = ri.Cvar_Get( "r_leifx", "0" , CVAR_ARCHIVE | CVAR_LATCH);	
-	r_vertshader = ri.Cvar_Get( "r_vertshader", "0" , CVAR_ARCHIVE | CVAR_LATCH);	
+	r_modelshader = ri.Cvar_Get( "r_modelshader", "0" , CVAR_ARCHIVE | CVAR_LATCH);		// leilei - load and use special shaders for lightDiffuse models
 
 	r_ntsc = ri.Cvar_Get( "r_ntsc", "0" , CVAR_ARCHIVE | CVAR_LATCH);	
 

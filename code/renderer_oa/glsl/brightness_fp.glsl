@@ -1,4 +1,4 @@
-// Color control shaders
+// "LeiFX" shader - Pixel filtering process
 // 
 // 	Copyright (C) 2013-2014 leilei
 // 
@@ -7,6 +7,8 @@
 // Software Foundation; either version 2 of the License, or (at your option)
 // any later version.
 
+// GLSL-based color adjustment/control
+// because xorg/x11/sdl sucks.
 
 uniform sampler2D u_Texture0; 
 varying vec2 texture_coordinate;
@@ -17,24 +19,14 @@ uniform float u_CC_Gamma;
 uniform float u_CC_Contrast; 
 uniform float u_CC_Saturation; 
 
-
-float erroredtable[16] = {
-	14,4,15,1,   
-	8,12,5,10,
-	15,2,14,3,
-	6,12,7,11		
-};
+uniform float u_ScreenToNextPixelX;
+uniform float u_ScreenToNextPixelY;
 
 void main()
 {
 	
     	gl_FragColor = texture2D(u_Texture0, texture_coordinate); 
 
-	// Dither setup...
-	vec4 OldColor; // compare differences for amplifying a correctional dither...
-	float OldCol = 2.0f / 255;
-	int ditdex = 	int(mod(gl_FragCoord.x, 4.0)) * 4 + int(mod(gl_FragCoord.y, 4.0)); // 4x4!
-	// looping through a lookup table matrix
 	vec3 color;
 	vec3 colord;
 	int coloredr;
@@ -46,16 +38,10 @@ void main()
 	int yeh = 0;
 	float ohyes;
 
-	for (yeh=ditdex; yeh<(ditdex+16); yeh++) ohyes = erroredtable[yeh-15];
-	ohyes = floor(ohyes) / 24;
-	OldColor = OldCol;	// reset oldcolor
+
 
 	// Overbrights
     	gl_FragColor *= (u_CC_Overbright + 1);
-
-	OldColor *= (u_CC_Overbright + 1);
-	gl_FragColor.rgb += (ohyes * OldColor.rgb);	// dither this stage
-	OldColor = OldCol; 	// reset oldcolor
 
 	// Gamma Correction
 	float gamma = u_CC_Gamma;
@@ -64,9 +50,7 @@ void main()
 	gl_FragColor.g = pow(gl_FragColor.g, 1.0 / gamma);
 	gl_FragColor.b = pow(gl_FragColor.b, 1.0 / gamma);
 
-	OldColor.r = pow(OldColor.r, 1.0 / gamma);
-	OldColor.g = pow(OldColor.g, 1.0 / gamma);
-	OldColor.b = pow(OldColor.b, 1.0 / gamma);
-	gl_FragColor.rgb += (ohyes * OldColor.rgb);	// dither this stage
+	//gl_FragColor += ((edge));
+
 
 }	

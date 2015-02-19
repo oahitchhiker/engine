@@ -10,6 +10,9 @@ uniform float u_CC_Brightness;
 uniform float u_CC_Gamma; 
 uniform float u_CC_Contrast; 
 uniform float u_CC_Saturation; 
+uniform float u_ScreenToNextPixelX;
+uniform float u_Time;
+uniform float u_ScreenToNextPixelY;
 void main()
 {
 	scale=0.7;
