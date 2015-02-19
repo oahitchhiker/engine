@@ -1672,8 +1672,8 @@ static ID_INLINE void R_GLSL_SetUniform_LightDistance(glslProgram_t *program, fl
 }
 
 static ID_INLINE void R_GLSL_SetUniform_ColorGen(glslProgram_t *program, colorGen_t value) {
-	if (program->v_ColorGen == value)
-		return;
+	//if (program->v_ColorGen == value)
+	//	return;
 
 	program->v_ColorGen = value;
 	qglUniform1iARB(program->u_ColorGen, value);
@@ -1718,8 +1718,8 @@ static ID_INLINE void R_GLSL_SetUniform_EntityColor(glslProgram_t *program, byte
 static ID_INLINE void R_GLSL_SetUniform_FogColor(glslProgram_t *program, unsigned value) {
 	byte	temp[4];
 
-	if (program->v_FogColor == value)
-		return;
+	//if (program->v_FogColor == value)
+	//	return;
 
 	*(unsigned *)temp = value;
 

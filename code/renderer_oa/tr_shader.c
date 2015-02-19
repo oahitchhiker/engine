@@ -559,6 +559,7 @@ qhandle_t RE_GLSL_RegisterProgram(const char *name, const char *programVertexObj
 	}
 
 	program->valid = qtrue;
+	ri.Printf(PRINT_WARNING, "GLSL RegisterProgram: '%s' compiled ----- OK\n", name);
 	return program->index;
 }
 
@@ -3497,6 +3498,11 @@ static void ComputeStageIteratorFunc( void )
 
 
 	if ( r_ignoreFastPath->integer )
+	{
+		return;
+	}
+
+	if ( vertexShaders )  // glsl used - skip out so generic program works
 	{
 		return;
 	}

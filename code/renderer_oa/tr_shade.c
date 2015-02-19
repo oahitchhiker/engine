@@ -298,7 +298,8 @@ Draws triangle outlines for debugging
 ================
 */
 static void DrawTris (shaderCommands_t *input) {
-    R_GLSL_UseProgram(tr.defaultProgram);
+    qglUseProgramObjectARB(0);	
+	glState.currentProgram = 0;	
 	GL_Bind( tr.whiteImage );
 	qglColor3f (1,1,1);
 
@@ -1590,6 +1591,11 @@ void GLSL_Feeder(shaderStage_t *pStage, shaderCommands_t *input)
 	if (pStage->program)
 		/* use specified program */
 		R_GLSL_UseProgram(pStage->program);
+	else
+	{
+		qglUseProgramObjectARB(0);	
+		glState.currentProgram = 0;	
+	}
 
 	program = tr.programs[glState.currentProgram];
 
@@ -1644,8 +1650,10 @@ void GLSL_Feeder(shaderStage_t *pStage, shaderCommands_t *input)
 	/* model view matrix */
 	if (program->u_ModelViewMatrix > -1)
         //if (backEnd.currentEntity=tr.worldEntity)
-	    qglGetFloatv(GL_MODELVIEW_MATRIX, glMatrix);
-		R_GLSL_SetUniform_ModelViewMatrix(program, glMatrix);
+//	    qglGetFloatv(GL_MODELVIEW_MATRIX, glMatrix);
+//		R_GLSL_SetUniform_ModelViewMatrix(program, glMatrix);
+		R_GLSL_SetUniform_ModelViewMatrix(program, glState.currentModelViewMatrix);
+
 
 	/* model view projection matrix */
 	if (program->u_ModelViewProjectionMatrix > -1)
@@ -1886,7 +1894,7 @@ GLfloat _nx, _ny, _nz;
 
 
 
-void GLSL_computeTangentSpaceMatrix(vertex_ *p0, vertex_ *p1, vertex_ *p2)
+/*void GLSL_computeTangentSpaceMatrix(vertex_ *p0, vertex_ *p1, vertex_ *p2)
 {
     GLfloat v1x, v1y, v1z, v2x, v2y, v2z, u1x, u1y, u2x, u2y, det;
 
@@ -1925,7 +1933,7 @@ void GLSL_computeTangentSpaceMatrix(vertex_ *p0, vertex_ *p1, vertex_ *p2)
 
 
 
-}
+}*/
 
 static void RB_GLSL_CalcTangentsNormals(shaderCommands_t *input)
 {
@@ -2118,11 +2126,12 @@ static void RB_IterateStagesGeneric( shaderCommands_t *input )
 		ComputeTexCoords( pStage );
 
 
-	if (input->shader->polygonOffset)
+	if (input->shader->polygonOffset && vertexShaders)
 		{
-		R_GLSL_UseProgram(0);
+		qglUseProgramObjectARB(0);	
+		glState.currentProgram = 0;		
 		}
-
+		
 
 
 
@@ -2221,7 +2230,7 @@ void RB_StageIteratorGeneric( void )
 	shader = input->shader;
 
 	RB_DeformTessGeometry();
-	RB_GLSL_CalcTangentsNormals(input);
+	if (vertexShaders) RB_GLSL_CalcTangentsNormals(input);
 
 
 	//
@@ -2340,7 +2349,8 @@ void RB_StageIteratorVertexLitTexture( void )
 	input = &tess;
 	shader = input->shader;
 
-	RB_GLSL_CalcTangentsNormals(input);
+	if (vertexShaders)
+		RB_GLSL_CalcTangentsNormals(input);
 	//
 	// compute colors
 	//
@@ -2381,7 +2391,7 @@ void RB_StageIteratorVertexLitTexture( void )
 
 		if (!pStage || (vertexShaders && pStage->program == tr.skipProgram))
 		{
-			goto badshader1;
+			goto skip1;
 		}
 
 	//
@@ -2390,8 +2400,10 @@ void RB_StageIteratorVertexLitTexture( void )
 	R_BindAnimatedImage( &tess.xstages[0]->bundle[0] );
 	GL_State( tess.xstages[0]->stateBits );
 
+        if (vertexShaders)
+        {
 
-		if (pStage->isGLSL && vertexShaders && pStage->program && tr.programs[pStage->program]->valid)
+		if (pStage->isGLSL && pStage->program && tr.programs[pStage->program]->valid)
 		{
         GL_State( pStage->stateBits );
 			GLSL_Feeder(pStage, input);
@@ -2406,8 +2418,6 @@ void RB_StageIteratorVertexLitTexture( void )
 		}
 		else
 		{
-        if (vertexShaders)
-        {
 			GLSL_DefaultProgram_Feeder(pStage, input);
 			qglEnableVertexAttribArrayARB(6);
 			qglVertexAttribPointerARB(6,3,GL_FLOAT,GL_FALSE,0,input->tangent);
@@ -2418,7 +2428,6 @@ void RB_StageIteratorVertexLitTexture( void )
 			qglEnableClientState(GL_NORMAL_ARRAY);
 			qglNormalPointer ( GL_FLOAT, 16, input->normal);	// padded for SIMD
 		}
-		}
 
 
 
@@ -2426,7 +2435,13 @@ void RB_StageIteratorVertexLitTexture( void )
 	R_DrawElements( input->numIndexes, input->indexes );
     if (vertexShaders) GLSL_Clean();
 
-badshader1:
+}
+else
+{
+	R_DrawElements( input->numIndexes, input->indexes );
+}
+skip1:
+
 	//
 	// 
 	// now do any dynamic lighting needed
@@ -2463,7 +2478,8 @@ void RB_StageIteratorLightmappedMultitexture( void ) {
 	input = &tess;
 	shader = input->shader;
 
-	RB_GLSL_CalcTangentsNormals(input);
+	if (vertexShaders)
+		RB_GLSL_CalcTangentsNormals(input);
 	//
 	// log this call
 	//
@@ -2524,11 +2540,13 @@ void RB_StageIteratorLightmappedMultitexture( void ) {
 		GLimp_LogComment( "glLockArraysEXT\n" );
 	}
 
+		if (vertexShaders)
+		{
 		shaderStage_t *pStage = tess.xstages[0];
 
-		if (!pStage || (vertexShaders && pStage->program == tr.skipProgram))
+		if (!pStage || (pStage->program == tr.skipProgram))
 		{
-			goto badshader2;
+			goto skip2;
         }
 
 		if (pStage->isGLSL && vertexShaders && pStage->program && tr.programs[pStage->program]->valid)
@@ -2574,6 +2592,13 @@ void RB_StageIteratorLightmappedMultitexture( void ) {
 	GL_State( tess.xstages[0]->stateBits );
 	R_DrawElements( input->numIndexes, input->indexes );
     GLSL_Clean();
+	}
+	else
+	{
+	R_DrawElements( input->numIndexes, input->indexes );
+	}
+
+skip2:
 
 	//
 	// disable texturing on TEXTURE1, then select TEXTURE0
@@ -2587,7 +2612,6 @@ void RB_StageIteratorLightmappedMultitexture( void ) {
 	qglShadeModel( GL_SMOOTH );
 #endif
 
-badshader2:
 	//
 	// now do any dynamic lighting needed
 	//
@@ -2603,6 +2627,8 @@ badshader2:
 	if ( tess.fogNum && tess.shader->fogPass ) {
 		RB_FogPass();
 	}
+
+
 
 	//
 	// unlock arrays
@@ -2685,8 +2711,10 @@ void RB_EndSurface( void ) {
 	//
 	// call off to shader specific tess end function
 	//
-    glsl_lights=0;
-    RB_CopyAllLightInfo();
+    if (vertexShaders) {
+		glsl_lights=0;
+    	RB_CopyAllLightInfo();
+		}
 	tess.currentStageIteratorFunc();
 
 	//
