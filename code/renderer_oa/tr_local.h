@@ -70,12 +70,6 @@ typedef struct {
 	vec3_t		dynamicLight;
 	float		lightDistance;
 
-
-	// leilei - better quality lighting hack
-
-	vec3_t		directedLightA;
-	vec3_t		lightDirA;		
-
 	// leilei - eyes
 	vec3_t		eyepos[2];			// looking from
 } trRefEntity_t;
@@ -391,6 +385,11 @@ typedef struct shader_s {
 	qboolean	needsST2;
 	qboolean	needsColor;
 
+	//	leilei - automatic detail texturing
+	int		hasDetail;	// shader has a detail stage
+	int		hasDepthWrite;	// shader has a depthwrite stage (detailing around holes)
+	int		hasMaterial;	// shader represents this material
+
 	int			numDeforms;
 	deformStage_t	deforms[MAX_SHADER_DEFORMS];
 
@@ -407,6 +406,18 @@ typedef struct shader_s {
 	struct	shader_s	*next;
 } shader_t;
 
+
+// leilei - shader materials for detail texturing
+
+#define		SHADMAT_GENERIC 	0	// none
+#define		SHADMAT_METAL	 	1	// from metalsteps
+#define		SHADMAT_WOOD	 	2	// ql
+#define		SHADMAT_FLESH	 	3	// unused
+#define		SHADMAT_SAND	 	4	// from dust?
+#define		SHADMAT_SNOW	 	5	// unused
+#define		SHADMAT_EARTH	 	6	// unused
+#define		SHADMAT_CONCRETE	7 	// unused? redundant?
+#define		SHADMAT_ICE		8	// from slick
 
 // trRefdef_t holds everything that comes in refdef_t,
 // as well as the locally generated scene information
@@ -1337,7 +1348,7 @@ extern cvar_t	*r_alternateBrightness;		// leilei - alternate brightness
 
 extern cvar_t	*r_leifx;	// Leilei - leifx nostalgia filter
 extern cvar_t	*r_modelshader;	// Leilei - new model shading
-extern cvar_t	*r_leiwater;	// Leilei - water test
+
 
 extern cvar_t	*r_ntsc;	// Leilei - ntsc
 
@@ -1360,6 +1371,9 @@ extern cvar_t	*r_leidebugeye;	// Leilei - debug only!
 extern	cvar_t	*r_iconmip;	// leilei - icon mip - picmip for 2d icons
 
 extern	cvar_t	*r_texdump;	// leilei - texture dumping
+
+extern  cvar_t	*r_detailTextureScale;		// leilei - scale tweak the detail textures, 0 doesn't tweak at all.
+extern  cvar_t	*r_detailTextureLayers;		// leilei - add in more smaller detail texture layers, expensive!
 
 //====================================================================
 

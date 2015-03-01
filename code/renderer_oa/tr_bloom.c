@@ -2072,84 +2072,13 @@ void R_PaletteScreen( void )
 
 
 static struct {
-	struct {
-		image_t	*texture;
-		int		width, height;
-		float	readW, readH;
-	} effect;
-	struct {
-		image_t	*texture;
-		int		width, height;
-		float	readW, readH;
-	} effect2;
-	struct {
-		image_t	*texture;
-		int		width, height;
-		float	readW, readH;
-	} screen;
-	struct {
-		int		width, height;
-	} work;
-	qboolean started;
+	// NO!
 } water;
 
 // leilei - experimental water effect
 static void R_Water_InitTextures( void )
 {
-	byte	*data;
-
-	// find closer power of 2 to screen size 
-	for (water.screen.width = 1;water.screen.width< glConfig.vidWidth;water.screen.width *= 2);
-	for (water.screen.height = 1;water.screen.height < glConfig.vidHeight;water.screen.height *= 2);
-
-	water.screen.readW = glConfig.vidWidth / (float)water.screen.width;
-	water.screen.readH = glConfig.vidHeight / (float)water.screen.height;
-
-	// find closer power of 2 to effect size 
-	water.work.width = 256;
-	water.work.height = water.work.width * ( glConfig.vidWidth / glConfig.vidHeight );
-
-	for (water.effect.width = 1;water.effect.width < water.work.width;water.effect.width *= 2);
-	for (water.effect.height = 1;water.effect.height < water.work.height;water.effect.height *= 2);
-
-	water.effect.readW = water.work.width / (float)water.effect.width;
-	water.effect.readH = water.work.height / (float)water.effect.height;
-	
-	water.effect2.readW=water.effect.readW;
-	water.effect2.readH=water.effect.readH;
-	water.effect2.width=water.effect.width;
-	water.effect2.height=water.effect.height;
-	
-
-	// disable waters if we can't handle a texture of that size
-	if( water.screen.width > glConfig.maxTextureSize ||
-		water.screen.height > glConfig.maxTextureSize ||
-		water.effect.width > glConfig.maxTextureSize ||
-		water.effect.height > glConfig.maxTextureSize ||
-		water.work.width > glConfig.vidWidth ||
-		water.work.height > glConfig.vidHeight
-	) {
-		ri.Cvar_Set( "r_leiwater", "0" );
-		Com_Printf( S_COLOR_YELLOW"WARNING: 'R_InitWaterTextures' too high resolution for water, effect disabled\n" );
-		return;
-	}
-
-	// leilei - let's not do that water disabling anymore
-	force32upload = 1;
-
-	data = ri.Hunk_AllocateTempMemory( water.screen.width * water.screen.height * 4 );
-	Com_Memset( data, 0, water.screen.width * water.screen.height * 4 );
-	water.screen.texture = R_CreateImage( "***water screen texture***", data, water.screen.width, water.screen.height, qfalse, qfalse, GL_CLAMP_TO_EDGE  );
-	ri.Hunk_FreeTempMemory( data );
-
-	data = ri.Hunk_AllocateTempMemory( water.effect.width * water.effect.height * 4 );
-	Com_Memset( data, 0, water.effect.width * water.effect.height * 4 );
-	tr.waterImage = R_CreateImage( "*water", data, water.effect.width, water.effect.height, IMGTYPE_COLORALPHA, IMGFLAG_CLAMPTOEDGE, 0 );
-
-	//tr.waterImage = R_CreateImage( "*waterimage", data, water.effect.width, water.effect.height, qfalse, qfalse, GL_CLAMP_TO_EDGE  );;
-	ri.Hunk_FreeTempMemory( data );
-	water.started = qtrue;
-	force32upload = 0;
+	// NO!
 }
 
 
@@ -2157,72 +2086,34 @@ static void R_Water_InitTextures( void )
 
 void R_InitWaterTextures( void )
 {
-	if( !r_leiwater->integer )
-		return;
-	memset( &water, 0, sizeof( water ));
-	R_Water_InitTextures ();
+	// NO!
 }
 
 
 
-static void R_Water_BackupScreen( void ) {
-	GL_Bind( water.screen.texture );
-	qglCopyTexSubImage2D( GL_TEXTURE_2D, 0, 0, 0, 0, 0, glConfig.vidWidth, glConfig.vidHeight );
+static void R_Water_BackupScreen( void ) 
+{
+	// NO!
 }
 
 static void R_WaterWorks( void )
 {
-	int		i, j, k;
-	float	intensity, scale, *diamond;
-
-
-	qglColor4f( 1.0f, 1.0f, 1.0f, 1.0f );
-	GL_Bind( water.screen.texture );
-	//GL_State( GLS_DEPTHTEST_DISABLE | GLS_SRCBLEND_ONE | GLS_DSTBLEND_ZERO );
-	R_Bloom_Quad( water.work.width, water.work.height, 0, 0, water.screen.readW, water.screen.readH );
-	//Copy downscaled framebuffer into a texture
-	GL_Bind( tr.waterImage );
-	qglCopyTexSubImage2D( GL_TEXTURE_2D, 0, 0, 0, 0, 0, water.work.width, water.work.height );
+	// NO!
 }											
 
 
 static void R_Water_RestoreScreen( void ) {
-	GL_State( GLS_DEPTHTEST_DISABLE | GLS_SRCBLEND_ONE | GLS_DSTBLEND_ZERO );
-	GL_Bind( water.screen.texture );
-	qglColor4f( 1,1,1, 1 );
-		R_Bloom_Quad( water.screen.width, water.screen.height, 0, 0,
-					1.f,
-					1.f );
+	// NO!	
 }
  
 
 void R_WaterInit( void ) {
-	memset( &water, 0, sizeof( water ));
+	// NO!
 }
 
 
 void R_WaterScreen( void )
 {
-	if( !r_leiwater->integer )
-		return;
-	if ( backEnd.donewater )
-		return;
-	if ( !backEnd.doneSurfaces )
-		return;
-	backEnd.donewater= qtrue;
-	if( !water.started ) {
-		R_Water_InitTextures();
-		if( !water.started )
-			return;
-	}
-
-	if ( !backEnd.projection2D )
-		RB_SetGL2D();
-
-
-	//// All we want to do is copy the thing
-	R_Water_BackupScreen();
-	R_WaterWorks ();
-	R_Water_RestoreScreen();	
+	// NO!
 }
 

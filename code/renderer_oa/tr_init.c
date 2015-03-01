@@ -55,6 +55,8 @@ cvar_t	*r_verbose;
 cvar_t	*r_ignore;
 
 cvar_t	*r_detailTextures;
+cvar_t	*r_detailTextureScale;
+cvar_t	*r_detailTextureLayers;
 cvar_t	*r_shadeSpecular;
 
 cvar_t	*r_znear;
@@ -208,7 +210,6 @@ cvar_t	*r_anime;		// Leilei - anime filter
 cvar_t	*r_palletize;		// Leilei - palletization
 cvar_t	*r_leidebug;		// Leilei - debug
 cvar_t	*r_leidebugeye;		// Leilei - eye debug
-cvar_t	*r_leiwater;		// Leilei - water effect test
 
 cvar_t	*r_suggestiveThemes;		// leilei - mature content control
 
@@ -1278,10 +1279,10 @@ void R_Register( void )
 	r_mockvr = ri.Cvar_Get( "r_mockvr", "0" , CVAR_ARCHIVE | CVAR_CHEAT);	
 	r_leifx = ri.Cvar_Get( "r_leifx", "0" , CVAR_ARCHIVE | CVAR_LATCH);	
 	r_modelshader = ri.Cvar_Get( "r_modelshader", "0" , CVAR_ARCHIVE | CVAR_LATCH);		// leilei - load and use special shaders for lightDiffuse models
+	r_detailTextureScale = ri.Cvar_Get( "r_detailtextureScale", "0", CVAR_ARCHIVE | CVAR_LATCH ); // leilei - adjust scale of detail textures
+	r_detailTextureLayers = ri.Cvar_Get( "r_detailtextureLayers", "0", CVAR_ARCHIVE | CVAR_LATCH ); // leilei - add more detail layers
 
-	r_ntsc = ri.Cvar_Get( "r_ntsc", "0" , CVAR_ARCHIVE | CVAR_LATCH);	
-
-	r_leiwater = ri.Cvar_Get( "r_leiwater", "0" , CVAR_ARCHIVE | CVAR_LATCH);	
+	r_ntsc = ri.Cvar_Get( "r_ntsc", "0" , CVAR_ARCHIVE | CVAR_LATCH);			// leilei - ntsc filter
 
 	//r_tvMode = ri.Cvar_Get( "r_tvMode", "0" , CVAR_ARCHIVE | CVAR_LATCH);	
 	r_retroAA = ri.Cvar_Get( "r_retroAA", "0" , CVAR_ARCHIVE | CVAR_LATCH);	

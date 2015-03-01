@@ -356,7 +356,7 @@ void GL_TextureMode( const char *string ) {
 
 	// hack to prevent trilinear from being set on voodoo,
 	// because their driver freaks...
-	if ( i == 5 && glConfig.hardwareType == GLHW_3DFX_2D3D ) {
+	if ( i == 5 && glConfig.hardwareType == GLHW_3DFX_2D3D || r_leifx->integer ) {
 		ri.Printf( PRINT_ALL, "Refusing to set trilinear on a voodoo.\n" );
 		i = 3;
 	}
@@ -1055,10 +1055,16 @@ static void R_BlendToGray( byte *data, int pixelCount, int fadeto) {
 	float		alphed, alpher;
 
 	if (fadeto < 1)
-		return;	//  we don't need to.
+		return;	//  we don't need to for the highest mip.
 
-	alphed = 1 / fadeto;
-	alpher = 1 - alphed;
+
+	if (fadeto == 1){	alphed = 0.75; alpher = 0.25; }
+	else if (fadeto == 2){	alphed = 0.50; alpher = 0.50; }
+	else if (fadeto == 3){	alphed = 0.25; alpher = 0.75; }
+	else {	alphed = 0.0; alpher = 1.00; }
+
+	//alphed = 1 / fadeto;
+	//alpher = 1 - alphed;
 
 	fadeto += 1;
 
@@ -2182,6 +2188,7 @@ image_t	*R_FindImageFile( const char *name, imgType_t type, imgFlags_t flags )
 {
 	image_t	*image;
 	int		width, height;
+	int dontgotsafe;
 	byte	*pic;
 	long	hash;
 	float oldtime;
@@ -2228,11 +2235,53 @@ image_t	*R_FindImageFile( const char *name, imgType_t type, imgFlags_t flags )
 	//
 	// load the pic from disk
 	//
-	//oldtime = backEnd.refdef.floatTime;
+
 	oldtime = ri.Milliseconds() * 100;
+	dontgotsafe = 0;
+	if (r_suggestiveThemes->integer == 1) dontgotsafe = 1;
+
+
+	// leilei - load safe or lewd textures if desired.
+	if (!Q_strncmp( name, "models/players", 14) ){
+
+		
+		
+		if (r_suggestiveThemes->integer < 1){
+			char	narm[ MAX_QPATH ];
+			COM_StripExtension( name, narm, MAX_QPATH );
+			R_LoadImage( va("%s_safe", narm), &pic, &width, &height );
+			if ( pic == NULL ) 
+				dontgotsafe = 1;
+			else
+				dontgotsafe = 0;
+			
+		}
+	
+		else if (r_suggestiveThemes->integer > 1){
+			char	narm[ MAX_QPATH ];
+			COM_StripExtension( name, narm, MAX_QPATH );
+			R_LoadImage( va("%s_lewd", narm), &pic, &width, &height );
+			if ( pic == NULL ) 
+				dontgotsafe = 1;
+			else
+				dontgotsafe = 0;
+			
+		}
+	}
+	
+	else
+	{
+		dontgotsafe = 1;
+	}
+
+	//oldtime = backEnd.refdef.floatTime;
+
+
+	if (dontgotsafe){
 	R_LoadImage( name, &pic, &width, &height );
-	if ( pic == NULL ) {
-		return NULL;
+		if ( pic == NULL ) {
+			return NULL;
+		}
 	}
 	loadtime = (ri.Milliseconds() * 100) - oldtime;
 //	loadtime = backEnd.refdef.floatTime - oldtime;

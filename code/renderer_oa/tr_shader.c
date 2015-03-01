@@ -1046,7 +1046,6 @@ static qboolean ParseStage( shaderStage_t *stage, char **text )
 	char programFragmentObjects[MAX_PROGRAM_OBJECTS][MAX_QPATH];
 	int numVertexObjects = 0;
 	int numFragmentObjects = 0;
-	int leifxmode = 0;	// for picking different dither tanles for blended stuff
 	int depthMaskBits = GLS_DEPTHMASK_TRUE, blendSrcBits = 0, blendDstBits = 0, atestBits = 0, depthFuncBits = 0;
 	qboolean depthMaskExplicit = qfalse;
 
@@ -1059,7 +1058,7 @@ static qboolean ParseStage( shaderStage_t *stage, char **text )
 	
 	
 
-
+		//stage->isBlend = 0;
 		token = COM_ParseExt( text, qtrue );
 		if ( !token[0] )
 		{
@@ -1255,11 +1254,7 @@ static qboolean ParseStage( shaderStage_t *stage, char **text )
 				stage->bundle[2].image[0] = tr.whiteImage;
 				continue;
 			}
-			if ( !Q_stricmp( token, "$waterimage" ) )
-			{
-				stage->bundle[2].image[0] = tr.waterImage;
-				continue;
-			}
+			
 			else if ( !Q_stricmp( token, "$lightmap" ) )
 			{
 				stage->bundle[2].isLightmap = qtrue;
@@ -1293,7 +1288,7 @@ static qboolean ParseStage( shaderStage_t *stage, char **text )
 		//
 		// map3 <name>
 		//
-		else if ( !Q_stricmp( token, "map3" ) )
+		else if ( !Q_stricmp( token, "map3" ) || (!Q_stricmp( token, "normalmap" ) && r_modelshader->integer))
 		{
 			token = COM_ParseExt( text, qfalse );
 			if ( !token[0] )
@@ -1307,11 +1302,7 @@ static qboolean ParseStage( shaderStage_t *stage, char **text )
 				stage->bundle[3].image[0] = tr.whiteImage;
 				continue;
 			}
-			if ( !Q_stricmp( token, "$waterimage" ) )
-			{
-				stage->bundle[3].image[0] = tr.waterImage;
-				continue;
-			}
+
 			else if ( !Q_stricmp( token, "$lightmap" ) )
 			{
 				stage->bundle[3].isLightmap = qtrue;
@@ -1345,7 +1336,7 @@ static qboolean ParseStage( shaderStage_t *stage, char **text )
 		//
 		// map4 <name>
 		//
-		else if ( !Q_stricmp( token, "map4" ) )
+		else if ( !Q_stricmp( token, "map4" )  || (!Q_stricmp( token, "specmap" ) && r_modelshader->integer))
 		{
 			token = COM_ParseExt( text, qfalse );
 			if ( !token[0] )
@@ -1392,7 +1383,7 @@ static qboolean ParseStage( shaderStage_t *stage, char **text )
 		//
 		// map5 <name>
 		//
-		else if ( !Q_stricmp( token, "map5" ) )
+		else if ( !Q_stricmp( token, "map5" )  || (!Q_stricmp( token, "shadeballmap" ) && r_modelshader->integer))
 		{
 			token = COM_ParseExt( text, qfalse );
 			if ( !token[0] )
@@ -1406,11 +1397,7 @@ static qboolean ParseStage( shaderStage_t *stage, char **text )
 				stage->bundle[5].image[0] = tr.whiteImage;
 				continue;
 			}
-			if ( !Q_stricmp( token, "$waterimage" ) )
-			{
-				stage->bundle[5].image[0] = tr.waterImage;
-				continue;
-			}
+
 			else if ( !Q_stricmp( token, "$lightmap" ) )
 			{
 				stage->bundle[5].isLightmap = qtrue;
@@ -1458,11 +1445,7 @@ static qboolean ParseStage( shaderStage_t *stage, char **text )
 				stage->bundle[6].image[0] = tr.whiteImage;
 				continue;
 			}
-			if ( !Q_stricmp( token, "$waterimage" ) )
-			{
-				stage->bundle[6].image[0] = tr.waterImage;
-				continue;
-			}
+			
 			else if ( !Q_stricmp( token, "$lightmap" ) )
 			{
 				stage->bundle[6].isLightmap = qtrue;
@@ -1510,11 +1493,7 @@ static qboolean ParseStage( shaderStage_t *stage, char **text )
 				stage->bundle[7].image[0] = tr.whiteImage;
 				continue;
 			}
-			if ( !Q_stricmp( token, "$waterimage" ) )
-			{
-				stage->bundle[7].image[0] = tr.waterImage;
-				continue;
-			}
+			
 			else if ( !Q_stricmp( token, "$lightmap" ) )
 			{
 				stage->bundle[7].isLightmap = qtrue;
@@ -2493,15 +2472,13 @@ static qboolean ParseStage( shaderStage_t *stage, char **text )
 			if ( !Q_stricmp( token, "add" ) ) {
 				blendSrcBits = GLS_SRCBLEND_ONE;
 				blendDstBits = GLS_DSTBLEND_ONE;
-				leifxmode = 1;	// 2x2
+
 			} else if ( !Q_stricmp( token, "filter" ) ) {
 				blendSrcBits = GLS_SRCBLEND_DST_COLOR;
 				blendDstBits = GLS_DSTBLEND_ZERO;
-				leifxmode = 1;	// 2x2
 			} else if ( !Q_stricmp( token, "blend" ) ) {
 				blendSrcBits = GLS_SRCBLEND_SRC_ALPHA;
 				blendDstBits = GLS_DSTBLEND_ONE_MINUS_SRC_ALPHA;
-				leifxmode = 1;	// 4x4
 			} else {
 				// complex double blends
 				blendSrcBits = NameToSrcBlendMode( token );
@@ -2513,8 +2490,9 @@ static qboolean ParseStage( shaderStage_t *stage, char **text )
 					continue;
 				}
 				blendDstBits = NameToDstBlendMode( token );
-				leifxmode = 1;	// 2x2
 			}
+			
+			stage->isBlend = 1;	// 2x2
 
 			// clear depth mask for blended surfaces
 			if ( !depthMaskExplicit )
@@ -3452,6 +3430,7 @@ static void ComputeStageIteratorFunc( void )
 		return; 	// lightmaps with a different dithering table
 
 
+
 	//
 	// see if this can go into the vertex lit fast path
 	//
@@ -3576,7 +3555,7 @@ static qboolean CollapseMultitexture( void ) {
 	}
 
 	// on voodoo2, don't combine different tmus
-	if ( glConfig.driverType == GLDRV_VOODOO ) {
+	if ( glConfig.driverType == GLDRV_VOODOO || r_leifx->integer ) {
 		if ( stages[0].bundle[0].image[0]->TMU ==
 			 stages[1].bundle[0].image[0]->TMU ) {
 			return qfalse;
@@ -3938,9 +3917,12 @@ static shader_t *FinishShader( void ) {
 	int stage;
 	qboolean		hasLightmapStage;
 	qboolean		vertexLightmap;
+	
 
 	hasLightmapStage = qfalse;
 	vertexLightmap = qfalse;
+
+	
 
 	//
 	// set sky stuff appropriate
@@ -3973,6 +3955,7 @@ static shader_t *FinishShader( void ) {
 			stage++;
 			continue;
 		}
+
 
 		//
 		// ditch this stage if it's detail and detail textures are disabled
@@ -4015,6 +3998,7 @@ static shader_t *FinishShader( void ) {
 		}
 
 
+
     // not a true lightmap but we want to leave existing 
     // behaviour in place and not print out a warning
     //if (pStage->rgbGen == CGEN_VERTEX) {
@@ -4024,7 +4008,13 @@ static shader_t *FinishShader( void ) {
 		// Try to use leifx dither here instead of postprocess for more authentic overdraw artifacts
 		if (r_leifx->integer > 1)
 		{		
-			pStage->program = RE_GLSL_RegisterProgram("leifxify", "glsl/leifxify_vp.glsl", 1, "glsl/leifxify_fp.glsl", 1);
+			
+			if (pStage->isBlend == 1){
+			pStage->program = RE_GLSL_RegisterProgram("leifxify2", "glsl/leifxify2_vp.glsl", 1, "glsl/leifxify2_fp.glsl", 1);	// 2x2 dither blend for vertex colors, 4x4 for texture
+			ri.Printf( PRINT_DEVELOPER, "picking blended\n");
+			}
+			else
+			pStage->program = RE_GLSL_RegisterProgram("leifxify", "glsl/leifxify_vp.glsl", 1, "glsl/leifxify_fp.glsl", 1);		// 4x4 dither blend for both color and texture
 			pStage->isGLSL=1;
 		}
 
@@ -4036,6 +4026,13 @@ static shader_t *FinishShader( void ) {
 		}
 
 
+		// leilei - force new phong on lightdiffuse and lightdiffusespecular models
+		if ((r_modelshader->integer) && (pStage->isGLSL==0) && (r_ext_vertex_shader->integer) && ((pStage->rgbGen == CGEN_LIGHTING_DIFFUSE) || (pStage->rgbGen == CGEN_LIGHTING_DIFFUSE_SPECULAR)))
+		{
+			pStage->program = RE_GLSL_RegisterProgram("leishade", "glsl/leishade_vp.glsl", 1, "glsl/leishade_fp.glsl", 1);
+			pStage->isGLSL=1;
+			pStage->isLeiShade=1;
+		}
 
 		//
 		// determine sort order and fog color adjustment
@@ -4260,14 +4257,52 @@ Other lightmapIndex values will have a lightmap stage created
 and src*dest blending applied with the texture, as apropriate for
 most world construction surfaces.
 
+
+Leilei TODO - and if it has a lightmapindex and no detail texture please
+try to generate a generic detail stage for the sake of consistency with
+the other textures with details so there's one big grainy world
+ (only if r_detailTextures 3)
+
+TODO:	if r_detailTextures 2, try to move the detail texture before the lightmap
+		stage and use filterblend , so we can use the multitexturing 
+		pass performance advantage
+
 ===============
 */
+
+static int sugthem;
+
 shader_t *R_FindShaderReal( const char *name, int lightmapIndex, qboolean mipRawImage ) {
 	char		strippedName[MAX_QPATH];
 	int			i, hash;
 	char		*shaderText;
 	image_t		*image;
 	shader_t	*sh;
+
+	//
+	// LEILEI's DETAIL TEXTURE STUFFS
+	//
+	int material;	// leilei - for picking detail texture
+	int shouldIDetail = 0; // leilei - checking if I should detail.
+	int wi, hi; // leilei - for determining detail texture size by uploaded texture
+	int detailScale; // leilei - detail scale hack
+	int detailLayer; // leilei - detail layer hack
+	// leilei - for adjusting detail textures
+		if ( r_detailTextureScale->integer > 0)
+			detailScale = r_detailTextureScale->integer;
+		else
+			detailScale = 8;
+
+		if ( r_detailTextureLayers->integer > 0)
+			detailLayer = r_detailTextureLayers->integer;
+		else
+			detailLayer = 1; // one usual layer
+
+		if (detailLayer > 6) detailLayer = 6; // limit 6 for now
+	//
+	//		
+	//
+
 
 	if ( name[0] == 0 ) {
 		return tr.defaultShader;
@@ -4317,6 +4352,7 @@ shader_t *R_FindShaderReal( const char *name, int lightmapIndex, qboolean mipRaw
 	shader.needsST2 = qtrue;
 	shader.needsColor = qtrue;
 
+
 	//
 	// attempt to define shader from an explicit parameter file
 	//
@@ -4332,6 +4368,94 @@ shader_t *R_FindShaderReal( const char *name, int lightmapIndex, qboolean mipRaw
 			// had errors, so use default shader
 			shader.defaultShader = qtrue;
 		}
+
+		if (shader.surfaceFlags || SURF_METALSTEPS)
+			material = 1;
+
+
+			// leilei -  SUPER detail hack to existing shaders,very aggressive and won't look good on 100% of shaders
+		
+			if((shader.lightmapIndex != LIGHTMAP_WHITEIMAGE && shader.lightmapIndex != LIGHTMAP_BY_VERTEX && shader.lightmapIndex != LIGHTMAP_2D && shader.lightmapIndex != LIGHTMAP_NONE) ){
+			if (r_detailTextures->integer)
+				{
+					image_t		*imageDetail;		 // for snagging it into more layers if we find a defined one
+					int e = 0;
+					int f = 0;
+					int gotdetailalready = 0;
+					int hasaDetailImage = 0;
+					int thisstage = 0;
+					material = 0;
+					wi = hi = 32; // reset to none....
+					shouldIDetail = 0; //yeah
+					for (f=0;f<detailLayer;f++){
+					for (e=0;e<(MAX_SHADER_STAGES-1);e++)
+					{
+						if (shader.defaultShader)
+							break; // DON'T! This fixes a crash, trying to stage up placeholder/default textures
+
+						// Pick the first free stage to do, hopefully the last
+						if (stages[e].active == qfalse){ thisstage = e; shouldIDetail = 1; break;}
+			
+						// find detail texture scale by determining which of the stages have the largest image
+						if (stages[e].bundle[0].image[0]->uploadHeight > wi) wi = stages[e].bundle[0].image[0]->uploadWidth;
+						if (stages[e].bundle[0].image[0]->uploadHeight > hi) hi = stages[e].bundle[0].image[0]->uploadHeight;
+
+						// for adjusting the detail textures and skipping some redundancy
+						if (stages[e].isDetail){ 
+	
+							if (f < 1){ gotdetailalready = 1; shouldIDetail = 0;
+
+							imageDetail = stages[e].bundle[0].image[0]; // this is it
+							hasaDetailImage = 1;
+									}
+							if (r_detailTextureScale->integer){
+
+								if (stages[e].bundle[0].texMods[0].type == TMOD_SCALE)
+								{
+										wi = 0.25 * wi / (detailScale / (f + 1));
+										hi = 0.25 * hi / (detailScale / (f + 1));
+										stages[e].bundle[0].texMods[0].scale[0] = wi;
+										stages[e].bundle[0].texMods[0].scale[1] = hi;
+								}
+							}
+						}						
+
+					}
+					if (r_detailTextures->integer < 3) shouldIDetail = 0; // don't add detail for low settings
+
+					if ((!gotdetailalready || thisstage) && (shouldIDetail)){
+		
+						// detail it up because i don't care.
+							{
+
+								wi = 0.25  * (f + 1)  * wi / detailScale;
+								hi = 0.25  * (f + 1)  * hi / detailScale;
+
+								if (material == 1)	// metalsteps
+							 	stages[thisstage].bundle[0].image[0] = R_FindImageFile( "gfx/fx/detail/d_genericmetal.tga", IMGFLAG_MIPMAP , IMGFLAG_MIPMAP);
+								else if (hasaDetailImage && imageDetail)
+							 	stages[thisstage].bundle[0].image[0] = imageDetail;
+								else
+							 	stages[thisstage].bundle[0].image[0] = R_FindImageFile( "gfx/fx/detail/d_generic.tga", IMGFLAG_MIPMAP , IMGFLAG_MIPMAP);
+								stages[thisstage].active = qtrue;
+								stages[thisstage].rgbGen = CGEN_IDENTITY;
+								stages[thisstage].stateBits |= GLS_SRCBLEND_DST_COLOR | GLS_DSTBLEND_SRC_COLOR | GLS_DEPTHFUNC_EQUAL;
+								stages[thisstage].bundle[0].texMods[0].scale[0] = wi;
+								stages[thisstage].bundle[0].texMods[0].scale[1] = hi;
+								stages[thisstage].bundle[0].texMods[0].type = TMOD_SCALE;
+								stages[thisstage].isDetail = qtrue;
+								stages[thisstage].bundle[0].numTexMods = 1;
+				
+							}			
+		
+		
+						}
+					}
+				
+				}
+				}
+
+
 		sh = FinishShader();
 		return sh;
 	}
@@ -4362,6 +4486,8 @@ shader_t *R_FindShaderReal( const char *name, int lightmapIndex, qboolean mipRaw
 			return FinishShader();
 		}
 	}
+
+
 
 	//
 	// create the default shading commands
@@ -4400,6 +4526,53 @@ shader_t *R_FindShaderReal( const char *name, int lightmapIndex, qboolean mipRaw
 		stages[1].rgbGen = CGEN_IDENTITY;
 		stages[1].stateBits |= GLS_SRCBLEND_DST_COLOR | GLS_DSTBLEND_ZERO;
 	} else {
+		// leilei - automatic detail adding hack
+		
+		if (r_detailTextures->integer > 2){
+		// three pass lightmap with a detail after the texture. slow but is how U did it
+
+		stages[0].bundle[0].image[0] = tr.lightmaps[shader.lightmapIndex];
+		stages[0].bundle[0].isLightmap = qtrue;
+		stages[0].active = qtrue;
+		stages[0].rgbGen = CGEN_IDENTITY;	// lightmaps are scaled on creation
+													// for identitylight
+		stages[0].stateBits = GLS_DEFAULT;
+
+		stages[1].bundle[0].image[0] = image;
+		stages[1].active = qtrue;
+		stages[1].rgbGen = CGEN_IDENTITY;
+		stages[1].stateBits |= GLS_SRCBLEND_DST_COLOR | GLS_DSTBLEND_ZERO;
+
+		// detail
+			{
+			int f;
+				for (f=0;f<detailLayer;f++){
+				if (f+2 > MAX_SHADER_STAGES) break;// don't exceed limit!
+			 	stages[2+f].bundle[0].image[0] = R_FindImageFile( "gfx/fx/detail/d_generic.tga", IMGFLAG_MIPMAP , IMGFLAG_MIPMAP); // TODO: use metal detail for metal surfaces
+
+			// determine detail size first, our detail textures are typically 128x128
+				wi = 0.25 * (f + 1)  * stages[1].bundle[0].image[0]->uploadWidth / detailScale;
+				hi = 0.25 * (f + 1) * stages[1].bundle[0].image[0]->uploadHeight / detailScale;
+
+				stages[2+f].active = qtrue;
+				stages[2+f].rgbGen = CGEN_IDENTITY;
+				stages[2+f].stateBits |= GLS_SRCBLEND_DST_COLOR | GLS_DSTBLEND_SRC_COLOR;
+
+				stages[2+f].bundle[0].texMods[0].scale[0] = wi;
+				stages[2+f].bundle[0].texMods[0].scale[1] = hi;
+
+				stages[2+f].bundle[0].texMods[0].type = TMOD_SCALE;
+				
+				stages[2+f].bundle[0].numTexMods = 1;
+
+				stages[2+f].isDetail = qtrue;
+				
+				}
+			}
+		}
+		else
+		
+		{
 		// two pass lightmap
 		stages[0].bundle[0].image[0] = tr.lightmaps[shader.lightmapIndex];
 		stages[0].bundle[0].isLightmap = qtrue;
@@ -4412,6 +4585,7 @@ shader_t *R_FindShaderReal( const char *name, int lightmapIndex, qboolean mipRaw
 		stages[1].active = qtrue;
 		stages[1].rgbGen = CGEN_IDENTITY;
 		stages[1].stateBits |= GLS_SRCBLEND_DST_COLOR | GLS_DSTBLEND_ZERO;
+		}
 	}
 
 	return FinishShader();
@@ -4420,15 +4594,45 @@ shader_t *R_FindShaderReal( const char *name, int lightmapIndex, qboolean mipRaw
 // leilei - rather stupid way to do a cel wrapper to work for all textures
 shader_t *R_FindShader( const char *name, int lightmapIndex, qboolean mipRawImage ) {
 		shader_t	*sh;		
+		shader_t	*ahsh;	
 
+/*			// Sadly, I have deprecated the old cel hack. I am leaving it here. It breaks 2D textures BTW!!! :(
 	if (r_anime->integer){
 		sh = R_FindShaderReal(va("%s_cel",name), lightmapIndex, mipRawImage);
 		if ( sh->defaultShader )
 		sh = R_FindShaderReal(name, lightmapIndex, mipRawImage);
 		return sh;
 	}
+	else*/
+
+	// load real shader first?
+	sh = R_FindShaderReal(name, lightmapIndex, mipRawImage);
+	if (!Q_strncmp( name, "models/players", 14) ){	// restrict to players; speedup
+		if (r_suggestiveThemes->integer < 1)	// find safe textures/shaders if available
+		{
+			sugthem = 1;
+			ahsh = R_FindShaderReal(va("%s_safe",name), lightmapIndex, mipRawImage);
+			if ( ahsh->defaultShader ){
+			return sh;
+			}
+			else
+			return ahsh;
+	
+		}
+		else if (r_suggestiveThemes->integer > 1)	// find lewd textures/shaders if available
+		{
+			sugthem = 2;
+			ahsh = R_FindShaderReal(va("%s_lewd",name), lightmapIndex, mipRawImage);
+			if ( ahsh->defaultShader ){
+			return sh;
+			}
+			else
+			return ahsh;
+		}
+		else	// if just normally suggestive or an otherwise normal shader, default
+		return sh;
+	}
 	else
-		sh = R_FindShaderReal(name, lightmapIndex, mipRawImage);
 	return sh;
 
 }
