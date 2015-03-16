@@ -680,6 +680,7 @@ static void ID_INLINE R_Bloom_QuadTV( int width, int height, float texX, float t
 
 	
 
+
 	if (aa == 0){	xaa = 0; yaa = 0;   }
 	if (aa == 1){	xaa = -xpix; yaa = ypix;   }
 	if (aa == 2){	xaa = -xpix; yaa = -ypix;   }
@@ -702,6 +703,16 @@ static void ID_INLINE R_Bloom_QuadTV( int width, int height, float texX, float t
 	//	qglViewport	(0, 0, 	tvWidth, tvHeight );
 	//	qglScissor	(0, 0,	tvWidth, tvHeight );
 		qglBegin( GL_QUADS );	
+	if (r_tvFilter->integer)	// bilinear filter
+	{
+		qglTexParameterf( GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR );
+		qglTexParameterf( GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR );
+	}
+	else
+	{
+		qglTexParameterf( GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST );
+		qglTexParameterf( GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST );
+	}
 		qglColor4f( 0.0, 0.0, 0.0, 1 );		
 		qglVertex2f(0,0	);
 		qglVertex2f(0,height);	
@@ -783,30 +794,6 @@ static void R_Bloom_RestoreScreen_Postprocessed( void ) {
 	if (program->u_CC_Overbright > -1) R_GLSL_SetUniform_u_CC_Overbright(program, r_overBrightBits->value);
 	if (program->u_CC_Saturation > -1) R_GLSL_SetUniform_u_CC_Saturation(program, 1.0);
 	if (program->u_CC_Contrast > -1) R_GLSL_SetUniform_u_CC_Contrast(program, 1.0);
-
-	// Lazy wrapper for ruby/retroarch shaders, because i'm lazy at modifying them. haha. Will probably be removed in the future if things suck.
-/*
-	{
-	float		rts_x, rts_y; 
-	float		ris_x, ris_y; 
-	float		ros_x, ros_y;
-
-	rts_x	=	glConfig.vidWidth;
-	rts_y	=	glConfig.vidHeight;
-
-	ris_x	=	glConfig.vidWidth;
-	ris_y	=	glConfig.vidHeight;
-
-	ros_x	=	tvWidth;
-	ros_y	=	tvHeight;
-
-	if (program->rubyTextureSize 	> -1) R_GLSL_SetUniform_rubyTextureSize(program, rts_x, rts_y);
-	if (program->rubyInputSize 	> -1) R_GLSL_SetUniform_rubyInputSize(program, 	 ris_x, ris_y);
-	if (program->rubyOutputSize 	> -1) R_GLSL_SetUniform_rubyOutputSize(program,  ros_x, ros_y);
-
-	}
-*/
-
 
 
 	if (program->u_zFar > -1) R_GLSL_SetUniform_u_zFar(program, tr.viewParms.zFar);	
@@ -1122,7 +1109,7 @@ static void R_Postprocess_InitTextures( void )
 	
 	// leilei - tv output texture
 
-	if (r_tvMode->integer){
+	if (r_tvMode->integer > -1){
 		// find closer power of 2 to screen size 
 		for (postproc.tv.width = 1;postproc.tv.width< tvWidth;postproc.tv.width *= 2);
 		for (postproc.tv.height = 1;postproc.tv.height < tvHeight;postproc.tv.height *= 2);
@@ -1915,7 +1902,6 @@ void R_MblurScreenPost( void )
 static void R_Postprocess_BackupScreenTV( void ) {
 
 	int intdiv;
-//	if (r_tvMode->integer > 1) intdiv = 2;
 	 intdiv = 1;
 
 
@@ -1932,10 +1918,6 @@ static void R_Postprocess_BackupScreenTV( void ) {
 	GL_Bind( postproc.screen.texture );
 	qglCopyTexSubImage2D( GL_TEXTURE_2D, 0, 0, 0, 0, 0, glConfig.vidWidth, glConfig.vidHeight);
 
-
-	//qglCopyTexSubImage2D( GL_TEXTURE_2D, 0, 0, 0, 0, 0, 320, 240);
-
-
 }
 
 static void R_Postprocess_ScaleTV( void ) {
@@ -1946,12 +1928,7 @@ static void R_Postprocess_ScaleTV( void ) {
 	qglViewport( 0, 0, glConfig.vidWidth, glConfig.vidHeight );
 	qglMatrixMode( GL_PROJECTION );
     qglLoadIdentity ();
-//	qglOrtho( 0, glConfig.vidWidth, glConfig.vidHeight, 0, 0,1 );
-//	qglMatrixMode( GL_MODELVIEW );
- //   qglLoadIdentity ();
 
-
-	
 }
 
 
@@ -1962,7 +1939,7 @@ float tvtime;
 
 void R_TVScreen( void )
 {
-	if( !r_tvMode->integer)
+	if( r_tvMode->integer < 0)
 		return;
 	if ( backEnd.donetv)
 		return;

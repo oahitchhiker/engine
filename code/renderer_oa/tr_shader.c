@@ -2595,11 +2595,8 @@ static qboolean ParseStage( shaderStage_t *stage, char **text )
 			{
 				stage->rgbGen = CGEN_ONE_MINUS_VERTEX;
 			}
-			else if ( !Q_stricmp( token, "lightingSpecularDiffuse" ) )	// leilei - use special specular calculation if overbrights and r_shadeSpecular is enabled
+			else if ( !Q_stricmp( token, "lightingSpecularDiffuse" ) )	// leilei - deprecated
 			{
-				if ( r_shadeSpecular->integer && tr.overbrightBits )
-				stage->rgbGen = CGEN_LIGHTING_DIFFUSE_SPECULAR;
-			  else
 				stage->rgbGen = CGEN_LIGHTING_DIFFUSE;
 			}
 			else
@@ -4607,7 +4604,7 @@ shader_t *R_FindShader( const char *name, int lightmapIndex, qboolean mipRawImag
 
 	// load real shader first?
 	sh = R_FindShaderReal(name, lightmapIndex, mipRawImage);
-	if (!Q_strncmp( name, "models/players", 14) ){	// restrict to players; speedup
+	if (!Q_strncmp( name, "models/player", 13) ){	// restrict to players; speedup
 		if (r_suggestiveThemes->integer < 1)	// find safe textures/shaders if available
 		{
 			sugthem = 1;

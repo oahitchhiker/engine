@@ -1334,7 +1334,6 @@ extern	cvar_t	*r_lensReflectionBrightness;
 
 extern cvar_t	*r_ext_paletted_texture;		// leilei - Paletted Texture
 extern	cvar_t	*r_specMode;		
-extern  cvar_t	*r_shadeSpecular;		// leilei - allows the special specular diffuse shading
 //extern	cvar_t	*r_waveMode;	
 
 extern	cvar_t	*r_flaresDlight;
@@ -1354,7 +1353,8 @@ extern cvar_t	*r_ntsc;	// Leilei - ntsc
 
 extern cvar_t	*r_tvMode;	// Leilei - tv faking mode
 extern cvar_t	*r_tvModeForceAspect;	// Leilei - retain aspect of the tv's mode
-extern cvar_t	*r_tvConsoleMode;	// Leilei - tv faking mode
+extern cvar_t	*r_tvFilter;	// Leilei - filter to use
+
 
 extern cvar_t	*r_retroAA;	// Leilei - old console anti aliasing
 
@@ -1369,11 +1369,16 @@ extern cvar_t	*r_leidebug;	// Leilei - debug only!
 extern cvar_t	*r_leidebugeye;	// Leilei - debug only!
 
 extern	cvar_t	*r_iconmip;	// leilei - icon mip - picmip for 2d icons
+extern	cvar_t	*r_iconBits;	// leilei - icon color depth for 2d icons
+
+extern	cvar_t	*r_lightmapBits;	// leilei - lightmap color depth
 
 extern	cvar_t	*r_texdump;	// leilei - texture dumping
 
 extern  cvar_t	*r_detailTextureScale;		// leilei - scale tweak the detail textures, 0 doesn't tweak at all.
 extern  cvar_t	*r_detailTextureLayers;		// leilei - add in more smaller detail texture layers, expensive!
+
+extern  cvar_t	*r_textureDither;		// leilei - apply dithering for lower texture bits
 
 //====================================================================
 

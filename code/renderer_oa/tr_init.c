@@ -57,7 +57,7 @@ cvar_t	*r_ignore;
 cvar_t	*r_detailTextures;
 cvar_t	*r_detailTextureScale;
 cvar_t	*r_detailTextureLayers;
-cvar_t	*r_shadeSpecular;
+
 
 cvar_t	*r_znear;
 cvar_t	*r_zproj;
@@ -129,6 +129,8 @@ cvar_t	*r_roundImagesDown;
 cvar_t	*r_colorMipLevels;
 cvar_t	*r_picmip;
 cvar_t	*r_iconmip;
+cvar_t	*r_iconBits;
+cvar_t	*r_lightmapBits;
 cvar_t	*r_showtris;
 cvar_t	*r_showsky;
 cvar_t	*r_shownormals;
@@ -220,6 +222,7 @@ cvar_t	*r_slowness;		// Leilei - the cvar that slows everything down. use with c
 cvar_t	*r_slowness_cpu;		// Leilei
 cvar_t	*r_slowness_gpu;		// Leilei
 
+cvar_t	*r_textureDither;	// leilei - Dithered texture
 
 cvar_t	*r_texdump;		// Leilei - debug - texture dump as they load, players should never need to use this!
 
@@ -358,7 +361,7 @@ vidmode_t r_vidModes[] =
 	{ "Mode  0: 320x240",		320,	240,	1 },
 	{ "Mode  1: 400x300",		400,	300,	1 },
 	{ "Mode  2: 512x384",		512,	384,	1 },
-	{ "Mode  3: 640x480",		640,	480,	1 },
+	{ "Mode  3: 640x480 (480p)",	640,	480,	1 },
 	{ "Mode  4: 800x600",		800,	600,	1 },
 	{ "Mode  5: 960x720",		960,	720,	1 },
 	{ "Mode  6: 1024x768",		1024,	768,	1 },
@@ -366,8 +369,8 @@ vidmode_t r_vidModes[] =
 	{ "Mode  8: 1280x1024",		1280,	1024,	1 },
 	{ "Mode  9: 1600x1200",		1600,	1200,	1 },
 	{ "Mode 10: 2048x1536",		2048,	1536,	1 },
-	{ "Mode 11: 856x480",856,	480,	1 },
-	{ "Mode 12: 1280x720",		1280,	720,	1 },
+	{ "Mode 11: 856x480",		856,	480,	1 },		// Q3 MODES END HERE AND EXTENDED MODES BEGIN
+	{ "Mode 12: 1280x720 (720p)",	1280,	720,	1 },
 	{ "Mode 13: 1280x768",		1280,	768,	1 },
 	{ "Mode 14: 1280x800",		1280,	800,	1 },
 	{ "Mode 15: 1280x960",		1280,	960,	1 },
@@ -378,8 +381,11 @@ vidmode_t r_vidModes[] =
 	{ "Mode 20: 1400x900",		1400,	900,	1 },
 	{ "Mode 21: 1600x900",		1600,	900,	1 },
 	{ "Mode 22: 1680x1050",		1680,	1050,	1 },
-	{ "Mode 23: 1920x1080",		1920,	1080,	1 },
-	{ "Mode 24: 1920x1440",		1920,	1440,	1 }
+	{ "Mode 23: 1920x1080 (1080p)",	1920,	1080,	1 },
+	{ "Mode 24: 1920x1200",		1920,	1200,	1 },
+	{ "Mode 25: 1920x1440",		1920,	1440,	1 },
+	{ "Mode 26: 2560x1600",		2560,	1600,	1 },
+	{ "Mode 27: 3840x2160 (4K)",	3840,	2160,	1 }
 };
 static int	s_numVidModes = ARRAY_LEN( r_vidModes );
 
@@ -586,7 +592,7 @@ const void *RB_TakeScreenshotCmd( const void *data ) {
 	cmd = (const screenshotCommand_t *)data;
 	
 	// leilei - hack for tvmode
-	if (r_tvMode->integer){
+	if (r_tvMode->integer > -1){
 
 			if (cmd->jpeg)
 				RB_TakeScreenshotJPEG( cmd->x, cmd->y, tvWidth, tvHeight, cmd->fileName);
@@ -1144,7 +1150,7 @@ void R_Register( void )
 	ri.Cvar_CheckRange( r_ext_multisample, 0, 4, qtrue );
 	r_overBrightBits = ri.Cvar_Get ("r_overBrightBits", "1", CVAR_ARCHIVE | CVAR_LATCH );
 	r_ignorehwgamma = ri.Cvar_Get( "r_ignorehwgamma", "0", CVAR_ARCHIVE | CVAR_LATCH);
-	r_mode = ri.Cvar_Get( "r_mode", "3", CVAR_ARCHIVE | CVAR_LATCH );
+	r_mode = ri.Cvar_Get( "r_mode", "-2", CVAR_ARCHIVE | CVAR_LATCH ); // leilei - changed default from 3, for modern convenience. It will still fallback to 3 if this fails (voodoo etc)
 	r_fullscreen = ri.Cvar_Get( "r_fullscreen", "1", CVAR_ARCHIVE );
 	r_noborder = ri.Cvar_Get("r_noborder", "0", CVAR_ARCHIVE | CVAR_LATCH);
 	r_customwidth = ri.Cvar_Get( "r_customwidth", "1600", CVAR_ARCHIVE | CVAR_LATCH );
@@ -1300,11 +1306,14 @@ void R_Register( void )
 	r_slowness_cpu = ri.Cvar_Get( "r_slowness_cpu", "300" , CVAR_ARCHIVE);	// it's 0 because you want it to be the fastest possible by default.
 	r_slowness_gpu = ri.Cvar_Get( "r_slowness_gpu", "96" , CVAR_ARCHIVE);	// it's 0 because you want it to be the fastest possible by default.
 
-	r_iconmip = ri.Cvar_Get ("r_iconmip", "1", CVAR_ARCHIVE | CVAR_LATCH );	// leilei - icon mip
+	r_iconmip = ri.Cvar_Get ("r_iconmip", "0", CVAR_ARCHIVE | CVAR_LATCH );		// leilei - icon mip
+	r_iconBits = ri.Cvar_Get ("r_iconBits", "0", CVAR_ARCHIVE | CVAR_LATCH );	// leilei - icon bits
+
+	r_lightmapBits = ri.Cvar_Get ("r_lightmapBits", "0", CVAR_ARCHIVE | CVAR_LATCH );	// leilei - lightmap color bits
+
+	r_textureDither = ri.Cvar_Get ("r_textureDither", "0", CVAR_ARCHIVE | CVAR_LATCH );	// leilei - dithered textures
 
 	r_texdump = ri.Cvar_Get( "r_texdump", "0", CVAR_CHEAT );	// leilei - debug - texture dumping
-
-	r_shadeSpecular = ri.Cvar_Get( "r_shadeSpecular", "1", CVAR_ARCHIVE | CVAR_LATCH ); // leilei - our models look best with these
 
 	// make sure all the commands added here are also
 	// removed in R_Shutdown

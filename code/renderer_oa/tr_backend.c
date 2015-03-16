@@ -1589,7 +1589,7 @@ void RB_DrawAccumBlur (void)
    float accblur;
    static float damagetime = -1.0f;
 
-   if (r_tvMode->integer) return;	// tvmode causes this to crash
+   if (r_tvMode->integer > -1) return;	// tvmode causes this to crash
    if (!r_motionblur->integer) return;
    if (r_motionblur->integer > 1) return; 	// don't do it for the other motion blur techniques
 

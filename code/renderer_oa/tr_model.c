@@ -371,7 +371,7 @@ qhandle_t RE_RegisterModelReal( const char *name ) {
 
 qhandle_t RE_RegisterModel( const char *name ) {
 
-	if (!Q_strncmp( name, "models/players", 14)){
+	if (!Q_strncmp( name, "models/player", 13)){
 	if (r_suggestiveThemes->integer == 0){			// safe models that will ship, much needed option of modesty
 		qhandle_t  eh;
 		char	narm[ MAX_QPATH ];
