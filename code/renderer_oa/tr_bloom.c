@@ -136,6 +136,7 @@ static struct {
 cvar_t *r_film;
 extern int	force32upload;		
 int		leifxmode;
+int		leifxpass;
 int		fakeit = 0;
 
 int 	tvinterlace = 1;
@@ -795,6 +796,8 @@ static void R_Bloom_RestoreScreen_Postprocessed( void ) {
 	if (program->u_CC_Saturation > -1) R_GLSL_SetUniform_u_CC_Saturation(program, 1.0);
 	if (program->u_CC_Contrast > -1) R_GLSL_SetUniform_u_CC_Contrast(program, 1.0);
 
+	// 
+	if (leifxmode == 3){ R_GLSL_SetUniform_u_CC_Brightness(program, leifxpass); }
 
 	if (program->u_zFar > -1) R_GLSL_SetUniform_u_zFar(program, tr.viewParms.zFar);	
 	GL_SelectTexture(0);
@@ -1377,17 +1380,18 @@ void R_LeiFXPostprocessFilterScreen( void )
 		leifxmode = 3;			// filter - 4 pass
 	// The stupidest hack in america
 	R_LeiFX_Stupid_Hack();
+		leifxpass = 0;
 		R_Postprocess_BackupScreen();
 		R_Bloom_RestoreScreen_Postprocessed();
+		leifxpass = 1;
 		R_Postprocess_BackupScreen();
 		R_Bloom_RestoreScreen_Postprocessed();
+		leifxpass = 2;
 		R_Postprocess_BackupScreen();
 		R_Bloom_RestoreScreen_Postprocessed();
+		leifxpass = 3;
 		R_Postprocess_BackupScreen();
 		R_Bloom_RestoreScreen_Postprocessed();
-	//	leifxmode = 2;	
-	//	R_Postprocess_BackupScreen();
-	//	R_Bloom_RestoreScreen_Postprocessed();
 		}
 	backEnd.doneleifx = qtrue;
 

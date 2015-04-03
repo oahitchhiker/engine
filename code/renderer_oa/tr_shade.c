@@ -1031,6 +1031,41 @@ static void ComputeColors( shaderStage_t *pStage )
 			break;
 	}
 
+	// leilei PowerVR Hack
+
+	if (r_parseStageSimple->integer)
+		{
+			float scale;
+			vec3_t normme;
+			if ((pStage->isBlend == 1) || (pStage->isBlend == 3)){ // additive or subtracive
+				
+				for(i = 0; i < tess.numVertexes; i++)
+				{
+					scale = LUMA(tess.svars.colors[i][0], tess.svars.colors[i][1], tess.svars.colors[i][2]);
+		 			tess.svars.colors[i][3] = scale - tess.svars.colors[i][3];
+					if (tess.svars.colors[i][3] > 255) tess.svars.colors[i][3] = 255;
+
+
+					normme[0] = tess.svars.colors[i][0];
+					normme[1] = tess.svars.colors[i][1];
+					normme[2] = tess.svars.colors[i][2];
+
+				//	normme[0] *= (4 * tr.identityLight);
+				//	normme[1] *= (4 * tr.identityLight);
+				//	normme[2] *= (4 * tr.identityLight);
+
+
+					VectorNormalize(normme);
+
+
+					tess.svars.colors[i][0] = normme[0]*255;
+					tess.svars.colors[i][1] = normme[1]*255;
+					tess.svars.colors[i][2] = normme[2]*255;
+				}
+			}
+
+		}
+
 	//
 	// alphaGen
 	//

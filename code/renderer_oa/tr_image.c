@@ -1172,6 +1172,7 @@ static void Upload32( unsigned *data,
 	unsigned	*scaledBuffer = NULL;
 	unsigned	*resampledBuffer = NULL;
 	int			scaled_width, scaled_height;
+	int			orig_width, orig_height;
 	int			i, c;
 	byte		*scan;
 	GLenum		internalFormat = GL_RGB;
@@ -1182,28 +1183,61 @@ static void Upload32( unsigned *data,
 	int		forceBits = 0; 
 
 
+	if (lightMap && r_parseStageSimple->integer) hackoperation = 4;
+
+	// leilei - npot support
+	orig_width = width;
+	orig_height = height;
+
 	//
 	// convert to exact power of 2 sizes
 	//
-	for (scaled_width = 1 ; scaled_width < width ; scaled_width<<=1)
-		;
-	for (scaled_height = 1 ; scaled_height < height ; scaled_height<<=1)
-		;
-	if ( r_roundImagesDown->integer && scaled_width > width )
-		scaled_width >>= 1;
-	if ( r_roundImagesDown->integer && scaled_height > height )
-		scaled_height >>= 1;
-	//scaled_width *= 1.5;
-	////scaled_height *= 1.5;
-	if ( scaled_width != width || scaled_height != height ) {
-		resampledBuffer = ri.Hunk_AllocateTempMemory( scaled_width * scaled_height * 4 );
-		if (hqresample)
-		Image_Resample32Lerp(data, width, height, resampledBuffer, scaled_width, scaled_height - 1);
-		else
-		ResampleTexture (data, width, height, resampledBuffer, scaled_width, scaled_height);
-		data = resampledBuffer;
-		width = scaled_width;
-		height = scaled_height;
+
+
+	if (r_roundImagesDown->integer == 2)
+	{
+
+	scaled_width = width;
+	scaled_height = height;
+
+		//for (scaled_width = 1 ; scaled_width < width ; scaled_width<<=1)
+		//	;
+		//for (scaled_height = 1 ; scaled_height < height ; scaled_height<<=1)
+		//	;
+
+		if ( scaled_width != width || scaled_height != height ) {
+			resampledBuffer = ri.Hunk_AllocateTempMemory( scaled_width * scaled_height * 4 );
+			ResampleTexture (data, width, height, resampledBuffer, scaled_width, scaled_height);
+			data = resampledBuffer;
+			width = scaled_width;
+			height = scaled_height;
+		}
+
+
+	}
+	else 
+	{
+
+		for (scaled_width = 1 ; scaled_width < width ; scaled_width<<=1)
+			;
+		for (scaled_height = 1 ; scaled_height < height ; scaled_height<<=1)
+			;
+		if ( (r_roundImagesDown->integer == 1) && scaled_width > width )
+			scaled_width >>= 1;
+		if ( (r_roundImagesDown->integer == 1) && scaled_height > height )
+			scaled_height >>= 1;
+
+		if ( scaled_width != width || scaled_height != height ) {
+			resampledBuffer = ri.Hunk_AllocateTempMemory( scaled_width * scaled_height * 4 );
+			if (hqresample)
+			Image_Resample32Lerp(data, width, height, resampledBuffer, scaled_width, scaled_height - 1);
+			else
+			ResampleTexture (data, width, height, resampledBuffer, scaled_width, scaled_height);
+			data = resampledBuffer;
+			width = scaled_width;
+			height = scaled_height;
+		}
+
 	}
 
 
@@ -1321,8 +1355,48 @@ static void Upload32( unsigned *data,
 			// leilei - additive to alpha
 			for ( i = 0; i < c; i++ )
 				{
+					int r, g, b;
+					vec3_t rgb;
+					float amplify;
 					byte alfa = LUMA(scan[i*4], scan[i*4 + 1], scan[i*4 + 2]);
+					//byte alfa = (scan[i*4]+ scan[i*4 + 1]+ scan[i*4 + 2]) / 3;
+
+					r = scan[i*4 + 0];
+					g = scan[i*4 + 1];
+					b = scan[i*4 + 2];
+					rgb[0] = r;
+					rgb[1] = g;
+					rgb[2] = b;
+					VectorNormalize(rgb);
+					r = rgb[0] * 256;
+					g = rgb[1] * 256;
+					b = rgb[2] * 256;
+
+					if (r>255) r=255;
+					if (g>255) g=255;
+					if (b>255) b=255;
+
+					if (scan[i*4 + 0] > r) r = scan[i*4 + 0];
+					if (scan[i*4 + 1] > g) g = scan[i*4 + 1];
+					if (scan[i*4 + 2] > b) b = scan[i*4 + 2];
+
+					scan[i*4 + 0] = r;
+					scan[i*4 + 1] = g;
+					scan[i*4 + 2] = b;
 					scan[i*4 + 3] = alfa;
+
+				}
+
+	}
+
+
+	else if (hackoperation == 2)
+	{
+			// leilei - alpha killing
+			for ( i = 0; i < c; i++ )
+				{
+					scan[i*4 + 3] = 255;
+
 				}
 
 	}
@@ -1332,33 +1406,67 @@ static void Upload32( unsigned *data,
 	{
 		for ( i = 0; i < c; i++ )
 		{
-			byte alfa = LUMA(scan[i*4] * -1, scan[i*4 + 1] * -1, scan[i*4 + 2] * -1);
-			scan[i*4 + 3] = alfa;
+
+			byte alfa = LUMA(scan[i*4], scan[i*4 + 1], scan[i*4 + 2]);
+			scan[i*4] 	= 0;
+			scan[i*4 + 1] 	= 0;
+			scan[i*4 + 2] 	= 0;
+			scan[i*4 + 3] 	= alfa;
+
 		}
 	}
 
-	else if(hackoperation == 4 )		// Multiplies
+	else if (hackoperation == 4)	// modulateply
 	{
-		int yee;
-		int yer;
-		int yeah;
-		int yo;
-		for ( i = 0; i < c; i++ )
-		{
-			yee = scan[i*4] - 127 * 1.18; // highlights
-			yer = scan[i*4] * -1 + 127 ; // darks
-			if (yee < 0) yee = 0;
-			if (yer < 0) yer = 0;
-			yer *= 1.5;
-			yee = 0;
-			yeah = yee + yer;
-			yo = 0;
-			scan[i*4] = yo;
-			scan[i*4 + 1] = yo;
-			scan[i*4 + 2] = yo;
-			scan[i*4 + 3] = yeah;
-		}
+			
+			for ( i = 0; i < c; i++ )
+				{
+					int r, g, b;
+					vec3_t rgb;
+					
+					float amplify;
+					byte alfa = LUMA(scan[i*4], scan[i*4 + 1], scan[i*4 + 2]);
+					//byte alfa = (scan[i*4]+ scan[i*4 + 1]+ scan[i*4 + 2]) / 3;
+					alfa = sin(alfa/64) * 32;
+
+					amplify = (alfa - 128) / 255;
+					r = scan[i*4 + 0];
+					g = scan[i*4 + 1];
+					b = scan[i*4 + 2];
+					rgb[0] = r;
+					rgb[1] = g;
+					rgb[2] = b;
+					VectorNormalize(rgb);
+					r = rgb[0] * 256;
+					g = rgb[1] * 256;
+					b = rgb[2] * 256;
+
+					r *= amplify;
+					g *= amplify;
+					b *= amplify;
+
+
+					if (r<0) r=0;
+					if (g<0) g=0;
+					if (b<0) b=0;
+
+					if (r>255) r=255;
+					if (g>255) g=255;
+					if (b>255) b=255;
+
+					if (scan[i*4 + 0] > r) r = scan[i*4 + 0];
+					if (scan[i*4 + 1] > g) g = scan[i*4 + 1];
+					if (scan[i*4 + 2] > b) b = scan[i*4 + 2];
+
+					scan[i*4 + 0] = r;
+					scan[i*4 + 1] = g;
+					scan[i*4 + 2] = b;
+					scan[i*4 + 3] = alfa;
+
+				}
+
 	}
+
 
 	if(r_textureDither->integer)		// possibly the stupidest texture dithering ever
 	{
@@ -2245,6 +2353,8 @@ void R_LoadImage( const char *name, byte **pic, int *width, int *height )
 
 	ext = COM_GetExtension( localName );
 
+
+
 	if( *ext )
 	{
 		// Look for the correct loader and use it
@@ -2414,8 +2524,25 @@ image_t	*R_FindImageFile( const char *name, imgType_t type, imgFlags_t flags )
 //	loadtime = backEnd.refdef.floatTime - oldtime;
 
 
-	image = R_CreateImage( ( char * ) name, pic, width, height, type, flags, 0 );
+	// leilei - if we need to change the texture upload with a special image prefix to separate from differently blended things
+	if (hackoperation)
+		{
+			char hackName[MAX_QPATH];
+			char *hackedName;
+			COM_StripExtension( name, hackName, MAX_QPATH );
+			if(hackoperation==1) hackedName = va("%shackadd", hackName);
+			if(hackoperation==2) hackedName = va("%shacknob", hackName);
+			if(hackoperation==3) hackedName = va("%shacksub", hackName);
+			if(hackoperation==4) hackedName = va("%shackmod", hackName);
+			else hackedName = va("%shackblend", hackName);
+			image = R_CreateImage( ( char * ) hackedName, pic, width, height, type, flags, 0 );
+		}
 
+	else
+
+	{
+	image = R_CreateImage( ( char * ) name, pic, width, height, type, flags, 0 );
+	}
 
 
 	ri.Free( pic );

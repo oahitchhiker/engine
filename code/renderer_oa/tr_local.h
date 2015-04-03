@@ -27,6 +27,7 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 #include "../qcommon/q_shared.h"
 #include "../qcommon/qfiles.h"
 #include "../qcommon/qcommon.h"
+
 #include "../renderercommon/tr_public.h"
 #include "../renderercommon/tr_common.h"
 #include "../renderercommon/iqm.h"
@@ -316,6 +317,10 @@ typedef struct {
 	int			isBlend;			// leilei - for leifx
 	qboolean		isLeiShade;			// leilei - for the automatic shader
 	qhandle_t		program;
+
+	int			imgWidth;
+	int			imgHeight;		//leilei for glsl shaders
+
 } shaderStage_t;
 
 struct shaderCommands_s;
@@ -1344,7 +1349,7 @@ extern	cvar_t	*r_flaresDlightScale;
 //extern	cvar_t	*r_flaresSurfradii;
 
 extern cvar_t	*r_alternateBrightness;		// leilei - alternate brightness
-
+extern cvar_t	*r_parseStageSimple;	// Leilei - handling textures into alphas
 extern cvar_t	*r_leifx;	// Leilei - leifx nostalgia filter
 extern cvar_t	*r_modelshader;	// Leilei - new model shading
 

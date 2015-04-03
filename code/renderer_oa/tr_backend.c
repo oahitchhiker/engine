@@ -475,47 +475,18 @@ static void GL_StatePCX( unsigned long stateBits )
 	unsigned long diff = stateBits ^ glState.glStateBits;
 
 
-	if ( !diff )
-	{
-		return;
-	}
+	
 
 
 	//	
-	// check depthFunc bits
-	//
-	if ( diff & GLS_DEPTHFUNC_EQUAL )
-	{
-		if ( stateBits & GLS_DEPTHFUNC_EQUAL )
-		{
-			qglDepthFunc( GL_EQUAL );
-		}
-		else
-		{
-			qglDepthFunc( GL_LEQUAL );
-		}
-	}
-
 	//
 	// check blend bits
 	//
-	if ( diff & ( GLS_SRCBLEND_BITS | GLS_DSTBLEND_BITS ) )
-	{
-		GLenum srcFactor, dstFactor;
 
-		if ( stateBits & ( GLS_SRCBLEND_BITS | GLS_DSTBLEND_BITS ) )
-		{
-			srcFactor = GL_SRC_ALPHA; 
-			dstFactor = GL_ONE_MINUS_SRC_ALPHA;  // leilei - for pvr debug only!
-			
-			qglEnable( GL_BLEND );
-			qglBlendFunc( srcFactor, dstFactor );
-		}
-		else
-		{
-			qglDisable( GL_BLEND );
-		}
-	}
+		qglEnable( GL_BLEND );
+		qglBlendFunc(  GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+
+	
 	//
 	// check depthmask
 	//
