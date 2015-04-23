@@ -873,10 +873,10 @@ void RB_StageIteratorSky( void ) {
 
     R_TransformModelToClip( oa_SunPos, glState.currentModelViewMatrix, glState.currentProjectionMatrix,
                                 &eye, &screen);
-    R_TransformClipToWindow( screen, &backEnd.viewParms, normalized, window  );
+    R_TransformClipToWindow( eye, &backEnd.viewParms, normalized, window  );
     oa_SunPos[0]=normalized[0];
     oa_SunPos[1]=normalized[1];
-    oa_SunPos[2]=window[2];
+    oa_SunPos[2]=normalized[2];
 
 
     // calculate old view in screen coordinates

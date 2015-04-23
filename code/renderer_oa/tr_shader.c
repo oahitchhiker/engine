@@ -197,6 +197,10 @@ static void R_GLSL_ParseProgram(glslProgram_t *program, char *_text) {
 					program->u_ScreenSizeX = qglGetUniformLocationARB(program->program, "u_ScreenSizeX");
 				}  else if (!Q_stricmp(token, "u_ScreenSizeY;")) {
 					program->u_ScreenSizeY = qglGetUniformLocationARB(program->program, "u_ScreenSizeY");
+				}  else if (!Q_stricmp(token, "u_FBTexSizeX;")) {
+					program->u_ScreenSizeX = qglGetUniformLocationARB(program->program, "u_FBTexSizeX");
+				}  else if (!Q_stricmp(token, "u_FBTexSizeY;")) {
+					program->u_ScreenSizeY = qglGetUniformLocationARB(program->program, "u_FBTexSizeY");
 				}  else if (!Q_stricmp(token, "u_ActualScreenSizeX;")) {
 					program->u_ActualScreenSizeX = qglGetUniformLocationARB(program->program, "u_ActualScreenSizeX");
 				}  else if (!Q_stricmp(token, "u_ActualScreenSizeY;")) {

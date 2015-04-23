@@ -2169,51 +2169,65 @@ static void RB_IterateStagesGeneric( shaderCommands_t *input )
 		}
 		else
 		{
-        if (vertexShaders)
-        {
-			GLSL_DefaultProgram_Feeder(pStage, input);
-			qglEnableVertexAttribArrayARB(6);
-			qglVertexAttribPointerARB(6,3,GL_FLOAT,GL_FALSE,0,input->tangent);
-			qglEnableVertexAttribArrayARB(7);
-			qglVertexAttribPointerARB(7,3,GL_FLOAT,GL_FALSE,0,input->binormal);
-			qglEnableVertexAttribArrayARB(14);
-			qglVertexAttribPointerARB(14,3,GL_FLOAT,GL_FALSE,0,input->_normal);
-			qglEnableClientState(GL_NORMAL_ARRAY);
-			qglNormalPointer ( GL_FLOAT, 16, input->normal);	// padded for SIMD
-		}
-		//
-		// do multitexture
-		//
-	
-		if ( pStage->bundle[1].image[0] != 0 )
-		{
-			// Here draw world
-		if (!r_leifx->integer)
-			DrawMultitextured( input, stage );
-		}
-		else
-		{
-			if ( !setArraysOnce )
+			//
+			// do multitexture
+			//
+			if ( pStage->bundle[1].image[0] != 0 )
 			{
-				qglTexCoordPointer( 2, GL_FLOAT, 0, input->svars.texcoords[0] );
+				if (vertexShaders)
+					{
+						GLSL_DefaultProgram_Feeder(pStage, input);
+						qglEnableVertexAttribArrayARB(6);
+						qglVertexAttribPointerARB(6,3,GL_FLOAT,GL_FALSE,0,input->tangent);
+						qglEnableVertexAttribArrayARB(7);
+						qglVertexAttribPointerARB(7,3,GL_FLOAT,GL_FALSE,0,input->binormal);
+						qglEnableVertexAttribArrayARB(14);
+						qglVertexAttribPointerARB(14,3,GL_FLOAT,GL_FALSE,0,input->_normal);
+						qglEnableClientState(GL_NORMAL_ARRAY);
+						qglNormalPointer ( GL_FLOAT, 16, input->normal);	// padded for SIMD
+					}
+					// Here draw world
+				if (!r_leifx->integer)
+					DrawMultitextured( input, stage );
+				if (vertexShaders)
+					GLSL_Clean();
 			}
-			// need good coordinates here, under good conditions
-			//
-			// set state
-			//
-			R_BindAnimatedImage( &pStage->bundle[0] );
+			else
+			{
+				if ( !setArraysOnce )
+				{
+					qglTexCoordPointer( 2, GL_FLOAT, 0, input->svars.texcoords[0] );
+				}
+				// need good coordinates here, under good conditions
+				//
+				// set state
+				//
+				R_BindAnimatedImage( &pStage->bundle[0] );
 
-			GL_State( pStage->stateBits );
+				GL_State( pStage->stateBits );
+			if (vertexShaders)
+				{
+					GLSL_DefaultProgram_Feeder(pStage, input);
+					qglEnableVertexAttribArrayARB(6);
+					qglVertexAttribPointerARB(6,3,GL_FLOAT,GL_FALSE,0,input->tangent);
+					qglEnableVertexAttribArrayARB(7);
+					qglVertexAttribPointerARB(7,3,GL_FLOAT,GL_FALSE,0,input->binormal);
+					qglEnableVertexAttribArrayARB(14);
+					qglVertexAttribPointerARB(14,3,GL_FLOAT,GL_FALSE,0,input->_normal);
+					qglEnableClientState(GL_NORMAL_ARRAY);
+					qglNormalPointer ( GL_FLOAT, 16, input->normal);	// padded for SIMD
+				}
 
-			//
-			// draw
-			//
-			// Here draw sky, addons, simple geometry
-			//here is the missing link
-			R_DrawElements( input->numIndexes, input->indexes );
-		}
-        if (vertexShaders)
-            GLSL_Clean();
+				//
+				// draw
+				//
+				// Here draw sky, addons, simple geometry
+				//here is the missing link
+				R_DrawElements( input->numIndexes, input->indexes );
+				if (vertexShaders)
+					GLSL_Clean();
+			}
+
 
         }
 
@@ -2668,6 +2682,7 @@ void RB_GLSL_StageIteratorGeneric(void) {
  * Stage iterator for GLSL vertex lit texture program
  */
 void RB_GLSL_StageIteratorVertexLitTexture(void) {
+
 	RB_StageIteratorVertexLitTexture(); // TODO: placeholder
 }
 
@@ -2720,7 +2735,7 @@ void RB_EndSurface( void ) {
 	// call off to shader specific tess end function
 	//
     if (vertexShaders) {
-		glsl_lights=0;
+		glsl_lights=0; // flag to indicate we better fill the lights array and count the lights in scene
     	RB_CopyAllLightInfo();
 		}
 	tess.currentStageIteratorFunc();
