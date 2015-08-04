@@ -475,47 +475,18 @@ static void GL_StatePCX( unsigned long stateBits )
 	unsigned long diff = stateBits ^ glState.glStateBits;
 
 
-	if ( !diff )
-	{
-		return;
-	}
+	
 
 
 	//	
-	// check depthFunc bits
-	//
-	if ( diff & GLS_DEPTHFUNC_EQUAL )
-	{
-		if ( stateBits & GLS_DEPTHFUNC_EQUAL )
-		{
-			qglDepthFunc( GL_EQUAL );
-		}
-		else
-		{
-			qglDepthFunc( GL_LEQUAL );
-		}
-	}
-
 	//
 	// check blend bits
 	//
-	if ( diff & ( GLS_SRCBLEND_BITS | GLS_DSTBLEND_BITS ) )
-	{
-		GLenum srcFactor, dstFactor;
 
-		if ( stateBits & ( GLS_SRCBLEND_BITS | GLS_DSTBLEND_BITS ) )
-		{
-			srcFactor = GL_SRC_ALPHA; 
-			dstFactor = GL_ONE_MINUS_SRC_ALPHA;  // leilei - for pvr debug only!
-			
-			qglEnable( GL_BLEND );
-			qglBlendFunc( srcFactor, dstFactor );
-		}
-		else
-		{
-			qglDisable( GL_BLEND );
-		}
-	}
+		qglEnable( GL_BLEND );
+		qglBlendFunc(  GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+
+	
 	//
 	// check depthmask
 	//
@@ -1209,9 +1180,12 @@ void RE_StretchRaw (int x, int y, int w, int h, int cols, int rows, const byte *
 	qglEnd ();
 }
 
+extern int	force32upload;		
+
 void RE_UploadCinematic (int w, int h, int cols, int rows, const byte *data, int client, qboolean dirty) {
 
 	GL_Bind( tr.scratchImage[client] );
+
 
 	// if the scratchImage isn't in the format we want, specify it as a new texture
 	if ( cols != tr.scratchImage[client]->width || rows != tr.scratchImage[client]->height ) {
@@ -1586,7 +1560,7 @@ void RB_DrawAccumBlur (void)
    float accblur;
    static float damagetime = -1.0f;
 
-   if (r_tvMode->integer) return;	// tvmode causes this to crash
+   if (r_tvMode->integer > -1) return;	// tvmode causes this to crash
    if (!r_motionblur->integer) return;
    if (r_motionblur->integer > 1) return; 	// don't do it for the other motion blur techniques
 

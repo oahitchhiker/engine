@@ -206,6 +206,8 @@ void	RE_SetColor( const float *rgba ) {
 RE_StretchPic
 =============
 */
+
+extern int hackoperation; 
 void RE_StretchPic ( float x, float y, float w, float h, 
 					  float s1, float t1, float s2, float t2, qhandle_t hShader ) {
 	stretchPicCommand_t	*cmd;
@@ -217,6 +219,7 @@ void RE_StretchPic ( float x, float y, float w, float h,
 	if ( !cmd ) {
 		return;
 	}
+	hackoperation = 0;
 	cmd->commandId = RC_STRETCH_PIC;
 	cmd->shader = R_GetShaderByHandle( hShader );
 	cmd->x = x;

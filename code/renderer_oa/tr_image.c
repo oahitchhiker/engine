@@ -185,7 +185,6 @@ void R_GLSLPalette ( const unsigned char *palette)
 {
 	int		i;
 
-	int red, green, blue;
 	float redf, greenf, bluef;
 
 	if ( palette )
@@ -193,16 +192,10 @@ void R_GLSLPalette ( const unsigned char *palette)
 
 		for ( i = 0; i < 256; i++ )
 		{
-
-			red = d_8to24table[i] & 0xff;
-			green = ( d_8to24table[i] >> 8 ) & 0xff;
-			blue = ( d_8to24table[i] >> 16 ) & 0xff;
 			redf = (d_8to24table[i] & 0xff)  		* 0.003921568627451;
 			greenf = (( d_8to24table[i] >> 8 ) & 0xff) 	* 0.003921568627451;
 			bluef = (( d_8to24table[i] >> 16 ) & 0xff) 	* 0.003921568627451;
-			//ri.Printf( PRINT_ALL, "    vec3(%i, %i, %i),\n", red, green, blue );
 			ri.Printf( PRINT_ALL, "    vec3(%f, %f, %f),\n", redf, greenf, bluef );
-
 		}
 	}
 
@@ -356,7 +349,7 @@ void GL_TextureMode( const char *string ) {
 
 	// hack to prevent trilinear from being set on voodoo,
 	// because their driver freaks...
-	if ( i == 5 && glConfig.hardwareType == GLHW_3DFX_2D3D ) {
+	if ( i == 5 && glConfig.hardwareType == GLHW_3DFX_2D3D || r_leifx->integer ) {
 		ri.Printf( PRINT_ALL, "Refusing to set trilinear on a voodoo.\n" );
 		i = 3;
 	}
@@ -563,7 +556,6 @@ R_ImageListMapOnly_f
 */
 void R_ImageListMapOnly_f( void ) {
 	int i;
-	int estTotalSize = 0;
 
 	for ( i = 0 ; i < tr.numImages ; i++ )
 	{
@@ -592,9 +584,6 @@ void R_ImageListMapOnly_f( void ) {
 		}
 	}
 
-//	ri.Printf (PRINT_ALL, " ---------\n");
-//	ri.Printf (PRINT_ALL, " approx %i bytes\n", estTotalSize);
-//	ri.Printf (PRINT_ALL, " %i total images\n\n", tr.numImages );
 }
 
 
@@ -974,7 +963,7 @@ static void R_MipMap (byte *in, int width, int height) {
 static void R_MipMap8 (byte *in, int width, int height)
 {
 	int		i, j;
-	byte	*out, *at1, *at2, *at3, *at4;
+	byte	*out, *at1;//, *at2, *at3, *at4;
 
 	height >>= 1;
 	out = in;
@@ -984,9 +973,9 @@ static void R_MipMap8 (byte *in, int width, int height)
 		for (j=0 ; j<width ; j+=2, out+=1, in+=2)
 		{
 			at1 = in[0];
-			at2 = in[1];
-			at3 = in[width+0];
-			at4 = in[width+1];
+		//	at2 = in[1];
+		//	at3 = in[width+0];
+		//	at4 = in[width+1];
 			out[0] = at1;
 		}
 	}
@@ -1055,10 +1044,16 @@ static void R_BlendToGray( byte *data, int pixelCount, int fadeto) {
 	float		alphed, alpher;
 
 	if (fadeto < 1)
-		return;	//  we don't need to.
+		return;	//  we don't need to for the highest mip.
 
-	alphed = 1 / fadeto;
-	alpher = 1 - alphed;
+
+	if (fadeto == 1){	alphed = 0.75; alpher = 0.25; }
+	else if (fadeto == 2){	alphed = 0.50; alpher = 0.50; }
+	else if (fadeto == 3){	alphed = 0.25; alpher = 0.75; }
+	else {	alphed = 0.0; alpher = 1.00; }
+
+	//alphed = 1 / fadeto;
+	//alpher = 1 - alphed;
 
 	fadeto += 1;
 
@@ -1100,16 +1095,14 @@ static void DumpTex( unsigned *data,
 		byte		*scan;
 		byte *baffer, *alffer, *flipper;
 		scan = ((byte *)data);
-		size_t offset = 0, memcount;
-		int padlen;
-		int be, bi, ber, ba;
+		size_t offset = 0;//, memcount;
+		int padlen = 0; 
+		int be, ber;
 		int scrale = width * height;
 		int scravg = width + height / 2;
-		int wit = width;
-		int hat = height;
 		int quality = 85; // estimate quality from total size
 		int hasalf = 0;
-		float countw, counth;
+		float countw = 0;
 
 		if (scravg > 511) quality = 42; // huge textures
 		else if (scravg > 255) quality = 62; // large textures
@@ -1122,12 +1115,7 @@ static void DumpTex( unsigned *data,
 		// I'm gonna flip......
 		int alfcnt = 0;
 
-		countw = 0;
-		counth = 0;
 
-
-		wit = width * 3;
-		hat = height * 3;
 
 		for (be=0; be<scrale; be++){
 			int bib;
@@ -1156,7 +1144,7 @@ static void DumpTex( unsigned *data,
 
 
 			
-		memcount = (width * 3 + padlen) * height;
+		//memcount = (width * 3 + padlen) * height;
 		if ((width > 16) && (height > 16)){
 		RE_SaveJPG( va("dump/%s.jpg", dumpname), 85,width, height, baffer, padlen);
 		if (hasalf)
@@ -1184,6 +1172,7 @@ static void Upload32( unsigned *data,
 	unsigned	*scaledBuffer = NULL;
 	unsigned	*resampledBuffer = NULL;
 	int			scaled_width, scaled_height;
+	int			orig_width, orig_height;
 	int			i, c;
 	byte		*scan;
 	GLenum		internalFormat = GL_RGB;
@@ -1191,31 +1180,64 @@ static void Upload32( unsigned *data,
 	GLenum		temp_GLtype = GL_UNSIGNED_BYTE;
 	float		rMax = 0, gMax = 0, bMax = 0;
 	int		texsizex, texsizey;
+	int		forceBits = 0; 
 
 
+	if (lightMap && r_parseStageSimple->integer) hackoperation = 4;
+
+	// leilei - npot support
+	orig_width = width;
+	orig_height = height;
 
 	//
 	// convert to exact power of 2 sizes
 	//
-	for (scaled_width = 1 ; scaled_width < width ; scaled_width<<=1)
-		;
-	for (scaled_height = 1 ; scaled_height < height ; scaled_height<<=1)
-		;
-	if ( r_roundImagesDown->integer && scaled_width > width )
-		scaled_width >>= 1;
-	if ( r_roundImagesDown->integer && scaled_height > height )
-		scaled_height >>= 1;
-	//scaled_width *= 1.5;
-	////scaled_height *= 1.5;
-	if ( scaled_width != width || scaled_height != height ) {
-		resampledBuffer = ri.Hunk_AllocateTempMemory( scaled_width * scaled_height * 4 );
-		if (hqresample)
-		Image_Resample32Lerp(data, width, height, resampledBuffer, scaled_width, scaled_height - 1);
-		else
-		ResampleTexture (data, width, height, resampledBuffer, scaled_width, scaled_height);
-		data = resampledBuffer;
-		width = scaled_width;
-		height = scaled_height;
+
+
+	if (r_roundImagesDown->integer == 2)
+	{
+
+	scaled_width = width;
+	scaled_height = height;
+
+		//for (scaled_width = 1 ; scaled_width < width ; scaled_width<<=1)
+		//	;
+		//for (scaled_height = 1 ; scaled_height < height ; scaled_height<<=1)
+		//	;
+
+		if ( scaled_width != width || scaled_height != height ) {
+			resampledBuffer = ri.Hunk_AllocateTempMemory( scaled_width * scaled_height * 4 );
+			ResampleTexture (data, width, height, resampledBuffer, scaled_width, scaled_height);
+			data = resampledBuffer;
+			width = scaled_width;
+			height = scaled_height;
+		}
+
+
+	}
+	else 
+	{
+
+		for (scaled_width = 1 ; scaled_width < width ; scaled_width<<=1)
+			;
+		for (scaled_height = 1 ; scaled_height < height ; scaled_height<<=1)
+			;
+		if ( (r_roundImagesDown->integer == 1) && scaled_width > width )
+			scaled_width >>= 1;
+		if ( (r_roundImagesDown->integer == 1) && scaled_height > height )
+			scaled_height >>= 1;
+
+		if ( scaled_width != width || scaled_height != height ) {
+			resampledBuffer = ri.Hunk_AllocateTempMemory( scaled_width * scaled_height * 4 );
+			if (hqresample)
+			Image_Resample32Lerp(data, width, height, resampledBuffer, scaled_width, scaled_height - 1);
+			else
+			ResampleTexture (data, width, height, resampledBuffer, scaled_width, scaled_height);
+			data = resampledBuffer;
+			width = scaled_width;
+			height = scaled_height;
+		}
+
 	}
 
 
@@ -1250,7 +1272,7 @@ static void Upload32( unsigned *data,
 			// Auto-determine from resolution division
 			
 			if (r_iconmip->integer == 1){
-				int wadth, haght, dev;
+				int wadth, haght, dev = 0;
 	
 				wadth = floor(1280 / glConfig.vidWidth) - 1;
 				haght = floor(960 / glConfig.vidHeight) - 1;
@@ -1277,8 +1299,19 @@ static void Upload32( unsigned *data,
 	
 	
 		}
+		if (r_iconBits->integer){
+			forceBits = r_iconBits->integer;
+		}
 	}
 
+
+	// leilei - lightmap color bits, for saving vram/tex cache
+	if (lightMap){
+		if (r_lightmapBits->integer){
+			forceBits = r_lightmapBits->integer;
+			force32upload = 0;
+		}
+	}
 
 	//
 	// clamp to minimum size
@@ -1322,8 +1355,48 @@ static void Upload32( unsigned *data,
 			// leilei - additive to alpha
 			for ( i = 0; i < c; i++ )
 				{
+					int r, g, b;
+					vec3_t rgb;
+					float amplify;
 					byte alfa = LUMA(scan[i*4], scan[i*4 + 1], scan[i*4 + 2]);
+					//byte alfa = (scan[i*4]+ scan[i*4 + 1]+ scan[i*4 + 2]) / 3;
+
+					r = scan[i*4 + 0];
+					g = scan[i*4 + 1];
+					b = scan[i*4 + 2];
+					rgb[0] = r;
+					rgb[1] = g;
+					rgb[2] = b;
+					VectorNormalize(rgb);
+					r = rgb[0] * 256;
+					g = rgb[1] * 256;
+					b = rgb[2] * 256;
+
+					if (r>255) r=255;
+					if (g>255) g=255;
+					if (b>255) b=255;
+
+					if (scan[i*4 + 0] > r) r = scan[i*4 + 0];
+					if (scan[i*4 + 1] > g) g = scan[i*4 + 1];
+					if (scan[i*4 + 2] > b) b = scan[i*4 + 2];
+
+					scan[i*4 + 0] = r;
+					scan[i*4 + 1] = g;
+					scan[i*4 + 2] = b;
 					scan[i*4 + 3] = alfa;
+
+				}
+
+	}
+
+
+	else if (hackoperation == 2)
+	{
+			// leilei - alpha killing
+			for ( i = 0; i < c; i++ )
+				{
+					scan[i*4 + 3] = 255;
+
 				}
 
 	}
@@ -1333,33 +1406,172 @@ static void Upload32( unsigned *data,
 	{
 		for ( i = 0; i < c; i++ )
 		{
-			byte alfa = LUMA(scan[i*4] * -1, scan[i*4 + 1] * -1, scan[i*4 + 2] * -1);
-			scan[i*4 + 3] = alfa;
+
+			byte alfa = LUMA(scan[i*4], scan[i*4 + 1], scan[i*4 + 2]);
+			scan[i*4] 	= 0;
+			scan[i*4 + 1] 	= 0;
+			scan[i*4 + 2] 	= 0;
+			scan[i*4 + 3] 	= alfa;
+
 		}
 	}
 
-	else if(hackoperation == 4 )		// Multiplies
+	else if (hackoperation == 4)	// modulateply
 	{
-		int yee;
-		int yer;
-		int yes;
-		int yeah;
-		int yo;
+			
+			for ( i = 0; i < c; i++ )
+				{
+					int r, g, b;
+					vec3_t rgb;
+					
+					float amplify;
+					byte alfa = LUMA(scan[i*4], scan[i*4 + 1], scan[i*4 + 2]);
+					//byte alfa = (scan[i*4]+ scan[i*4 + 1]+ scan[i*4 + 2]) / 3;
+					alfa = sin(alfa/64) * 32;
+
+					amplify = (alfa - 128) / 255;
+					r = scan[i*4 + 0];
+					g = scan[i*4 + 1];
+					b = scan[i*4 + 2];
+					rgb[0] = r;
+					rgb[1] = g;
+					rgb[2] = b;
+					VectorNormalize(rgb);
+					r = rgb[0] * 256;
+					g = rgb[1] * 256;
+					b = rgb[2] * 256;
+
+					r *= amplify;
+					g *= amplify;
+					b *= amplify;
+
+
+					if (r<0) r=0;
+					if (g<0) g=0;
+					if (b<0) b=0;
+
+					if (r>255) r=255;
+					if (g>255) g=255;
+					if (b>255) b=255;
+
+					if (scan[i*4 + 0] > r) r = scan[i*4 + 0];
+					if (scan[i*4 + 1] > g) g = scan[i*4 + 1];
+					if (scan[i*4 + 2] > b) b = scan[i*4 + 2];
+
+					scan[i*4 + 0] = r;
+					scan[i*4 + 1] = g;
+					scan[i*4 + 2] = b;
+					scan[i*4 + 3] = alfa;
+
+				}
+
+	}
+
+
+	if(r_textureDither->integer)		// possibly the stupidest texture dithering ever
+	{
+#ifdef DONTEVENTHINKABOUTTHIS
+		int passes = r_textureDither->integer;
+		int that;
+		/* LEIFX FILTER C PORT PROTOTYPE SCRATCH AREA 
+			No vectors, only ints ints ints  			Obviously can be refactored with SSE */
+#define FILTCAP (0.075 * 255)
+#define FILTCAPG (FILTCAP / 2)
+		for (that=0;that<passes;that++){
+
+			for ( i = 0; i < c-1; i++ )
+			{
+				int ren;
+				int r1,g1,b1;	
+				int r2,g2,b2;	
+				int rd,gd,bd;	
+	
+			/*  Grab Pixels to Sample From */
+				r1 = scan[i*4]; 
+				g1 = scan[i*4+1]; 
+				b1 = scan[i*4+2]; 
+				
+				r2 = scan[(i+1)*4];
+				g2 = scan[(i+1)*4 + 1];
+				b2 = scan[(i+1)*4 + 2];
+	
+			/*  Find differences */
+	
+				rd = r2 - r1;
+				gd = g2 - g1;
+				bd = b2 - b1;
+	
+				if (rd > FILTCAP ) 	rd = FILTCAP;
+				if (gd > FILTCAPG) 	gd = FILTCAPG;
+				if (bd > FILTCAP ) 	bd = FILTCAP;
+	
+				if (rd < -FILTCAP ) 	rd = -FILTCAP;
+				if (gd < -FILTCAPG) 	gd = -FILTCAPG;
+				if (bd < -FILTCAP ) 	bd = -FILTCAP;
+	
+			/*  Add our Differences  */
+	
+				r1 += (rd/3);
+				g1 += (gd/3);
+				b1 += (bd/3);
+	
+			/*  Obligatory clamping part  */
+				if (r1 < 0) r1 = 0;
+				if (g1 < 0) g1 = 0;
+				if (b1 < 0) b1 = 0;
+		
+				if (r1 > 255) r1 = 255;
+				if (g1 > 255) g1 = 255;
+				if (b1 > 255) b1 = 255;
+	
+				if (r2 < 0) r2 = 0;
+				if (g2 < 0) g2 = 0;
+				if (b2 < 0) b2 = 0;
+		
+				if (r2 > 255) r2 = 255;
+				if (g2 > 255) g2 = 255;
+				if (b2 > 255) b2 = 255;
+	
+	
+	
+			/*  Put processed image back into the buffer  */
+				scan[i*4] = r1;
+				scan[i*4 + 1] = g1;
+				scan[i*4 + 2] =  b1;
+	
+			}
+	
+		}
+#endif
+		
 		for ( i = 0; i < c; i++ )
 		{
-			yee = scan[i*4] - 127 * 1.18; // highlights
-			yer = scan[i*4] * -1 + 127 ; // darks
-			if (yee < 0) yee = 0;
-			if (yer < 0) yer = 0;
-			yer *= 1.5;
-			yee = 0;
-			yeah = yee + yer;
-			yo = 0;
-			scan[i*4] = yo;
-			scan[i*4 + 1] = yo;
-			scan[i*4 + 2] = yo;
-			scan[i*4 + 3] = yeah;
+			int ren = (crandom() * 4);
+			int rg,gg,bb;
+			rg = scan[i*4]; 
+			gg = scan[i*4+1]; 
+			bb = scan[i*4+2]; 
+			
+			//if ((rg / 64) != ceil(rg / 64))
+				rg = scan[i*4] + ren;
+			//if ((gg / 32) != ceil(gg / 32))
+				gg = scan[i*4 + 1] + (ren / 2);
+			//if ((bb / 64) != ceil(bb / 64))
+				bb = scan[i*4 + 2] + ren;
+
+		if (rg < 0) rg = 0;
+		if (gg < 0) gg = 0;
+		if (bb < 0) bb = 0;
+
+		if (rg > 255) rg = 255;
+		if (gg > 255) gg = 255;
+		if (bb > 255) bb = 255;
+
+		scan[i*4] = rg;
+		scan[i*4 + 1] = gg;
+		scan[i*4 + 2] =  bb;
 		}
+		
 	}
 
 
@@ -1404,6 +1616,39 @@ static void Upload32( unsigned *data,
 			internalFormat = GL_LUMINANCE;
 		else
 			internalFormat = GL_RGB;
+
+	// leilei - lightmap color bits, for saving vram/tex cache
+		if (r_lightmapBits->integer){
+			forceBits = r_lightmapBits->integer;
+			force32upload = 0;
+
+				if ( forceBits == 16)
+				{
+					internalFormat = GL_RGB5;
+				}
+				else if ( forceBits == 15)
+				{
+					internalFormat = GL_RGB5;
+				}
+				else if ( forceBits == 12)
+				{
+					internalFormat = GL_RGB4;
+				}
+				else if ( forceBits == 6)
+				{
+					internalFormat = GL_R3_G3_B2;
+				}
+				else if ( forceBits == 32)
+				{
+					internalFormat = GL_RGB8;
+				}
+				else
+				{
+					internalFormat = GL_RGB;
+				}
+
+		}
+	
 	}
 	else
 	{
@@ -1432,9 +1677,9 @@ static void Upload32( unsigned *data,
 		{
 			if(r_greyscale->integer)
 			{
-				if(r_texturebits->integer == 16)
+				if(r_texturebits->integer == 16 || forceBits == 16)
 					internalFormat = GL_LUMINANCE8;
-				else if(r_texturebits->integer == 32)
+				else if(r_texturebits->integer == 32 || forceBits == 32)
 					internalFormat = GL_LUMINANCE16;
 				else
 					internalFormat = GL_LUMINANCE;
@@ -1449,23 +1694,23 @@ static void Upload32( unsigned *data,
 				{
 					internalFormat = GL_RGB4_S3TC;
 				}
-				else if ( r_texturebits->integer == 16 )
+				else if ( r_texturebits->integer == 16 || forceBits == 16)
 				{
 					internalFormat = GL_RGB5;
 				}
-				else if ( r_texturebits->integer == 15 )
+				else if ( r_texturebits->integer == 15 || forceBits == 15)
 				{
 					internalFormat = GL_RGB5;
 				}
-				else if ( r_texturebits->integer == 12 )
+				else if ( r_texturebits->integer == 12 || forceBits == 12)
 				{
 					internalFormat = GL_RGB4;
 				}
-				else if ( r_texturebits->integer == 6 )
+				else if ( r_texturebits->integer == 6 || forceBits == 6)
 				{
 					internalFormat = GL_R3_G3_B2;
 				}
-				else if ( r_texturebits->integer == 32 )
+				else if ( r_texturebits->integer == 32 || forceBits == 32)
 				{
 					internalFormat = GL_RGB8;
 				}
@@ -1482,9 +1727,9 @@ static void Upload32( unsigned *data,
 		{
 			if(r_greyscale->integer)
 			{
-				if(r_texturebits->integer == 16)
+				if(r_texturebits->integer == 16 || forceBits == 16)
 					internalFormat = GL_LUMINANCE8_ALPHA8;
-				else if(r_texturebits->integer == 32)
+				else if(r_texturebits->integer == 32 || forceBits == 32)
 					internalFormat = GL_LUMINANCE16_ALPHA16;
 				else
 					internalFormat = GL_LUMINANCE_ALPHA;
@@ -1496,23 +1741,23 @@ static void Upload32( unsigned *data,
 					internalFormat = GL_COMPRESSED_RGBA_S3TC_DXT5_EXT; // leilei - this was missing
 				}
 				else 
-				if ( r_texturebits->integer == 16 )
+				if ( r_texturebits->integer == 16 || forceBits == 16)
 				{
 					internalFormat = GL_RGBA4;
 				}
-				else if ( r_texturebits->integer == 15 )
+				else if ( r_texturebits->integer == 15 || forceBits == 15)
 				{
 					internalFormat = GL_RGB5_A1;
 				}
-				else if ( r_texturebits->integer == 12 )
+				else if ( r_texturebits->integer == 12 || forceBits == 12)
 				{
 					internalFormat = GL_RGBA4;
 				}
-				else if ( r_texturebits->integer == 6 )
+				else if ( r_texturebits->integer == 6 || forceBits == 6)
 				{
 					internalFormat = GL_RGBA2;
 				}
-				else if ( r_texturebits->integer == 32 )
+				else if ( r_texturebits->integer == 32 || forceBits == 32)
 				{
 					internalFormat = GL_RGBA8;
 				}
@@ -1754,7 +1999,6 @@ static void Upload8( unsigned *data,
 	scan = ((byte *)data);
 	samples = 3;
 	// LEILEI - paletted texturing hack
-	int isalphaed=0;
 	// Check for an alpha
 
 	for ( i = 0; i < c; i++ )
@@ -1764,9 +2008,6 @@ static void Upload8( unsigned *data,
 			a *= 1.9;
 			a /= 255;
 			a *= 255;
-			if (!a){
-			isalphaed = 1;
-			}
 		}
 
 	if (paletteability)
@@ -2112,6 +2353,8 @@ void R_LoadImage( const char *name, byte **pic, int *width, int *height )
 
 	ext = COM_GetExtension( localName );
 
+
+
 	if( *ext )
 	{
 		// Look for the correct loader and use it
@@ -2182,6 +2425,7 @@ image_t	*R_FindImageFile( const char *name, imgType_t type, imgFlags_t flags )
 {
 	image_t	*image;
 	int		width, height;
+	int dontgotsafe;
 	byte	*pic;
 	long	hash;
 	float oldtime;
@@ -2219,7 +2463,7 @@ image_t	*R_FindImageFile( const char *name, imgType_t type, imgFlags_t flags )
 
 	// leilei - iconmip hack
 
-	if ( !Q_strncmp( name, "icons/", 5 )  || (!Q_strncmp( name, "gfx/2d", 6 )) && (Q_strncmp( name, "gfx/2d/bigchars", 14 ))){
+	if ( !Q_strncmp( name, "icons/", 5 )  || ((!Q_strncmp( name, "gfx/2d", 6 )) && (Q_strncmp( name, "gfx/2d/bigchars", 14 )))){
 		isicon = 1;
 		}
 	else
@@ -2228,18 +2472,77 @@ image_t	*R_FindImageFile( const char *name, imgType_t type, imgFlags_t flags )
 	//
 	// load the pic from disk
 	//
-	//oldtime = backEnd.refdef.floatTime;
+
 	oldtime = ri.Milliseconds() * 100;
+	dontgotsafe = 0;
+	if (r_suggestiveThemes->integer == 1) dontgotsafe = 1;
+
+
+	// leilei - load safe or lewd textures if desired.
+	if (!Q_strncmp( name, "models/player", 13) ){
+
+		
+		
+		if (r_suggestiveThemes->integer < 1){
+			char	narm[ MAX_QPATH ];
+			COM_StripExtension( name, narm, MAX_QPATH );
+			R_LoadImage( va("%s_safe", narm), &pic, &width, &height );
+			if ( pic == NULL ) 
+				dontgotsafe = 1;
+			else
+				dontgotsafe = 0;
+			
+		}
+	
+		else if (r_suggestiveThemes->integer > 1){
+			char	narm[ MAX_QPATH ];
+			COM_StripExtension( name, narm, MAX_QPATH );
+			R_LoadImage( va("%s_lewd", narm), &pic, &width, &height );
+			if ( pic == NULL ) 
+				dontgotsafe = 1;
+			else
+				dontgotsafe = 0;
+			
+		}
+	}
+	
+	else
+	{
+		dontgotsafe = 1;
+	}
+
+	//oldtime = backEnd.refdef.floatTime;
+
+
+	if (dontgotsafe){
 	R_LoadImage( name, &pic, &width, &height );
-	if ( pic == NULL ) {
-		return NULL;
+		if ( pic == NULL ) {
+			return NULL;
+		}
 	}
 	loadtime = (ri.Milliseconds() * 100) - oldtime;
 //	loadtime = backEnd.refdef.floatTime - oldtime;
 
 
-	image = R_CreateImage( ( char * ) name, pic, width, height, type, flags, 0 );
+	// leilei - if we need to change the texture upload with a special image prefix to separate from differently blended things
+	if (hackoperation)
+		{
+			char hackName[MAX_QPATH];
+			char *hackedName;
+			COM_StripExtension( name, hackName, MAX_QPATH );
+			if(hackoperation==1) hackedName = va("%shackadd", hackName);
+			if(hackoperation==2) hackedName = va("%shacknob", hackName);
+			if(hackoperation==3) hackedName = va("%shacksub", hackName);
+			if(hackoperation==4) hackedName = va("%shackmod", hackName);
+			else hackedName = va("%shackblend", hackName);
+			image = R_CreateImage( ( char * ) hackedName, pic, width, height, type, flags, 0 );
+		}
 
+	else
+
+	{
+	image = R_CreateImage( ( char * ) name, pic, width, height, type, flags, 0 );
+	}
 
 
 	ri.Free( pic );

@@ -74,7 +74,7 @@ static const SDL_VideoInfo *videoInfo = NULL;
 
 cvar_t *r_allowSoftwareGL; // Don't abort out if a hardware visual can't be obtained
 cvar_t *r_tvMode; // leilei - tv mode - force 480i rendering, which is then stretched and interlaced
-cvar_t *r_tvConsoleMode; // leilei - tv mode
+cvar_t *r_tvFilter; // leilei - tv filter
 cvar_t *r_tvModeAspect; // leilei - tv mode - to do widescreen and low res tv etc
 cvar_t *r_tvModeForceAspect; // leilei - tv mode - to force the screen into its native aspect
 cvar_t *r_motionblur; // leilei - moved here to set up accumulation bits
@@ -212,7 +212,7 @@ static int GLimp_SetMode(int mode, qboolean fullscreen, qboolean noborder)
 	int sdlcolorbits;
 	int colorbits, depthbits, stencilbits;
 	int tcolorbits, tdepthbits, tstencilbits;
-	int accumbits, taccumbits;	// leilei - motionblur
+	int accumbits;	// leilei - motionblur
 	int samples;
 	int i = 0;
 	SDL_Surface *vidscreen = NULL;
@@ -341,7 +341,7 @@ static int GLimp_SetMode(int mode, qboolean fullscreen, qboolean noborder)
 		tcolorbits = colorbits;
 		tdepthbits = depthbits;
 		tstencilbits = stencilbits;
-		taccumbits = accumbits;
+		
 
 		if ((i % 4) == 3)
 		{ // reduce colorbits
@@ -487,45 +487,29 @@ static int GLimp_SetMode(int mode, qboolean fullscreen, qboolean noborder)
 	vresHeight = 480;
 	//tvAspectW = 1.0; // no change
 
-	if( r_tvMode->integer ){
+	if( r_tvMode->integer > -1){
 
 
-
-		// HIJACKED >:)
-	glConfig.vidWidth = 640;
-	glConfig.vidHeight = 480;
-
-
-	if( r_tvMode->integer == 96 ){
-	glConfig.vidWidth = 320;
-	glConfig.vidHeight = 200;
-	}
-	if( r_tvMode->integer == 97 ){
-	glConfig.vidWidth = 320;
-	glConfig.vidHeight = 240;
+	if ( !R_GetModeInfo( &glConfig.vidWidth, &glConfig.vidHeight, &glConfig.windowAspect, r_tvMode->integer ) )
+	{
+		glConfig.vidWidth = 640;		// if we can't do a mode then do this mode
+		glConfig.vidHeight = 480;
 	}
 
-		// leilei - make it use an aspect-corrected lower resolution that's always 640 wide for the width, but variable height
-	
-		// then change the gl port..
+
+	if (glConfig.vidWidth > tvWidth)	glConfig.vidWidth = tvWidth; // clamp
+	if (glConfig.vidHeight > tvHeight)	glConfig.vidHeight = tvHeight; // clamp
+		
+
+	// leilei - make it use an aspect-corrected lower resolution that's always 640 wide for the width, but variable height
+	// then change the gl port..
 
 	vresWidth = tvWidth;
 	vresHeight = tvHeight;
 
 	if( r_tvModeForceAspect->integer ){
-	//	glConfig.vidHeight = tvHeight * aspe;
-		float thv = tvHeight / glConfig.vidHeight;		// 720 / 480 = 1.5
-		float thw = tvWidth / glConfig.vidWidth;		// 1280 / 640 = 2
-		float chv = glConfig.vidHeight / tvHeight;		// 640 / 1280 = 0.5
-		float chw = glConfig.vidHeight / tvWidth;		// 480 / 720 = 0.66666666
-		float chvw = tvHeight * chw;				// 720 * 0.6666 = 480
-		float chwv = tvWidth * chw;				// 1280 * 0.6666 = 853
-		//float ttw = glConfig.vidWidth / (tvWidth * chw);			// 640 / 853 = 0.75 = ASPECT VALUE
 		float ttw = (float)glConfig.vidWidth / ((float)tvWidth * (float)((float)glConfig.vidHeight/(float)tvHeight));			// 640 / 853 = 0.75 = ASPECT VALUE
 
-		//float tth = tvWidth * chv; // lower...
-	//	float ttw = glConfig.vidWidth / tth;
-//jj
 		tvAspectW = ttw; // let's try this first to see if we can get it to our renderer
 
 		//tvAspectW = 0.75f; // let's try this first to see if we can get it to our renderer
@@ -534,30 +518,6 @@ static int GLimp_SetMode(int mode, qboolean fullscreen, qboolean noborder)
 
 	}
 	// leilei - tv mode hack end
-
-	// leilei - console hack
-	if( r_tvConsoleMode->integer ){
-
-
-		if (r_tvConsoleMode->integer == 1) // standard 640x448 console of 6th gen
-		{
-			glConfig.vidWidth = 640;
-			glConfig.vidHeight = 448;
-
-			vresWidth = 640;
-			vresHeight = 480;
-		}
-
-		if (r_tvConsoleMode->integer == 10) // that other portable
-		{
-			glConfig.vidWidth = 480;
-			glConfig.vidHeight = 272;
-
-			vresWidth = 480;
-			vresHeight = 272;
-		}
-
-	}
 
 
 	screen = vidscreen;
@@ -824,11 +784,11 @@ void GLimp_Init( void )
 	r_allowResize = ri.Cvar_Get( "r_allowResize", "0", CVAR_ARCHIVE | CVAR_LATCH );
 	r_centerWindow = ri.Cvar_Get( "r_centerWindow", "0", CVAR_ARCHIVE | CVAR_LATCH );
 // leilei - tv mode hack
-	r_tvMode = ri.Cvar_Get( "r_tvMode", "0", CVAR_LATCH | CVAR_ARCHIVE );
+	r_tvMode = ri.Cvar_Get( "r_virtualMode", "-1", CVAR_LATCH | CVAR_ARCHIVE );
 	r_tvModeAspect = ri.Cvar_Get( "r_tvModeAspect", "0", CVAR_LATCH | CVAR_ARCHIVE ); // yes
 	r_tvModeForceAspect = ri.Cvar_Get( "r_tvModeForceAspect", "0", CVAR_LATCH | CVAR_ARCHIVE ); // yes
 
-	r_tvConsoleMode = ri.Cvar_Get( "r_tvConsoleMode", "0", CVAR_LATCH | CVAR_ARCHIVE );
+	r_tvFilter = ri.Cvar_Get( "r_tvFilter", "1", CVAR_LATCH | CVAR_ARCHIVE );
 
 // leilei - move motionblur cvar here to get it to not upset the other renderers when setting up an accumulation buffer
 	r_motionblur = ri.Cvar_Get( "r_motionblur", "0", CVAR_LATCH | CVAR_ARCHIVE );

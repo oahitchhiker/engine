@@ -135,6 +135,7 @@ static struct {
 cvar_t *r_film;
 extern int	force32upload;		
 int		leifxmode;
+int		leifxpass;
 int		fakeit = 0;
 
 int 	tvinterlace = 1;
@@ -679,6 +680,7 @@ static void ID_INLINE R_Bloom_QuadTV( int width, int height, float texX, float t
 
 	
 
+
 	if (aa == 0){	xaa = 0; yaa = 0;   }
 	if (aa == 1){	xaa = -xpix; yaa = ypix;   }
 	if (aa == 2){	xaa = -xpix; yaa = -ypix;   }
@@ -701,6 +703,16 @@ static void ID_INLINE R_Bloom_QuadTV( int width, int height, float texX, float t
 	//	qglViewport	(0, 0, 	tvWidth, tvHeight );
 	//	qglScissor	(0, 0,	tvWidth, tvHeight );
 		qglBegin( GL_QUADS );	
+	if (r_tvFilter->integer)	// bilinear filter
+	{
+		qglTexParameterf( GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR );
+		qglTexParameterf( GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR );
+	}
+	else
+	{
+		qglTexParameterf( GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST );
+		qglTexParameterf( GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST );
+	}
 		qglColor4f( 0.0, 0.0, 0.0, 1 );		
 		qglVertex2f(0,0	);
 		qglVertex2f(0,height);	
@@ -787,30 +799,8 @@ static void R_Bloom_RestoreScreen_Postprocessed( void ) {
 	if (program->u_CC_Saturation > -1) R_GLSL_SetUniform_u_CC_Saturation(program, 1.0);
 	if (program->u_CC_Contrast > -1) R_GLSL_SetUniform_u_CC_Contrast(program, 1.0);
 
-	// Lazy wrapper for ruby/retroarch shaders, because i'm lazy at modifying them. haha. Will probably be removed in the future if things suck.
-/*
-	{
-	float		rts_x, rts_y; 
-	float		ris_x, ris_y; 
-	float		ros_x, ros_y;
-
-	rts_x	=	glConfig.vidWidth;
-	rts_y	=	glConfig.vidHeight;
-
-	ris_x	=	glConfig.vidWidth;
-	ris_y	=	glConfig.vidHeight;
-
-	ros_x	=	tvWidth;
-	ros_y	=	tvHeight;
-
-	if (program->rubyTextureSize 	> -1) R_GLSL_SetUniform_rubyTextureSize(program, rts_x, rts_y);
-	if (program->rubyInputSize 	> -1) R_GLSL_SetUniform_rubyInputSize(program, 	 ris_x, ris_y);
-	if (program->rubyOutputSize 	> -1) R_GLSL_SetUniform_rubyOutputSize(program,  ros_x, ros_y);
-
-	}
-*/
-
-
+	// 
+	if (leifxmode == 3){ R_GLSL_SetUniform_u_CC_Brightness(program, leifxpass); }
 
 	if (program->u_zFar > -1) R_GLSL_SetUniform_u_zFar(program, backEnd.viewParms.zFar);
 	if (program->u_zNear > -1) R_GLSL_SetUniform_u_zNear(program, r_znear->value);
@@ -1151,7 +1141,7 @@ static void R_Postprocess_InitTextures( void )
 	
 	// leilei - tv output texture
 
-	if (r_tvMode->integer){
+	if (r_tvMode->integer > -1){
 		// find closer power of 2 to screen size 
 		for (postproc.tv.width = 1;postproc.tv.width< tvWidth;postproc.tv.width *= 2);
 		for (postproc.tv.height = 1;postproc.tv.height < tvHeight;postproc.tv.height *= 2);
@@ -1419,17 +1409,18 @@ void R_LeiFXPostprocessFilterScreen( void )
 		leifxmode = 3;			// filter - 4 pass
 	// The stupidest hack in america
 	R_LeiFX_Stupid_Hack();
+		leifxpass = 0;
 		R_Postprocess_BackupScreen();
 		R_Bloom_RestoreScreen_Postprocessed();
+		leifxpass = 1;
 		R_Postprocess_BackupScreen();
 		R_Bloom_RestoreScreen_Postprocessed();
+		leifxpass = 2;
 		R_Postprocess_BackupScreen();
 		R_Bloom_RestoreScreen_Postprocessed();
+		leifxpass = 3;
 		R_Postprocess_BackupScreen();
 		R_Bloom_RestoreScreen_Postprocessed();
-	//	leifxmode = 2;	
-	//	R_Postprocess_BackupScreen();
-	//	R_Bloom_RestoreScreen_Postprocessed();
 		}
 	backEnd.doneleifx = qtrue;
 
@@ -1944,7 +1935,6 @@ void R_MblurScreenPost( void )
 static void R_Postprocess_BackupScreenTV( void ) {
 
 	int intdiv;
-//	if (r_tvMode->integer > 1) intdiv = 2;
 	 intdiv = 1;
 
 
@@ -1961,10 +1951,6 @@ static void R_Postprocess_BackupScreenTV( void ) {
 	GL_Bind( postproc.screen.texture );
 	qglCopyTexSubImage2D( GL_TEXTURE_2D, 0, 0, 0, 0, 0, glConfig.vidWidth, glConfig.vidHeight);
 
-
-	//qglCopyTexSubImage2D( GL_TEXTURE_2D, 0, 0, 0, 0, 0, 320, 240);
-
-
 }
 
 static void R_Postprocess_ScaleTV( void ) {
@@ -1975,12 +1961,7 @@ static void R_Postprocess_ScaleTV( void ) {
 	qglViewport( 0, 0, glConfig.vidWidth, glConfig.vidHeight );
 	qglMatrixMode( GL_PROJECTION );
     qglLoadIdentity ();
-//	qglOrtho( 0, glConfig.vidWidth, glConfig.vidHeight, 0, 0,1 );
-//	qglMatrixMode( GL_MODELVIEW );
- //   qglLoadIdentity ();
 
-
-	
 }
 
 
@@ -1991,7 +1972,7 @@ float tvtime;
 
 void R_TVScreen( void )
 {
-	if( !r_tvMode->integer)
+	if( r_tvMode->integer < 0)
 		return;
 	if ( backEnd.donetv)
 		return;
@@ -2101,84 +2082,13 @@ void R_PaletteScreen( void )
 
 
 static struct {
-	struct {
-		image_t	*texture;
-		int		width, height;
-		float	readW, readH;
-	} effect;
-	struct {
-		image_t	*texture;
-		int		width, height;
-		float	readW, readH;
-	} effect2;
-	struct {
-		image_t	*texture;
-		int		width, height;
-		float	readW, readH;
-	} screen;
-	struct {
-		int		width, height;
-	} work;
-	qboolean started;
+	// NO!
 } water;
 
 // leilei - experimental water effect
 static void R_Water_InitTextures( void )
 {
-	byte	*data;
-
-	// find closer power of 2 to screen size 
-	for (water.screen.width = 1;water.screen.width< glConfig.vidWidth;water.screen.width *= 2);
-	for (water.screen.height = 1;water.screen.height < glConfig.vidHeight;water.screen.height *= 2);
-
-	water.screen.readW = glConfig.vidWidth / (float)water.screen.width;
-	water.screen.readH = glConfig.vidHeight / (float)water.screen.height;
-
-	// find closer power of 2 to effect size 
-	water.work.width = 256;
-	water.work.height = water.work.width * ( glConfig.vidWidth / glConfig.vidHeight );
-
-	for (water.effect.width = 1;water.effect.width < water.work.width;water.effect.width *= 2);
-	for (water.effect.height = 1;water.effect.height < water.work.height;water.effect.height *= 2);
-
-	water.effect.readW = water.work.width / (float)water.effect.width;
-	water.effect.readH = water.work.height / (float)water.effect.height;
-	
-	water.effect2.readW=water.effect.readW;
-	water.effect2.readH=water.effect.readH;
-	water.effect2.width=water.effect.width;
-	water.effect2.height=water.effect.height;
-	
-
-	// disable waters if we can't handle a texture of that size
-	if( water.screen.width > glConfig.maxTextureSize ||
-		water.screen.height > glConfig.maxTextureSize ||
-		water.effect.width > glConfig.maxTextureSize ||
-		water.effect.height > glConfig.maxTextureSize ||
-		water.work.width > glConfig.vidWidth ||
-		water.work.height > glConfig.vidHeight
-	) {
-		ri.Cvar_Set( "r_leiwater", "0" );
-		Com_Printf( S_COLOR_YELLOW"WARNING: 'R_InitWaterTextures' too high resolution for water, effect disabled\n" );
-		return;
-	}
-
-	// leilei - let's not do that water disabling anymore
-	force32upload = 1;
-
-	data = ri.Hunk_AllocateTempMemory( water.screen.width * water.screen.height * 4 );
-	Com_Memset( data, 0, water.screen.width * water.screen.height * 4 );
-	water.screen.texture = R_CreateImage( "***water screen texture***", data, water.screen.width, water.screen.height, qfalse, qfalse, GL_CLAMP_TO_EDGE  );
-	ri.Hunk_FreeTempMemory( data );
-
-	data = ri.Hunk_AllocateTempMemory( water.effect.width * water.effect.height * 4 );
-	Com_Memset( data, 0, water.effect.width * water.effect.height * 4 );
-	tr.waterImage = R_CreateImage( "*water", data, water.effect.width, water.effect.height, IMGTYPE_COLORALPHA, IMGFLAG_CLAMPTOEDGE, 0 );
-
-	//tr.waterImage = R_CreateImage( "*waterimage", data, water.effect.width, water.effect.height, qfalse, qfalse, GL_CLAMP_TO_EDGE  );;
-	ri.Hunk_FreeTempMemory( data );
-	water.started = qtrue;
-	force32upload = 0;
+	// NO!
 }
 
 
@@ -2186,72 +2096,34 @@ static void R_Water_InitTextures( void )
 
 void R_InitWaterTextures( void )
 {
-	if( !r_leiwater->integer )
-		return;
-	memset( &water, 0, sizeof( water ));
-	R_Water_InitTextures ();
+	// NO!
 }
 
 
 
-static void R_Water_BackupScreen( void ) {
-	GL_Bind( water.screen.texture );
-	qglCopyTexSubImage2D( GL_TEXTURE_2D, 0, 0, 0, 0, 0, glConfig.vidWidth, glConfig.vidHeight );
+static void R_Water_BackupScreen( void ) 
+{
+	// NO!
 }
 
 static void R_WaterWorks( void )
 {
-	int		i, j, k;
-	float	intensity, scale, *diamond;
-
-
-	qglColor4f( 1.0f, 1.0f, 1.0f, 1.0f );
-	GL_Bind( water.screen.texture );
-	//GL_State( GLS_DEPTHTEST_DISABLE | GLS_SRCBLEND_ONE | GLS_DSTBLEND_ZERO );
-	R_Bloom_Quad( water.work.width, water.work.height, 0, 0, water.screen.readW, water.screen.readH );
-	//Copy downscaled framebuffer into a texture
-	GL_Bind( tr.waterImage );
-	qglCopyTexSubImage2D( GL_TEXTURE_2D, 0, 0, 0, 0, 0, water.work.width, water.work.height );
+	// NO!
 }											
 
 
 static void R_Water_RestoreScreen( void ) {
-	GL_State( GLS_DEPTHTEST_DISABLE | GLS_SRCBLEND_ONE | GLS_DSTBLEND_ZERO );
-	GL_Bind( water.screen.texture );
-	qglColor4f( 1,1,1, 1 );
-		R_Bloom_Quad( water.screen.width, water.screen.height, 0, 0,
-					1.f,
-					1.f );
+	// NO!	
 }
  
 
 void R_WaterInit( void ) {
-	memset( &water, 0, sizeof( water ));
+	// NO!
 }
 
 
 void R_WaterScreen( void )
 {
-	if( !r_leiwater->integer )
-		return;
-	if ( backEnd.donewater )
-		return;
-	if ( !backEnd.doneSurfaces )
-		return;
-	backEnd.donewater= qtrue;
-	if( !water.started ) {
-		R_Water_InitTextures();
-		if( !water.started )
-			return;
-	}
-
-	if ( !backEnd.projection2D )
-		RB_SetGL2D();
-
-
-	//// All we want to do is copy the thing
-	R_Water_BackupScreen();
-	R_WaterWorks ();
-	R_Water_RestoreScreen();	
+	// NO!
 }
 

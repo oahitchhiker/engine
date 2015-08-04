@@ -270,6 +270,7 @@ void GLimp_InitExtraExtensions()
         ri.Cvar_Set( "r_postprocess", "none");
         ri.Cvar_Set( "r_postprocess_multipart", "none");
         ri.Cvar_Set( "r_ext_vertex_shader", "0");
+        ri.Cvar_Set( "r_leifx", "0");	// leilei FIXME - q3 cinematics crash leifx modes
     }
 
 
@@ -326,12 +327,6 @@ void GLimp_InitExtraExtensions()
 	}
 	else if ( strstr( buf, "generic" ) ||  strstr( buf, "brian" ) ||  strstr( buf, "paul" ) ||  strstr( buf, "GDI" ) )	 // software mode opengl needs speedup tricks
 	{
-		//glConfig.hardwareType = GLHW_SOFTWARE;
-	//	ri.Cvar_Set( "r_texturemode", "GL_NEAREST" );
-	//	ri.Cvar_Set( "r_picmip", "2" );
-	//	ri.Cvar_Set( "r_detailtextures", "0" );
-	//	ri.Cvar_Set( "r_primitives", "2" );
-	//	ri.Cvar_Get( "r_picmip", "0", CVAR_ARCHIVE | CVAR_LATCH );
 		softwaremode = 1;
 	}
 	else if ( strstr( buf, "riva 128" ) )

@@ -456,6 +456,8 @@ static qboolean R_GLSL_LoadProgram(glslProgram_t *program, const char *name, con
 		}
 
 		/* attach fragment shader to program */
+		//qglBindRenderbufferEXT(shader_fp, 0);
+		//qglBindFramebufferEXT(shader_fp, 0);
 		qglAttachObjectARB(program->program, shader_fp);
 		qglDeleteObjectARB(shader_fp);
 
@@ -1096,6 +1098,10 @@ static void ParseTexMod( char *_text, shaderStage_t *stage )
 ParseStage
 ===================
 */
+
+qboolean ParseStageSimple( shaderStage_t *stage, char **text );
+extern cvar_t	*r_parseStageSimple;	// Leilei - for debugging PVR only!
+
 static qboolean ParseStage( shaderStage_t *stage, char **text )
 {
 	char *token;
@@ -1104,11 +1110,18 @@ static qboolean ParseStage( shaderStage_t *stage, char **text )
 	char programFragmentObjects[MAX_PROGRAM_OBJECTS][MAX_QPATH];
 	int numVertexObjects = 0;
 	int numFragmentObjects = 0;
-	int leifxmode = 0;	// for picking different dither tanles for blended stuff
 	int depthMaskBits = GLS_DEPTHMASK_TRUE, blendSrcBits = 0, blendDstBits = 0, atestBits = 0, depthFuncBits = 0;
 	qboolean depthMaskExplicit = qfalse;
 
 	qboolean stageMipmaps = !shader.noMipMaps;
+
+	// leilei - switch to simple for simple cards
+	if (r_parseStageSimple->integer){
+		
+		return ParseStageSimple(stage, text);
+	}
+
+
 	stage->active = qtrue;
 	Com_Memset(programName, 0, sizeof(programName));
 
@@ -1117,7 +1130,7 @@ static qboolean ParseStage( shaderStage_t *stage, char **text )
 	
 	
 
-
+		//stage->isBlend = 0;
 		token = COM_ParseExt( text, qtrue );
 		if ( !token[0] )
 		{
@@ -1313,11 +1326,7 @@ static qboolean ParseStage( shaderStage_t *stage, char **text )
 				stage->bundle[2].image[0] = tr.whiteImage;
 				continue;
 			}
-			if ( !Q_stricmp( token, "$waterimage" ) )
-			{
-				stage->bundle[2].image[0] = tr.waterImage;
-				continue;
-			}
+			
 			else if ( !Q_stricmp( token, "$lightmap" ) )
 			{
 				stage->bundle[2].isLightmap = qtrue;
@@ -1351,7 +1360,7 @@ static qboolean ParseStage( shaderStage_t *stage, char **text )
 		//
 		// map3 <name>
 		//
-		else if ( !Q_stricmp( token, "map3" ) )
+		else if ( !Q_stricmp( token, "map3" ) || (!Q_stricmp( token, "normalmap" ) && r_modelshader->integer))
 		{
 			token = COM_ParseExt( text, qfalse );
 			if ( !token[0] )
@@ -1365,11 +1374,7 @@ static qboolean ParseStage( shaderStage_t *stage, char **text )
 				stage->bundle[3].image[0] = tr.whiteImage;
 				continue;
 			}
-			if ( !Q_stricmp( token, "$waterimage" ) )
-			{
-				stage->bundle[3].image[0] = tr.waterImage;
-				continue;
-			}
+
 			else if ( !Q_stricmp( token, "$lightmap" ) )
 			{
 				stage->bundle[3].isLightmap = qtrue;
@@ -1403,7 +1408,7 @@ static qboolean ParseStage( shaderStage_t *stage, char **text )
 		//
 		// map4 <name>
 		//
-		else if ( !Q_stricmp( token, "map4" ) )
+		else if ( !Q_stricmp( token, "map4" )  || (!Q_stricmp( token, "specmap" ) && r_modelshader->integer))
 		{
 			token = COM_ParseExt( text, qfalse );
 			if ( !token[0] )
@@ -1450,7 +1455,7 @@ static qboolean ParseStage( shaderStage_t *stage, char **text )
 		//
 		// map5 <name>
 		//
-		else if ( !Q_stricmp( token, "map5" ) )
+		else if ( !Q_stricmp( token, "map5" )  || (!Q_stricmp( token, "shadeballmap" ) && r_modelshader->integer))
 		{
 			token = COM_ParseExt( text, qfalse );
 			if ( !token[0] )
@@ -1464,11 +1469,7 @@ static qboolean ParseStage( shaderStage_t *stage, char **text )
 				stage->bundle[5].image[0] = tr.whiteImage;
 				continue;
 			}
-			if ( !Q_stricmp( token, "$waterimage" ) )
-			{
-				stage->bundle[5].image[0] = tr.waterImage;
-				continue;
-			}
+
 			else if ( !Q_stricmp( token, "$lightmap" ) )
 			{
 				stage->bundle[5].isLightmap = qtrue;
@@ -1516,11 +1517,7 @@ static qboolean ParseStage( shaderStage_t *stage, char **text )
 				stage->bundle[6].image[0] = tr.whiteImage;
 				continue;
 			}
-			if ( !Q_stricmp( token, "$waterimage" ) )
-			{
-				stage->bundle[6].image[0] = tr.waterImage;
-				continue;
-			}
+			
 			else if ( !Q_stricmp( token, "$lightmap" ) )
 			{
 				stage->bundle[6].isLightmap = qtrue;
@@ -1568,11 +1565,7 @@ static qboolean ParseStage( shaderStage_t *stage, char **text )
 				stage->bundle[7].image[0] = tr.whiteImage;
 				continue;
 			}
-			if ( !Q_stricmp( token, "$waterimage" ) )
-			{
-				stage->bundle[7].image[0] = tr.waterImage;
-				continue;
-			}
+			
 			else if ( !Q_stricmp( token, "$lightmap" ) )
 			{
 				stage->bundle[7].isLightmap = qtrue;
@@ -2551,15 +2544,13 @@ static qboolean ParseStage( shaderStage_t *stage, char **text )
 			if ( !Q_stricmp( token, "add" ) ) {
 				blendSrcBits = GLS_SRCBLEND_ONE;
 				blendDstBits = GLS_DSTBLEND_ONE;
-				leifxmode = 1;	// 2x2
+
 			} else if ( !Q_stricmp( token, "filter" ) ) {
 				blendSrcBits = GLS_SRCBLEND_DST_COLOR;
 				blendDstBits = GLS_DSTBLEND_ZERO;
-				leifxmode = 1;	// 2x2
 			} else if ( !Q_stricmp( token, "blend" ) ) {
 				blendSrcBits = GLS_SRCBLEND_SRC_ALPHA;
 				blendDstBits = GLS_DSTBLEND_ONE_MINUS_SRC_ALPHA;
-				leifxmode = 1;	// 4x4
 			} else {
 				// complex double blends
 				blendSrcBits = NameToSrcBlendMode( token );
@@ -2571,8 +2562,9 @@ static qboolean ParseStage( shaderStage_t *stage, char **text )
 					continue;
 				}
 				blendDstBits = NameToDstBlendMode( token );
-				leifxmode = 1;	// 2x2
 			}
+			
+			stage->isBlend = 1;	// 2x2
 
 			// clear depth mask for blended surfaces
 			if ( !depthMaskExplicit )
@@ -2675,11 +2667,8 @@ static qboolean ParseStage( shaderStage_t *stage, char **text )
 			{
 				stage->rgbGen = CGEN_ONE_MINUS_VERTEX;
 			}
-			else if ( !Q_stricmp( token, "lightingSpecularDiffuse" ) )	// leilei - use special specular calculation if overbrights and r_shadeSpecular is enabled
+			else if ( !Q_stricmp( token, "lightingSpecularDiffuse" ) )	// leilei - deprecated
 			{
-				if ( r_shadeSpecular->integer && tr.overbrightBits )
-				stage->rgbGen = CGEN_LIGHTING_DIFFUSE_SPECULAR;
-			  else
 				stage->rgbGen = CGEN_LIGHTING_DIFFUSE;
 			}
 			else
@@ -2899,6 +2888,852 @@ static qboolean ParseStage( shaderStage_t *stage, char **text )
 
 	return qtrue;
 }
+
+
+/*
+===================
+ParseStageSimple
+
+
+leilei - the purpose of this is to load textures after processing their blending properties,
+	 so we can approximate effects on incapable hardware such as Matrox Mystique, S3 ViRGE,
+	 PowerVR PCX2, software rendering...
+	 A lot of things are stripped out (like GLSL and multitexture stuff)
+===================
+*/
+
+extern	int		hackoperation;
+extern int ismaptexture;
+int	surfaceflagsy;
+qboolean ParseStageSimple( shaderStage_t *stage, char **text )
+{
+	char *token;
+	char programName[MAX_QPATH];
+	char programVertexObjects[MAX_PROGRAM_OBJECTS][MAX_QPATH];
+	char programFragmentObjects[MAX_PROGRAM_OBJECTS][MAX_QPATH];
+	char imageName[MAX_QPATH];	// for loading later
+	char imageNameAnim0[MAX_QPATH];	
+	char imageNameAnim1[MAX_QPATH];	
+	char imageNameAnim2[MAX_QPATH];	
+	char imageNameAnim3[MAX_QPATH];	
+	char imageNameAnim4[MAX_QPATH];	
+	char imageNameAnim5[MAX_QPATH];	
+	char imageNameAnim6[MAX_QPATH];	
+	char imageNameAnim7[MAX_QPATH];	
+	char imageNameAnim8[MAX_QPATH];	
+	imgType_t itype = IMGTYPE_COLORALPHA;
+	imgFlags_t iflags = IMGFLAG_NONE;
+	int numVertexObjects = 0;
+	int numFragmentObjects = 0;
+	int loadlater = 0;
+	int depthMaskBits = GLS_DEPTHMASK_TRUE, blendSrcBits = 0, blendDstBits = 0, atestBits = 0, depthFuncBits = 0;
+	qboolean depthMaskExplicit = qfalse;
+
+	qboolean stageMipmaps = !shader.noMipMaps;
+	stage->active = qtrue;
+	Com_Memset(programName, 0, sizeof(programName));
+
+
+	hackoperation = 2; // reset the hackop
+
+	while ( 1 )
+	{
+	
+	
+
+		//stage->isBlend = 0;
+		token = COM_ParseExt( text, qtrue );
+		if ( !token[0] )
+		{
+			ri.Printf( PRINT_WARNING, "WARNING: no matching '}' found\n" );
+			return qfalse;
+		}
+
+		if ( token[0] == '}' )
+		{
+			if (programName[0]) {
+				if (!Q_stricmp(programName, "skip")) {
+					stage->program = tr.skipProgram;
+				} else {
+					if (!numVertexObjects) {
+						ri.Printf(PRINT_WARNING, "WARNING: no 'vertexProgram' specified for 'program %s' in shader '%s'\n", programName, shader.name);
+						return qfalse;
+					}
+
+					if (!numFragmentObjects) {
+						ri.Printf(PRINT_WARNING, "WARNING: no 'fragmentProgram' specified for 'program %s' in shader '%s'\n", programName, shader.name);
+						return qfalse;
+					}
+
+					stage->isGLSL=0;
+					stage->program = RE_GLSL_RegisterProgram(programName, (const char *)programVertexObjects, numVertexObjects, (const char *)programFragmentObjects, numFragmentObjects);
+					if (!stage->program) {
+						ri.Printf(PRINT_WARNING, "WARNING: RE_GLSL_RegisterProgram failed for 'program %s' in shader '%s'\n", programName, shader.name);
+						//return qfalse;
+					}
+					else
+						stage->isGLSL=1;
+				}
+			} else if (numVertexObjects) {
+				ri.Printf(PRINT_WARNING, "WARNING: no 'program' specified for 'vertexProgram' in shader '%s'\n", shader.name);
+				return qfalse;
+			} else if (numFragmentObjects) {
+				ri.Printf(PRINT_WARNING, "WARNING: no 'program' specified for 'fragmentProgram' in shader '%s'\n", shader.name);
+				return qfalse;
+			}
+		
+	break;
+	}
+		//
+		// program <name>
+		//
+		else if (!Q_stricmp(token, "program")) {
+			token = COM_ParseExt(text, qfalse);
+
+			if (!vertexShaders)
+				continue;
+
+			if (!token[0]) {
+				ri.Printf(PRINT_WARNING, "WARNING: missing parameter for 'program' keyword in shader '%s'\n", shader.name);
+				return qfalse;
+			}
+
+			Q_strncpyz(programName, token, sizeof(programName));
+		}
+		//
+		// vertexProgram <path1> .... <pathN>
+		//
+		else if (!Q_stricmp(token, "vertexProgram")) {
+			token = COM_ParseExt(text, qfalse);
+
+			if (!vertexShaders) {
+				while (token[0])
+					token = COM_ParseExt(text, qfalse);
+
+				continue;
+			}
+
+			if (!token[0]) {
+				ri.Printf(PRINT_WARNING, "WARNING: missing parameter(s) for 'vertexProgram' keyword in shader '%s'\n", shader.name);
+				return qfalse;
+			}
+
+			// parse up to MAX_PROGRAM_OBJECTS files
+			for(;;) {
+				if (numVertexObjects < MAX_PROGRAM_OBJECTS) {
+					Q_strncpyz(programVertexObjects[numVertexObjects], token, sizeof(programVertexObjects[numVertexObjects]));
+					numVertexObjects++;
+				} else {
+					ri.Printf(PRINT_WARNING, "WARNING: Too many parameters for 'vertexProgram' keyword in shader '%s'\n", shader.name);
+					return qfalse;
+				}
+
+				token = COM_ParseExt(text, qfalse);
+				if (!token[0])
+					break;
+			}
+		}
+		//
+		// fragmentProgram <path1> .... <pathN>
+		//
+		else if (!Q_stricmp(token, "fragmentProgram")) {
+			token = COM_ParseExt(text, qfalse);
+
+			if (!vertexShaders) {
+				while (token[0])
+					token = COM_ParseExt(text, qfalse);
+
+				continue;
+			}
+
+			if (!token[0]) {
+				ri.Printf(PRINT_WARNING, "WARNING: missing parameter(s) for 'fragmentProgram' keyword in shader '%s'\n", shader.name);
+				return qfalse;
+			}
+
+			// parse up to MAX_PROGRAM_OBJECTS files
+			for(;;) {
+				if (numFragmentObjects < MAX_PROGRAM_OBJECTS) {
+					Q_strncpyz(programFragmentObjects[numFragmentObjects], token, sizeof(programFragmentObjects[numFragmentObjects]));
+					numFragmentObjects++;
+				} else {
+					ri.Printf(PRINT_WARNING, "WARNING: Too many parameters for 'fragmentProgram' keyword in shader '%s'\n", shader.name);
+					return qfalse;
+				}
+
+				token = COM_ParseExt(text, qfalse);
+				if (!token[0])
+					break;
+			}
+		}
+		else if ( !Q_stricmp( token, "mipOffset" ) ){
+			token = COM_ParseExt(text,qfalse);
+			stage->mipBias = atoi(token);
+		}
+		else if ( !Q_stricmp( token, "nomipmaps" ) ){
+			stageMipmaps = qfalse;
+		}
+		//
+		// map <name>
+		//
+		else if ( !Q_stricmp( token, "map" ) )
+		{
+			token = COM_ParseExt( text, qfalse );
+			if ( !token[0] )
+			{
+				ri.Printf( PRINT_WARNING, "WARNING: missing parameter for 'map' keyword in shader '%s'\n", shader.name );
+				return qfalse;
+			}
+
+			if ( !Q_stricmp( token, "$whiteimage" ) )
+			{
+				stage->bundle[0].image[0] = tr.whiteImage;
+				continue;
+			}
+			else if ( !Q_stricmp( token, "$lightmap" ) )
+			{
+				stage->bundle[0].isLightmap = qtrue;
+				if ( shader.lightmapIndex < 0 || !tr.lightmaps ) {
+					stage->bundle[0].image[0] = tr.whiteImage;
+				} else {
+					stage->bundle[0].image[0] = tr.lightmaps[shader.lightmapIndex];
+				}
+				continue;
+			}
+			else
+			{
+				imgType_t type = IMGTYPE_COLORALPHA;
+				imgFlags_t flags = IMGFLAG_NONE;
+
+				if (!shader.noMipMaps)
+					flags |= IMGFLAG_MIPMAP;
+
+				if (!shader.noPicMip)
+					flags |= IMGFLAG_PICMIP;
+
+				//stage->bundle[0].image[0] = R_FindImageFile( token, type, flags );
+				stage->bundle[0].image[0] = tr.whiteImage;
+				COM_StripExtension( token, imageName, MAX_QPATH );
+				itype = type; iflags = flags;
+				loadlater = 1;
+//				imageName = va("%s",token);
+
+	//			if ( !stage->bundle[0].image[0] )
+	//			{
+	//				ri.Printf( PRINT_WARNING, "WARNING: R_FindImageFile could not find '%s' in shader '%s'\n", token, shader.name );
+	//				return qfalse;
+	//			}
+			}
+		}
+		//
+		// clampmap <name>
+		//
+		else if ( !Q_stricmp( token, "clampmap" ) )
+		{
+			imgType_t type = IMGTYPE_COLORALPHA;
+			imgFlags_t flags = IMGFLAG_CLAMPTOEDGE;
+
+			token = COM_ParseExt( text, qfalse );
+			if ( !token[0] )
+			{
+				ri.Printf( PRINT_WARNING, "WARNING: missing parameter for 'clampmap' keyword in shader '%s'\n", shader.name );
+				return qfalse;
+			}
+
+			if (!shader.noMipMaps)
+				flags |= IMGFLAG_MIPMAP;
+
+			if (!shader.noPicMip)
+				flags |= IMGFLAG_PICMIP;
+
+				stage->bundle[0].image[0] = tr.whiteImage;
+				COM_StripExtension( token, imageName, MAX_QPATH );
+				itype = type; iflags = flags;
+				loadlater = 1;
+		}
+		//
+		// animMap <frequency> <image1> .... <imageN>
+		//
+		else if ( !Q_stricmp( token, "animMap" ) )
+		{
+			token = COM_ParseExt( text, qfalse );
+			if ( !token[0] )
+			{
+				ri.Printf( PRINT_WARNING, "WARNING: missing parameter for 'animMmap' keyword in shader '%s'\n", shader.name );
+				return qfalse;
+			}
+			stage->bundle[0].imageAnimationSpeed = atof( token );
+
+			// parse up to MAX_IMAGE_ANIMATIONS animations
+			while ( 1 ) {
+				int		num;
+
+				token = COM_ParseExt( text, qfalse );
+				if ( !token[0] ) {
+					break;
+				}
+				num = stage->bundle[0].numImageAnimations;
+				if ( num < MAX_IMAGE_ANIMATIONS ) {
+					imgFlags_t flags = IMGFLAG_NONE;
+
+					if (!shader.noMipMaps)
+						flags |= IMGFLAG_MIPMAP;
+
+					if (!shader.noPicMip)
+						flags |= IMGFLAG_PICMIP;
+
+					//stage->bundle[0].image[num] = R_FindImageFile( token, IMGTYPE_COLORALPHA, flags );
+					stage->bundle[0].image[num] = tr.whiteImage;
+					if(num == 0) COM_StripExtension( token, imageNameAnim0, MAX_QPATH );
+					if(num == 1) COM_StripExtension( token, imageNameAnim1, MAX_QPATH );
+					if(num == 2) COM_StripExtension( token, imageNameAnim2, MAX_QPATH );
+					if(num == 3) COM_StripExtension( token, imageNameAnim3, MAX_QPATH );
+					if(num == 4) COM_StripExtension( token, imageNameAnim4, MAX_QPATH );
+					if(num == 5) COM_StripExtension( token, imageNameAnim5, MAX_QPATH );
+					if(num == 6) COM_StripExtension( token, imageNameAnim6, MAX_QPATH );
+					if(num == 7) COM_StripExtension( token, imageNameAnim7, MAX_QPATH );
+					if(num == 8) COM_StripExtension( token, imageNameAnim8, MAX_QPATH );
+					iflags = flags;
+					loadlater = 1;
+					stage->bundle[0].numImageAnimations++;
+				}
+			}
+		}
+		else if ( !Q_stricmp( token, "clampAnimMap" ) )
+		{
+			token = COM_ParseExt( text, qfalse );
+			if ( !token[0] )
+			{
+				ri.Printf( PRINT_WARNING, "WARNING: missing parameter for 'clampAnimMmap' keyword in shader '%s'\n", shader.name );
+				return qfalse;
+			}
+			stage->bundle[0].imageAnimationSpeed = atof( token );
+
+			// parse up to MAX_IMAGE_ANIMATIONS animations
+			while ( 1 ) {
+				int		num;
+
+				token = COM_ParseExt( text, qfalse );
+				if ( !token[0] ) {
+					break;
+				}
+				num = stage->bundle[0].numImageAnimations;
+				if ( num < MAX_IMAGE_ANIMATIONS ) {
+					imgFlags_t flags = IMGFLAG_SRGB;
+
+					if (stageMipmaps)
+						flags |= IMGFLAG_MIPMAP;
+
+					if (!shader.noPicMip)
+						flags |= IMGFLAG_PICMIP;
+
+					stage->bundle[0].image[num] = R_FindImageFile( token, IMGTYPE_COLORALPHA, flags );
+
+					if ( !stage->bundle[0].image[num] )
+					{
+						ri.Printf( PRINT_WARNING, "WARNING: R_FindImageFile could not find '%s' in shader '%s'\n", token, shader.name );
+						return qfalse;
+					}
+					stage->bundle[0].numImageAnimations++;
+				}
+			}
+		}
+		else if ( !Q_stricmp( token, "videoMap" ) )
+		{
+			token = COM_ParseExt( text, qfalse );
+			if ( !token[0] )
+			{
+				ri.Printf( PRINT_WARNING, "WARNING: missing parameter for 'videoMmap' keyword in shader '%s'\n", shader.name );
+				return qfalse;
+			}
+			stage->bundle[0].videoMapHandle = ri.CIN_PlayCinematic( token, 0, 0, 256, 256, (CIN_loop | CIN_silent | CIN_shader));
+			if (stage->bundle[0].videoMapHandle != -1) {
+				stage->bundle[0].isVideoMap = qtrue;
+				stage->bundle[0].image[0] = tr.scratchImage[stage->bundle[0].videoMapHandle];
+			}
+		}
+		//
+		// alphafunc <func>
+		//
+		else if ( !Q_stricmp( token, "alphaFunc" ) )
+		{
+			token = COM_ParseExt( text, qfalse );
+			if ( !token[0] )
+			{
+				ri.Printf( PRINT_WARNING, "WARNING: missing parameter for 'alphaFunc' keyword in shader '%s'\n", shader.name );
+				return qfalse;
+			}
+
+			atestBits = NameToAFunc( token );
+		}
+		//
+		// depthFunc <func>
+		//
+		else if ( !Q_stricmp( token, "depthfunc" ) )
+		{
+			token = COM_ParseExt( text, qfalse );
+
+			if ( !token[0] )
+			{
+				ri.Printf( PRINT_WARNING, "WARNING: missing parameter for 'depthfunc' keyword in shader '%s'\n", shader.name );
+				return qfalse;
+			}
+
+			if ( !Q_stricmp( token, "lequal" ) )
+			{
+				depthFuncBits = 0;
+			}
+			else if ( !Q_stricmp( token, "equal" ) )
+			{
+				depthFuncBits = GLS_DEPTHFUNC_EQUAL;
+			}
+			else
+			{
+				ri.Printf( PRINT_WARNING, "WARNING: unknown depthfunc '%s' in shader '%s'\n", token, shader.name );
+				continue;
+			}
+		}
+		//
+		// detail
+		//
+		else if ( !Q_stricmp( token, "detail" ) )
+		{
+			stage->isDetail = qtrue;
+		}
+		//
+		// blendfunc <srcFactor> <dstFactor>
+		// or blendfunc <add|filter|blend>
+		//
+		else if ( !Q_stricmp( token, "blendfunc" ) )
+		{
+			hackoperation = 0;
+			token = COM_ParseExt( text, qfalse );
+			if ( token[0] == 0 )
+			{
+				ri.Printf( PRINT_WARNING, "WARNING: missing parm for blendFunc in shader '%s'\n", shader.name );
+				hackoperation = 0;
+				continue;
+			}
+			// check for "simple" blends first
+			if ( !Q_stricmp( token, "add" ) ) {
+				blendSrcBits = GLS_SRCBLEND_ONE;
+				blendDstBits = GLS_DSTBLEND_ONE;
+				hackoperation = 1;
+			} else if ( !Q_stricmp( token, "filter" ) ) {
+				blendSrcBits = GLS_SRCBLEND_DST_COLOR;
+				blendDstBits = GLS_DSTBLEND_ZERO;
+			//	hackoperation = 4;
+			} else if ( !Q_stricmp( token, "blend" ) ) {
+				blendSrcBits = GLS_SRCBLEND_SRC_ALPHA;
+				blendDstBits = GLS_DSTBLEND_ONE_MINUS_SRC_ALPHA;
+				hackoperation = 0;
+				
+			} else {
+				// complex double blends
+				blendSrcBits = NameToSrcBlendMode( token );
+				hackoperation = 0;
+				token = COM_ParseExt( text, qfalse );
+				if ( token[0] == 0 )
+				{
+					ri.Printf( PRINT_WARNING, "WARNING: missing parm for blendFunc in shader '%s'\n", shader.name );
+					continue;
+				}
+				blendDstBits = NameToDstBlendMode( token );
+			}
+			
+			stage->isBlend = 1;	// 2x2
+
+			// clear depth mask for blended surfaces
+			if ( !depthMaskExplicit )
+			{
+				depthMaskBits = 0;
+			}
+
+
+		}
+		//
+		// rgbGen
+		//
+		else if ( !Q_stricmp( token, "rgbGen" ) )
+		{
+			token = COM_ParseExt( text, qfalse );
+			if ( token[0] == 0 )
+			{
+				ri.Printf( PRINT_WARNING, "WARNING: missing parameters for rgbGen in shader '%s'\n", shader.name );
+				continue;
+			}
+
+			if ( !Q_stricmp( token, "wave" ) )
+			{
+				ParseWaveForm( text, &stage->rgbWave );
+				stage->rgbGen = CGEN_WAVEFORM;
+			}
+			else if ( !Q_stricmp( token, "const" ) )
+			{
+				vec3_t	color;
+
+				ParseVector( text, 3, color );
+				stage->constantColor[0] = 255 * color[0];
+				stage->constantColor[1] = 255 * color[1];
+				stage->constantColor[2] = 255 * color[2];
+
+				stage->rgbGen = CGEN_CONST;
+			}
+			else if ( !Q_stricmp( token, "identity" ) )
+			{
+				stage->rgbGen = CGEN_IDENTITY;
+			}
+			else if ( !Q_stricmp( token, "identityLighting" ) )
+			{
+				stage->rgbGen = CGEN_IDENTITY_LIGHTING;
+			}
+			else if ( !Q_stricmp( token, "entity" ) )
+			{
+				stage->rgbGen = CGEN_ENTITY;
+			}
+			else if ( !Q_stricmp( token, "oneMinusEntity" ) )
+			{
+				stage->rgbGen = CGEN_ONE_MINUS_ENTITY;
+			}
+			else if ( !Q_stricmp( token, "vertex" ) )
+			{
+				stage->rgbGen = CGEN_VERTEX;
+				if ( stage->alphaGen == 0 ) {
+					stage->alphaGen = AGEN_VERTEX;
+				}
+			}
+			else if ( !Q_stricmp( token, "exactVertex" ) )
+			{
+				stage->rgbGen = CGEN_EXACT_VERTEX;
+			}
+			else if ( !Q_stricmp( token, "vertexLighting" ) )	// leilei - vertex WITH a lighting pass after
+			{
+				stage->rgbGen = CGEN_VERTEX_LIT;
+				if ( stage->alphaGen == 0 ) {
+					stage->alphaGen = AGEN_VERTEX;
+				}
+			}
+			else if ( !Q_stricmp( token, "vertexLighting2" ) )	// leilei - second vertex color
+			{
+				stage->rgbGen = CGEN_VERTEX_LIT;
+				if ( stage->alphaGen == 0 ) {
+					stage->alphaGen = AGEN_VERTEX;
+				}
+			}
+			else if ( !Q_stricmp( token, "lightingDiffuse" ) )
+			{
+				stage->rgbGen = CGEN_LIGHTING_DIFFUSE;
+			}
+			else if ( !Q_stricmp( token, "lightingUniform" ) )
+			{
+				stage->rgbGen = CGEN_LIGHTING_UNIFORM;
+			}
+			else if ( !Q_stricmp( token, "lightingDynamic" ) )
+			{
+				stage->rgbGen = CGEN_LIGHTING_DYNAMIC;
+			}
+			else if ( !Q_stricmp( token, "flatAmbient" ) )
+			{
+				stage->rgbGen = CGEN_LIGHTING_FLAT_AMBIENT;
+			}
+			else if ( !Q_stricmp( token, "flatDirect" ) )
+			{
+				stage->rgbGen = CGEN_LIGHTING_FLAT_DIRECT;
+			}
+			else if ( !Q_stricmp( token, "oneMinusVertex" ) )
+			{
+				stage->rgbGen = CGEN_ONE_MINUS_VERTEX;
+			}
+			else if ( !Q_stricmp( token, "lightingSpecularDiffuse" ) )	// leilei - deprecated
+			{
+				stage->rgbGen = CGEN_LIGHTING_DIFFUSE;
+			}
+			else
+			{
+				ri.Printf( PRINT_WARNING, "WARNING: unknown rgbGen parameter '%s' in shader '%s'\n", token, shader.name );
+				continue;
+			}
+		}
+		//
+		// alphaGen 
+		//
+		else if ( !Q_stricmp( token, "alphaGen" ) )
+		{
+			token = COM_ParseExt( text, qfalse );
+			if ( token[0] == 0 )
+			{
+				ri.Printf( PRINT_WARNING, "WARNING: missing parameters for alphaGen in shader '%s'\n", shader.name );
+				continue;
+			}
+
+			if ( !Q_stricmp( token, "wave" ) )
+			{
+				ParseWaveForm( text, &stage->alphaWave );
+				stage->alphaGen = AGEN_WAVEFORM;
+			}
+			else if ( !Q_stricmp( token, "const" ) )
+			{
+				token = COM_ParseExt( text, qfalse );
+				stage->constantColor[3] = 255 * atof( token );
+				stage->alphaGen = AGEN_CONST;
+			}
+			else if ( !Q_stricmp( token, "identity" ) )
+			{
+				stage->alphaGen = AGEN_IDENTITY;
+			}
+			else if ( !Q_stricmp( token, "entity" ) )
+			{
+				stage->alphaGen = AGEN_ENTITY;
+			}
+			else if ( !Q_stricmp( token, "oneMinusEntity" ) )
+			{
+				stage->alphaGen = AGEN_ONE_MINUS_ENTITY;
+			}
+			else if ( !Q_stricmp( token, "vertex" ) )
+			{
+				stage->alphaGen = AGEN_VERTEX;
+			}
+			else if ( !Q_stricmp( token, "lightingSpecular" ) )
+			{
+				stage->alphaGen = AGEN_LIGHTING_SPECULAR;
+			}
+			else if ( !Q_stricmp( token, "oneMinusVertex" ) )
+			{
+				stage->alphaGen = AGEN_ONE_MINUS_VERTEX;
+			}
+			else if ( !Q_stricmp( token, "portal" ) )
+			{
+				stage->alphaGen = AGEN_PORTAL;
+				token = COM_ParseExt( text, qfalse );
+				if ( token[0] == 0 )
+				{
+					shader.portalRange = 256;
+					ri.Printf( PRINT_WARNING, "WARNING: missing range parameter for alphaGen portal in shader '%s', defaulting to 256\n", shader.name );
+				}
+				else
+				{
+					shader.portalRange = atof( token );
+				}
+			}
+			else
+			{
+				ri.Printf( PRINT_WARNING, "WARNING: unknown alphaGen parameter '%s' in shader '%s'\n", token, shader.name );
+				continue;
+			}
+		}
+		//
+		// tcGen <function>
+		//
+		else if ( !Q_stricmp(token, "texgen") || !Q_stricmp( token, "tcGen" ) ) 
+		{
+			token = COM_ParseExt( text, qfalse );
+			if ( token[0] == 0 )
+			{
+				ri.Printf( PRINT_WARNING, "WARNING: missing texgen parm in shader '%s'\n", shader.name );
+				continue;
+			}
+
+			if ( !Q_stricmp( token, "environment" ) )
+			{
+				stage->bundle[0].tcGen = TCGEN_ENVIRONMENT_MAPPED;
+			}
+			else if ( !Q_stricmp( token, "cel" ) )
+			{
+				stage->bundle[0].tcGen = TCGEN_ENVIRONMENT_CELSHADE_MAPPED;
+			}
+			else if ( !Q_stricmp( token, "celshading" ) )		// leilei - my technique is different
+			{
+				stage->bundle[0].tcGen = TCGEN_ENVIRONMENT_CELSHADE_LEILEI;
+			}
+			else if ( !Q_stricmp( token, "eyeleft" ) )		// leilei - eye tracking
+			{
+				stage->bundle[0].tcGen = TCGEN_EYE_LEFT;
+			}
+			else if ( !Q_stricmp( token, "eyeright" ) )		// leilei - eye tracking
+			{
+				stage->bundle[0].tcGen = TCGEN_EYE_RIGHT;
+			}
+			else if ( !Q_stricmp( token, "environmentWater" ) )
+			{
+				stage->bundle[0].tcGen = TCGEN_ENVIRONMENT_MAPPED_WATER;	// leilei - water's envmaps
+			}
+			else if ( !Q_stricmp( token, "lightmap" ) )
+			{
+				stage->bundle[0].tcGen = TCGEN_LIGHTMAP;
+			}
+			else if ( !Q_stricmp( token, "texture" ) || !Q_stricmp( token, "base" ) )
+			{
+				stage->bundle[0].tcGen = TCGEN_TEXTURE;
+			}
+			else if ( !Q_stricmp( token, "vector" ) )
+			{
+				ParseVector( text, 3, stage->bundle[0].tcGenVectors[0] );
+				ParseVector( text, 3, stage->bundle[0].tcGenVectors[1] );
+
+				stage->bundle[0].tcGen = TCGEN_VECTOR;
+			}
+			else 
+			{
+				ri.Printf( PRINT_WARNING, "WARNING: unknown texgen parm in shader '%s'\n", shader.name );
+			}
+		}
+		//
+		// tcMod <type> <...>
+		//
+		else if ( !Q_stricmp( token, "tcMod" ) )
+		{
+			char buffer[1024] = "";
+
+			while ( 1 )
+			{
+				token = COM_ParseExt( text, qfalse );
+				if ( token[0] == 0 )
+					break;
+				strcat( buffer, token );
+				strcat( buffer, " " );
+			}
+
+			ParseTexMod( buffer, stage );
+
+			continue;
+		}
+		//
+		// depthmask
+		//
+		else if ( !Q_stricmp( token, "depthwrite" ) )
+		{
+			depthMaskBits = GLS_DEPTHMASK_TRUE;
+			depthMaskExplicit = qtrue;
+
+			continue;
+		}
+
+		else
+		{
+			ri.Printf( PRINT_WARNING, "WARNING: unknown parameter '%s' in shader '%s'\n", token, shader.name );
+			return qfalse;
+		}
+
+
+
+
+	}
+
+	//
+	// if cgen isn't explicitly specified, use either identity or identitylighting
+	//
+	if ( stage->rgbGen == CGEN_BAD ) {
+		if ( blendSrcBits == 0 ||
+			blendSrcBits == GLS_SRCBLEND_ONE || 
+			blendSrcBits == GLS_SRCBLEND_SRC_ALPHA ) {
+			stage->rgbGen = CGEN_IDENTITY_LIGHTING;
+		} else {
+			stage->rgbGen = CGEN_IDENTITY;
+		}
+	}
+
+	
+	//
+	// implicitly assume that a GL_ONE GL_ZERO blend mask disables blending
+	//
+	if ( ( blendSrcBits == GLS_SRCBLEND_ONE ) && 
+		 ( blendDstBits == GLS_DSTBLEND_ZERO ) )
+	{
+		blendDstBits = blendSrcBits = 0;
+		depthMaskBits = GLS_DEPTHMASK_TRUE;
+	}
+
+	// decide which agens we can skip
+	if ( stage->alphaGen == AGEN_IDENTITY ) {
+		if ( stage->rgbGen == CGEN_IDENTITY
+			|| stage->rgbGen == CGEN_LIGHTING_DIFFUSE 
+			|| stage->rgbGen == CGEN_LIGHTING_UNIFORM 
+			|| stage->rgbGen == CGEN_LIGHTING_DYNAMIC) {
+			stage->alphaGen = AGEN_SKIP;
+		}
+	}
+
+	//
+	// compute state bits
+	//
+	stage->stateBits = depthMaskBits | 
+		               blendSrcBits | blendDstBits | 
+					   atestBits | 
+					   depthFuncBits;
+	//
+	// now load our image!
+	//
+
+	//hackoperation = 2;
+	if (loadlater){
+		if (!blendDstBits) hackoperation = 2;
+
+		if (ismaptexture){
+
+			if (surfaceflagsy & CONTENTS_TRANSLUCENT)
+				hackoperation = 0;
+			else
+				hackoperation = 2;		
+		}
+
+		if (blendSrcBits == GLS_SRCBLEND_ONE) hackoperation = 1;
+		if (blendDstBits == GLS_DSTBLEND_ONE) hackoperation = 1;
+
+
+		if (blendSrcBits == GLS_SRCBLEND_SRC_ALPHA) hackoperation = 0;
+		if (blendDstBits == GLS_DSTBLEND_ONE_MINUS_SRC_ALPHA) hackoperation = 0;
+
+		if (blendSrcBits == GLS_SRCBLEND_DST_COLOR &&
+		    blendDstBits == GLS_DSTBLEND_SRC_COLOR) 
+			hackoperation = 4;
+
+		if (blendSrcBits == GLS_SRCBLEND_DST_COLOR &&
+		    blendDstBits == GLS_SRCBLEND_ONE) 
+			hackoperation = 1;
+
+		if (blendSrcBits == GLS_SRCBLEND_SRC_ALPHA &&
+		    blendDstBits == GLS_SRCBLEND_ONE) 		// additive, but blended away by alpha
+			hackoperation = 1;
+
+
+		if (!ismaptexture){
+		if (blendSrcBits == GLS_SRCBLEND_ZERO) hackoperation = 3;
+		//if (blendDstBits == GLS_DSTBLEND_ZERO) hackoperation = 3;
+		}
+		if (stage->bundle[0].numImageAnimations>0){
+		int n, o;
+				n= stage->bundle[0].numImageAnimations;
+				for (o=0; o<n;o++){
+				
+					iflags = IMGFLAG_NONE;
+					//stage->bundle[0].image[num] = R_FindImageFile( token, IMGTYPE_COLORALPHA, flags );
+				
+					if(o == 0) COM_StripExtension( imageNameAnim0, imageName, MAX_QPATH );
+					if(o == 1) COM_StripExtension( imageNameAnim1, imageName, MAX_QPATH );
+					if(o == 2) COM_StripExtension( imageNameAnim2, imageName, MAX_QPATH );
+					if(o == 3) COM_StripExtension( imageNameAnim3, imageName, MAX_QPATH );
+					if(o == 4) COM_StripExtension( imageNameAnim4, imageName, MAX_QPATH );
+					if(o == 5) COM_StripExtension( imageNameAnim5, imageName, MAX_QPATH );
+					if(o == 6) COM_StripExtension( imageNameAnim6, imageName, MAX_QPATH );
+					if(o == 7) COM_StripExtension( imageNameAnim7, imageName, MAX_QPATH );
+					if(o == 8) COM_StripExtension( imageNameAnim8, imageName, MAX_QPATH );
+					stage->bundle[0].image[o] = R_FindImageFile( imageName, itype, iflags );
+				
+				}
+		}
+		else
+		stage->bundle[0].image[0] = R_FindImageFile( imageName, itype, iflags );
+		stage->isBlend = hackoperation;
+
+		if (blendSrcBits == GLS_SRCBLEND_SRC_ALPHA &&
+		    blendDstBits == GLS_SRCBLEND_ONE) 		// additive, but blended away by alpha
+			stage->isBlend = 0;
+
+		}
+
+	return qtrue;
+}
+
 
 /*
 ===============
@@ -3277,6 +4112,7 @@ static qboolean ParseShader( char **text )
 		{
 			break;
 		}
+
 		// stage definition
 		else if ( token[0] == '{' )
 		{
@@ -3462,6 +4298,8 @@ static qboolean ParseShader( char **text )
 	}
 
 	shader.explicitlyDefined = qtrue;
+			surfaceflagsy = shader.surfaceFlags;
+
 
 	return qtrue;
 }
@@ -3513,6 +4351,7 @@ static void ComputeStageIteratorFunc( void )
 
 	if (r_leifx->integer)	// try not to use the multitexture shaders so we can blend
 		return; 	// lightmaps with a different dithering table
+
 
 
 	//
@@ -3639,7 +4478,7 @@ static qboolean CollapseMultitexture( void ) {
 	}
 
 	// on voodoo2, don't combine different tmus
-	if ( glConfig.driverType == GLDRV_VOODOO ) {
+	if ( glConfig.driverType == GLDRV_VOODOO || r_leifx->integer ) {
 		if ( stages[0].bundle[0].image[0]->TMU ==
 			 stages[1].bundle[0].image[0]->TMU ) {
 			return qfalse;
@@ -4001,9 +4840,12 @@ static shader_t *FinishShader( void ) {
 	int stage;
 	qboolean		hasLightmapStage;
 	qboolean		vertexLightmap;
+	
 
 	hasLightmapStage = qfalse;
 	vertexLightmap = qfalse;
+
+	
 
 	//
 	// set sky stuff appropriate
@@ -4019,6 +4861,8 @@ static shader_t *FinishShader( void ) {
 		shader.sort = SS_DECAL;
 	}
 
+
+
 	//
 	// set appropriate stage information
 	//
@@ -4029,6 +4873,37 @@ static shader_t *FinishShader( void ) {
 			break;
 		}
 
+
+		// Try to use leifx dither here instead of postprocess for more authentic overdraw artifacts
+		if (r_leifx->integer > 1)
+		{		
+			
+			if (pStage->isBlend == 1){
+			pStage->program = RE_GLSL_RegisterProgram("leifxify2", "glsl/leifxify2_vp.glsl", 1, "glsl/leifxify2_fp.glsl", 1);	// 2x2 dither blend for vertex colors, 4x4 for texture
+			ri.Printf( PRINT_DEVELOPER, "picking blended\n");
+			}
+			else
+			pStage->program = RE_GLSL_RegisterProgram("leifxify", "glsl/leifxify2_vp.glsl", 1, "glsl/leifxify_fp.glsl", 1);		// 4x4 dither blend for both color and texture
+			pStage->isGLSL=1;
+		}
+
+		// Mockvr faking of the filtering and alpha precision of PCX2 cards
+		if ((r_mockvr->integer > 1))
+		{		
+			pStage->program = RE_GLSL_RegisterProgram("leivrify", "glsl/leivrify_vp.glsl", 1, "glsl/leivrify_fp.glsl", 1);
+			
+			pStage->isGLSL=1;
+
+			// pass texture width/height (filtering etc)
+			if(!pStage->imgWidth) pStage->imgWidth = 128;
+			if(!pStage->imgHeight) pStage->imgHeight = 128;
+		//	 R_GLSL_SetUniform_u_ScreenSizeX(pStage->program, pStage->imgWidth);
+		//	 R_GLSL_SetUniform_u_ScreenSizeY(pStage->program, pStage->imgHeight);
+		//	 R_GLSL_SetUniform_u_ScreenToNextPixelX(pStage->program, (float)1.0/(float)pStage->imgWidth);
+		//	 R_GLSL_SetUniform_u_ScreenToNextPixelY(pStage->program, (float)1.0/(float)pStage->imgHeight);
+	
+		}
+
     // check for a missing texture
 		if ( !pStage->bundle[0].image[0] ) {
 			ri.Printf( PRINT_WARNING, "Shader %s has a stage with no image\n", shader.name );
@@ -4036,6 +4911,7 @@ static shader_t *FinishShader( void ) {
 			stage++;
 			continue;
 		}
+
 
 		//
 		// ditch this stage if it's detail and detail textures are disabled
@@ -4078,27 +4954,23 @@ static shader_t *FinishShader( void ) {
 		}
 
 
+
     // not a true lightmap but we want to leave existing 
     // behaviour in place and not print out a warning
     //if (pStage->rgbGen == CGEN_VERTEX) {
     //  vertexLightmap = qtrue;
     //}
 
-		// Try to use leifx dither here instead of postprocess for more authentic overdraw artifacts
-		if (r_leifx->integer > 1)
-		{		
-			pStage->program = RE_GLSL_RegisterProgram("leifxify", "glsl/leifxify_vp.glsl", 1, "glsl/leifxify_fp.glsl", 1);
+
+
+
+		// leilei - force new phong on lightdiffuse and lightdiffusespecular models
+		if ((r_modelshader->integer) && (pStage->isGLSL==0) && (r_ext_vertex_shader->integer) && ((pStage->rgbGen == CGEN_LIGHTING_DIFFUSE) || (pStage->rgbGen == CGEN_LIGHTING_DIFFUSE_SPECULAR)))
+		{
+			pStage->program = RE_GLSL_RegisterProgram("leishade", "glsl/leishade_vp.glsl", 1, "glsl/leishade_fp.glsl", 1);
 			pStage->isGLSL=1;
+			pStage->isLeiShade=1;
 		}
-
-		// Mockvr faking of the filtering and alpha precision of PCX2 cards
-		if ((r_mockvr->integer > 1))
-		{		
-			pStage->program = RE_GLSL_RegisterProgram("leivrify", "glsl/leivrify_vp.glsl", 1, "glsl/leivrify_fp.glsl", 1);
-			pStage->isGLSL=1;
-		}
-
-
 
 		//
 		// determine sort order and fog color adjustment
@@ -4323,14 +5195,52 @@ Other lightmapIndex values will have a lightmap stage created
 and src*dest blending applied with the texture, as apropriate for
 most world construction surfaces.
 
+
+Leilei TODO - and if it has a lightmapindex and no detail texture please
+try to generate a generic detail stage for the sake of consistency with
+the other textures with details so there's one big grainy world
+ (only if r_detailTextures 3)
+
+TODO:	if r_detailTextures 2, try to move the detail texture before the lightmap
+		stage and use filterblend , so we can use the multitexturing 
+		pass performance advantage
+
 ===============
 */
+
+static int sugthem;
+
 shader_t *R_FindShaderReal( const char *name, int lightmapIndex, qboolean mipRawImage ) {
 	char		strippedName[MAX_QPATH];
 	int			i, hash;
 	char		*shaderText;
 	image_t		*image;
 	shader_t	*sh;
+
+	//
+	// LEILEI's DETAIL TEXTURE STUFFS
+	//
+	int material;	// leilei - for picking detail texture
+	int shouldIDetail = 0; // leilei - checking if I should detail.
+	int wi, hi; // leilei - for determining detail texture size by uploaded texture
+	int detailScale; // leilei - detail scale hack
+	int detailLayer; // leilei - detail layer hack
+	// leilei - for adjusting detail textures
+		if ( r_detailTextureScale->integer > 0)
+			detailScale = r_detailTextureScale->integer;
+		else
+			detailScale = 8;
+
+		if ( r_detailTextureLayers->integer > 0)
+			detailLayer = r_detailTextureLayers->integer;
+		else
+			detailLayer = 1; // one usual layer
+
+		if (detailLayer > 6) detailLayer = 6; // limit 6 for now
+	//
+	//		
+	//
+
 
 	if ( name[0] == 0 ) {
 		return tr.defaultShader;
@@ -4380,6 +5290,7 @@ shader_t *R_FindShaderReal( const char *name, int lightmapIndex, qboolean mipRaw
 	shader.needsST2 = qtrue;
 	shader.needsColor = qtrue;
 
+
 	//
 	// attempt to define shader from an explicit parameter file
 	//
@@ -4395,6 +5306,95 @@ shader_t *R_FindShaderReal( const char *name, int lightmapIndex, qboolean mipRaw
 			// had errors, so use default shader
 			shader.defaultShader = qtrue;
 		}
+
+		if (shader.surfaceFlags || SURF_METALSTEPS)
+			material = 1;
+
+
+			// leilei -  SUPER detail hack to existing shaders,very aggressive and won't look good on 100% of shaders
+		
+			if((shader.lightmapIndex != LIGHTMAP_WHITEIMAGE && shader.lightmapIndex != LIGHTMAP_BY_VERTEX && shader.lightmapIndex != LIGHTMAP_2D && shader.lightmapIndex != LIGHTMAP_NONE) ){
+			if (r_detailTextures->integer)
+				{
+					image_t		*imageDetail;		 // for snagging it into more layers if we find a defined one
+					int e = 0;
+					int f = 0;
+					int gotdetailalready = 0;
+					int hasaDetailImage = 0;
+					int thisstage = 0;
+					material = 0;
+					wi = hi = 32; // reset to none....
+
+					shouldIDetail = 0; //yeah
+					for (f=0;f<detailLayer;f++){
+					for (e=0;e<(MAX_SHADER_STAGES-1);e++)
+					{
+						if (shader.defaultShader)
+							break; // DON'T! This fixes a crash, trying to stage up placeholder/default textures
+
+						// Pick the first free stage to do, hopefully the last
+						if (stages[e].active == qfalse){ thisstage = e; shouldIDetail = 1; break;}
+			
+						// find detail texture scale by determining which of the stages have the largest image
+						if (stages[e].bundle[0].image[0]->uploadHeight > wi) wi = stages[e].bundle[0].image[0]->uploadWidth;
+						if (stages[e].bundle[0].image[0]->uploadHeight > hi) hi = stages[e].bundle[0].image[0]->uploadHeight;
+
+						// for adjusting the detail textures and skipping some redundancy
+						if (stages[e].isDetail){ 
+	
+							if (f < 1){ gotdetailalready = 1; shouldIDetail = 0;
+
+							imageDetail = stages[e].bundle[0].image[0]; // this is it
+							hasaDetailImage = 1;
+									}
+							if (r_detailTextureScale->integer){
+
+								if (stages[e].bundle[0].texMods[0].type == TMOD_SCALE)
+								{
+										wi = 0.25 * wi / (detailScale / (f + 1));
+										hi = 0.25 * hi / (detailScale / (f + 1));
+										stages[e].bundle[0].texMods[0].scale[0] = wi;
+										stages[e].bundle[0].texMods[0].scale[1] = hi;
+								}
+							}
+						}						
+
+					}
+					if (r_detailTextures->integer < 3) shouldIDetail = 0; // don't add detail for low settings
+
+					if ((!gotdetailalready || thisstage) && (shouldIDetail)){
+		
+						// detail it up because i don't care.
+							{
+
+								wi = 0.25  * (f + 1)  * wi / detailScale;
+								hi = 0.25  * (f + 1)  * hi / detailScale;
+
+								if (material == 1)	// metalsteps
+							 	stages[thisstage].bundle[0].image[0] = R_FindImageFile( "gfx/fx/detail/d_genericmetal.tga", IMGFLAG_MIPMAP , IMGFLAG_MIPMAP);
+								else if (hasaDetailImage && imageDetail)
+							 	stages[thisstage].bundle[0].image[0] = imageDetail;
+								else
+							 	stages[thisstage].bundle[0].image[0] = R_FindImageFile( "gfx/fx/detail/d_generic.tga", IMGFLAG_MIPMAP , IMGFLAG_MIPMAP);
+								stages[thisstage].active = qtrue;
+								stages[thisstage].rgbGen = CGEN_IDENTITY;
+								stages[thisstage].stateBits |= GLS_SRCBLEND_DST_COLOR | GLS_DSTBLEND_SRC_COLOR | GLS_DEPTHFUNC_EQUAL;
+								stages[thisstage].bundle[0].texMods[0].scale[0] = wi;
+								stages[thisstage].bundle[0].texMods[0].scale[1] = hi;
+								stages[thisstage].bundle[0].texMods[0].type = TMOD_SCALE;
+								stages[thisstage].isDetail = qtrue;
+								stages[thisstage].bundle[0].numTexMods = 1;
+				
+							}			
+		
+		
+						}
+					}
+				
+				}
+				}
+
+
 		sh = FinishShader();
 		return sh;
 	}
@@ -4426,9 +5426,77 @@ shader_t *R_FindShaderReal( const char *name, int lightmapIndex, qboolean mipRaw
 		}
 	}
 
+
+
 	//
 	// create the default shading commands
 	//
+
+		if (r_parseStageSimple->integer){ 	// leilei - for powervr
+		hackoperation = 0;
+
+		if ( shader.lightmapIndex == LIGHTMAP_NONE ) {
+			// dynamic colors at vertexes
+			stages[0].bundle[0].image[0] = image;
+			stages[0].active = qtrue;
+			stages[0].rgbGen = CGEN_LIGHTING_DIFFUSE;
+			stages[0].stateBits = GLS_DEFAULT;
+		} else if ( shader.lightmapIndex == LIGHTMAP_BY_VERTEX ) {
+			// explicit colors at vertexes
+			stages[0].bundle[0].image[0] = image;
+			stages[0].active = qtrue;
+			stages[0].rgbGen = CGEN_EXACT_VERTEX;
+			stages[0].alphaGen = AGEN_SKIP;
+			stages[0].stateBits = GLS_DEFAULT;
+		} else if ( shader.lightmapIndex == LIGHTMAP_2D ) {
+			// GUI elements
+			stages[0].bundle[0].image[0] = image;
+			stages[0].active = qtrue;
+			stages[0].rgbGen = CGEN_VERTEX;
+			stages[0].alphaGen = AGEN_VERTEX;
+			stages[0].stateBits = GLS_DEPTHTEST_DISABLE;
+			stages[0].isBlend = 0;
+			hackoperation = 0;
+		} else if ( shader.lightmapIndex == LIGHTMAP_WHITEIMAGE ) {
+			// fullbright level
+			stages[1].bundle[0].image[0] = tr.whiteImage;
+			stages[1].active = qtrue;
+			stages[1].rgbGen = CGEN_IDENTITY_LIGHTING;
+			stages[1].stateBits = GLS_SRCBLEND_SRC_ALPHA | GLS_DSTBLEND_DST_ALPHA;
+	
+			stages[0].bundle[0].image[0] = image;
+			stages[0].active = qtrue;
+			stages[0].rgbGen = CGEN_IDENTITY;
+			stages[0].stateBits = GLS_DEFAULT;
+		} else {
+			
+			// two pass lightmap
+	
+			hackoperation = 0;
+			stages[0].isBlend = 0;
+			stages[0].bundle[0].image[0] = image;
+			stages[0].active = qtrue;
+			stages[0].rgbGen = CGEN_IDENTITY;
+			stages[0].stateBits = GLS_DEFAULT;
+	
+			hackoperation = 4;
+			stages[1].bundle[0].image[0] = tr.lightmaps[shader.lightmapIndex];
+			stages[1].bundle[0].isLightmap = qtrue;
+			stages[1].active = qtrue;
+			stages[1].rgbGen = CGEN_IDENTITY;	// lightmaps are scaled on creation
+			stages[1].isBlend = 1;
+														// for identitylight
+			stages[1].stateBits = GLS_SRCBLEND_SRC_ALPHA | GLS_DSTBLEND_DST_ALPHA;
+	
+	
+			}
+		
+	
+		
+		}
+			else		// normal
+		{
+
 	if ( shader.lightmapIndex == LIGHTMAP_NONE ) {
 		// dynamic colors at vertexes
 		stages[0].bundle[0].image[0] = image;
@@ -4463,6 +5531,54 @@ shader_t *R_FindShaderReal( const char *name, int lightmapIndex, qboolean mipRaw
 		stages[1].rgbGen = CGEN_IDENTITY;
 		stages[1].stateBits |= GLS_SRCBLEND_DST_COLOR | GLS_DSTBLEND_ZERO;
 	} else {
+		// leilei - automatic detail adding hack
+		
+		if (r_detailTextures->integer > 2){
+		// three pass lightmap with a detail after the texture. slow but is how U did it
+		stages[0].bundle[0].image[0] = tr.lightmaps[shader.lightmapIndex];
+		stages[0].bundle[0].isLightmap = qtrue;
+		stages[0].active = qtrue;
+		stages[0].rgbGen = CGEN_IDENTITY;	// lightmaps are scaled on creation
+													// for identitylight
+		stages[0].stateBits = GLS_DEFAULT;
+
+		stages[1].bundle[0].image[0] = image;
+		stages[1].active = qtrue;
+		stages[1].rgbGen = CGEN_IDENTITY;
+		stages[1].stateBits |= GLS_SRCBLEND_DST_COLOR | GLS_DSTBLEND_ZERO;
+		// detail
+			{
+			int f;
+				if (r_parseStageSimple->integer) hackoperation = 4;
+				for (f=0;f<detailLayer;f++){
+				
+				if (f+2 > MAX_SHADER_STAGES) break;// don't exceed limit!
+				
+			 	stages[2+f].bundle[0].image[0] = R_FindImageFile( "gfx/fx/detail/d_generic.tga", IMGFLAG_MIPMAP , IMGFLAG_MIPMAP); // TODO: use metal detail for metal surfaces
+
+			// determine detail size first, our detail textures are typically 128x128
+				wi = 0.25 * (f + 1)  * stages[1].bundle[0].image[0]->uploadWidth / detailScale;
+				hi = 0.25 * (f + 1) * stages[1].bundle[0].image[0]->uploadHeight / detailScale;
+
+				stages[2+f].active = qtrue;
+				stages[2+f].rgbGen = CGEN_IDENTITY;
+				stages[2+f].stateBits |= GLS_SRCBLEND_DST_COLOR | GLS_DSTBLEND_SRC_COLOR;
+
+				stages[2+f].bundle[0].texMods[0].scale[0] = wi;
+				stages[2+f].bundle[0].texMods[0].scale[1] = hi;
+
+				stages[2+f].bundle[0].texMods[0].type = TMOD_SCALE;
+				
+				stages[2+f].bundle[0].numTexMods = 1;
+
+				stages[2+f].isDetail = qtrue;
+				
+				}
+			}
+		}
+		else
+		
+		{
 		// two pass lightmap
 		stages[0].bundle[0].image[0] = tr.lightmaps[shader.lightmapIndex];
 		stages[0].bundle[0].isLightmap = qtrue;
@@ -4475,7 +5591,24 @@ shader_t *R_FindShaderReal( const char *name, int lightmapIndex, qboolean mipRaw
 		stages[1].active = qtrue;
 		stages[1].rgbGen = CGEN_IDENTITY;
 		stages[1].stateBits |= GLS_SRCBLEND_DST_COLOR | GLS_DSTBLEND_ZERO;
+		}
 	}
+
+
+	// leilei - handle image height
+
+		int y;
+		for(y=0;y<MAX_SHADER_STAGES;y++){
+	
+	
+			stages[y].imgWidth = 128;
+			stages[y].imgHeight = 128;
+	
+		}
+
+	}
+
+
 
 	return FinishShader();
 }
@@ -4483,15 +5616,45 @@ shader_t *R_FindShaderReal( const char *name, int lightmapIndex, qboolean mipRaw
 // leilei - rather stupid way to do a cel wrapper to work for all textures
 shader_t *R_FindShader( const char *name, int lightmapIndex, qboolean mipRawImage ) {
 		shader_t	*sh;		
+		shader_t	*ahsh;	
 
+/*			// Sadly, I have deprecated the old cel hack. I am leaving it here. It breaks 2D textures BTW!!! :(
 	if (r_anime->integer){
 		sh = R_FindShaderReal(va("%s_cel",name), lightmapIndex, mipRawImage);
 		if ( sh->defaultShader )
 		sh = R_FindShaderReal(name, lightmapIndex, mipRawImage);
 		return sh;
 	}
+	else*/
+
+	// load real shader first?
+	sh = R_FindShaderReal(name, lightmapIndex, mipRawImage);
+	if (!Q_strncmp( name, "models/player", 13) ){	// restrict to players; speedup
+		if (r_suggestiveThemes->integer < 1)	// find safe textures/shaders if available
+		{
+			sugthem = 1;
+			ahsh = R_FindShaderReal(va("%s_safe",name), lightmapIndex, mipRawImage);
+			if ( ahsh->defaultShader ){
+			return sh;
+			}
+			else
+			return ahsh;
+	
+		}
+		else if (r_suggestiveThemes->integer > 1)	// find lewd textures/shaders if available
+		{
+			sugthem = 2;
+			ahsh = R_FindShaderReal(va("%s_lewd",name), lightmapIndex, mipRawImage);
+			if ( ahsh->defaultShader ){
+			return sh;
+			}
+			else
+			return ahsh;
+		}
+		else	// if just normally suggestive or an otherwise normal shader, default
+		return sh;
+	}
 	else
-		sh = R_FindShaderReal(name, lightmapIndex, mipRawImage);
 	return sh;
 
 }
