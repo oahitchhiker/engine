@@ -1,7 +1,6 @@
 language: c
 compiler:
   - gcc
-  - clang
 # These fail because ioquake3 is missing vorbis
 # Re-enable after they add vorbis or OA imports it
 #  - i686-w64-mingw32-gcc
@@ -12,7 +11,7 @@ script: ./travis-ci-build.sh
 before_install:
   - sudo apt-get update -qq
   - sudo apt-get remove -qq -y mingw32
-  - sudo apt-get install -q -y libgl1-mesa-dev libsdl1.2-dev libvorbis-dev libfreetype6-dev mingw-w64 libxmp-dev
+  - sudo apt-get install -q -y libgl1-mesa-dev libsdl1.2-dev libvorbis-dev libfreetype6-dev mingw-w64
 
 notifications:
   email: false

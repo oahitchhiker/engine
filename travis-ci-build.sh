@@ -2,6 +2,8 @@
 
 failed=0;
 
+# Travis is currently running 12.04 and do not support XMP
+
 # check if testing mingw
 if [ "$CC" = "i686-w64-mingw32-gcc" ]; then
 	export PLATFORM=mingw32
@@ -18,11 +20,11 @@ else
 fi
 
 # Default Build
-(make clean release) || failed=1;
+(make clean release USE_CODEC_XMP=0) || failed=1;
 
 # Test additional options
 if [ $haveExternalLibs -eq 1 ]; then
-	(make clean release USE_CODEC_VORBIS=1 USE_FREETYPE=1) || failed=1;
+	(make clean release USE_CODEC_XMP=0 USE_CODEC_VORBIS=1 USE_FREETYPE=1) || failed=1;
 fi
 
 if [ $failed -eq 1 ]; then
