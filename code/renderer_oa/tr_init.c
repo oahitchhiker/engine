@@ -1453,13 +1453,13 @@ void R_GLSL_Init(void) {
 
 //tr.defaultProgram=0;
 
-	Q_strncpyz(programVertexObjects[0], "glsl/vertexLitTexture_vp.glsl", sizeof(programVertexObjects[0]));
-	Q_strncpyz(programFragmentObjects[0], "glsl/vertexLitTexture_fp.glsl", sizeof(programFragmentObjects[0]));
-	tr.vertexLitProgram = RE_GLSL_RegisterProgram("vertexLitTexture", (const char *)programVertexObjects, 1, (const char *)programFragmentObjects, 1);
+	//Q_strncpyz(programVertexObjects[0], "glsl/vertexLitTexture_vp.glsl", sizeof(programVertexObjects[0]));
+	//Q_strncpyz(programFragmentObjects[0], "glsl/vertexLitTexture_fp.glsl", sizeof(programFragmentObjects[0]));
+	//tr.vertexLitProgram = RE_GLSL_RegisterProgram("vertexLitTexture", (const char *)programVertexObjects, 1, (const char *)programFragmentObjects, 1);
 
-	Q_strncpyz(programVertexObjects[0], "glsl/lightmappedMultitexture_vp.glsl", sizeof(programVertexObjects[0]));
-	Q_strncpyz(programFragmentObjects[0], "glsl/lightmappedMultitexture_fp.glsl", sizeof(programFragmentObjects[0]));
-	tr.lightmappedMultitextureProgram = RE_GLSL_RegisterProgram("lightmappedMultitexture", (const char *)programVertexObjects, 1, (const char *)programFragmentObjects, 1);
+	//Q_strncpyz(programVertexObjects[0], "glsl/lightmappedMultitexture_vp.glsl", sizeof(programVertexObjects[0]));
+	//Q_strncpyz(programFragmentObjects[0], "glsl/lightmappedMultitexture_fp.glsl", sizeof(programFragmentObjects[0]));
+	//tr.lightmappedMultitextureProgram = RE_GLSL_RegisterProgram("lightmappedMultitexture", (const char *)programVertexObjects, 1, (const char *)programFragmentObjects, 1);
 
 	Q_strncpyz(programVertexObjects[0], "glsl/sky_vp.glsl", sizeof(programVertexObjects[0]));
 	Q_strncpyz(programFragmentObjects[0], "glsl/sky_fp.glsl", sizeof(programFragmentObjects[0]));

@@ -1477,7 +1477,6 @@ void R_MblurScreen( void );
 void R_MblurScreenPost( void );
 void RB_UpdateMotionBlur (void){
 	// leilei - motion blur hack
-	int e;
 	numofmotionpasses = 4; 
 	numofmotionpasses = backEnd.refdef.time - backEnd.refdef.floatTime / 1000.0f;
 
@@ -1558,7 +1557,6 @@ void RB_DrawAccumBlur (void)
 {
    static int blurstate = 0;
    float accblur;
-   static float damagetime = -1.0f;
 
    if (r_tvMode->integer > -1) return;	// tvmode causes this to crash
    if (!r_motionblur->integer) return;

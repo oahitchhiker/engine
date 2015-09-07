@@ -1416,10 +1416,8 @@ int stage;
 // GLSL Feeder
 void GLSL_DefaultProgram_Feeder(shaderStage_t *pStage, shaderCommands_t *input)
 {
- trRefdef_t *refdef;
  int stage, bundle;
 	glslProgram_t	*program;
-	refdef=&backEnd.refdef;
 
 	trRefEntity_t *ent;
 
@@ -1478,7 +1476,6 @@ void GLSL_DefaultProgram_Feeder(shaderStage_t *pStage, shaderCommands_t *input)
 	if (program->u_ModelViewMatrix > -1)
         {
 	     ent=&tr.currentEntity;
-		 //backEnd.currentEntity;
          tmp=&tmp1;
 		VectorCopy( ent->e.lightingOrigin, tmp->origin );
 		VectorCopy( ent->e.axis[0], tmp->axis[0] );
@@ -1576,7 +1573,7 @@ void GLSL_DefaultProgram_Feeder(shaderStage_t *pStage, shaderCommands_t *input)
 
 int abc;
 abc=0;
-//stage=0;
+stage=0;
     if ((pStage->bundle[0].isLightmap) || (pStage->bundle[1].isLightmap))
 	{
     for (stage=0;stage<MAX_SHADER_STAGES;stage++) // tess.numPasses
@@ -1600,6 +1597,7 @@ abc=0;
             R_GLSL_SetUniform_LightmapControl(program,0);
 
     ent=&tr.currentEntity;
+	// were changing this here and before / after from ent=&tr.currentEntity;
 
     if (stage>=MAX_SHADER_STAGES)
     R_GLSL_SetUniform_u_etype(program,0);
@@ -2700,9 +2698,9 @@ skip2:
  * RB_GLSL_IterateStagesGeneric
  * Iterate over each stage of a shader
  */
-static void RB_GLSL_IterateStagesGeneric(shaderCommands_t *input) {
-	RB_IterateStagesGeneric(input);
-}
+//static void RB_GLSL_IterateStagesGeneric(shaderCommands_t *input) {
+//	RB_IterateStagesGeneric(input);
+//}
 
 /*
  * RB_GLSL_StageIteratorGeneric

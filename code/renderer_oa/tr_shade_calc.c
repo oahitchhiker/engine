@@ -115,13 +115,12 @@ void RB_CalcLightscaleTexCoords(float *st )
 	float p;
 	texModInfo_t tmi;
 	float light = 1.0f;
-	float ilength;
-	vec3_t		lightDir;
-	vec3_t		ambientLight;
+	//vec3_t		lightDir;
+	//vec3_t		ambientLight;
 	vec3_t		directedLight;
-	VectorCopy( backEnd.currentEntity->ambientLight, ambientLight );
+	//VectorCopy( backEnd.currentEntity->ambientLight, ambientLight );
 	VectorCopy( backEnd.currentEntity->directedLight, directedLight );
-	VectorCopy( backEnd.currentEntity->lightDir, lightDir );
+	//VectorCopy( backEnd.currentEntity->lightDir, lightDir );
 	//light = DotProduct (directedLight, lightDir);
 	light = ((directedLight[0] + directedLight[1] + directedLight[2]) * 0.333) / 255;
 	if (light > 1)
@@ -1034,7 +1033,7 @@ void RB_CalcEnvironmentTexCoordsNew( float *st )
 	int			i;
 	float		*v, *normal;
 	vec3_t		viewer, reflected, where, what, why, who;
-	float		d, a;
+	float		d; //, a;
 
 	v = tess.xyz[0];
 	normal = tess.normal[0];
@@ -1056,7 +1055,7 @@ void RB_CalcEnvironmentTexCoordsNew( float *st )
 		VectorNormalizeFast (who);
 
 		d = DotProduct (normal, viewer);
-		a = DotProduct (normal, where);
+		//a = DotProduct (normal, where);
 
 		if ( backEnd.currentEntity == &tr.worldEntity ){
 
@@ -1148,7 +1147,7 @@ void RB_CalcEnvironmentTexCoordsR( float *st )
 	vec3_t		sundy;
 	float		size;
 	float		dist;
-	vec3_t		origin, vec1, vec2;
+	vec3_t		vec1, vec2;
 
 	v = tess.xyz[0];
 	normal = tess.normal[0];
@@ -1194,7 +1193,7 @@ void RB_CalcCelTexCoords( float *st )
 {
 	int			i;
 	float		*v, *normal;
-	vec3_t		viewer, reflected, lightdir, directedLight, lightdured;
+	vec3_t		viewer, reflected, lightdir, directedLight;
 	float		d, l, p;
 
 
@@ -1615,20 +1614,16 @@ static void RB_CalcDiffuseColor_scalar( unsigned char *colors )
 // leilei - reveal normals to GLSL for light processing. HACK HACK HACK HACK HACK HACK
 void RB_CalcNormal( unsigned char *colors )
 {
-	int				i, j;
+	int				i;
 	float			*v;
 	float		*normal = ( float * ) tess.normal; 
-	float			incoming;
-	trRefEntity_t	*ent;
-	int				ambientLightInt;
-	vec3_t			ambientLight;
-	vec3_t			lightDir;
-	vec3_t			directedLight;
+	//trRefEntity_t	*ent;
+	//int				ambientLightInt;
 	vec3_t			n, m;
 	int				numVertexes;
-	float		mult = r_shownormals->value - 1;
-	ent = backEnd.currentEntity;
-	ambientLightInt = ent->ambientLightInt;
+	//float		mult = r_shownormals->value - 1;
+	//ent = backEnd.currentEntity;
+	//ambientLightInt = ent->ambientLightInt;
 
 	v = tess.xyz[0];
 	//normal = tess.normal[0];
@@ -1673,7 +1668,6 @@ void RB_CalcNormal( unsigned char *colors )
 void RB_CalcDiffuseColor_Specular( unsigned char *colors )
 {
 	int				i, j;
-	int 		speccap = 0;
 	float		spec;
 	float			*v, *normal;
 	float			incoming;
@@ -1733,7 +1727,6 @@ void RB_CalcDiffuseColor_Specular( unsigned char *colors )
 		
 		{
 			float ilength;
-			int b;
 			vec3_t		viewer,  reflected;
 			float		l, d;
 		//	int			b;
@@ -1833,7 +1826,7 @@ void RB_CalcUniformColor( unsigned char *colors )
 	int				i;
 	trRefEntity_t	*ent;
 	vec3_t			ambientLight;
-	vec3_t			directedLight;
+	//vec3_t			directedLight;
 	vec4_t			uniformLight;
 	int				numVertexes;
 	float			normalize;
@@ -1841,7 +1834,7 @@ void RB_CalcUniformColor( unsigned char *colors )
 	ent = backEnd.currentEntity;
 
 	VectorCopy( ent->ambientLight, ambientLight );
-	VectorCopy( ent->directedLight, directedLight );
+	//VectorCopy( ent->directedLight, directedLight );
 
 	VectorAdd( ambientLight, ambientLight/*directedLight*/, uniformLight );
 
@@ -1898,22 +1891,20 @@ void RB_CalcFlatAmbient( unsigned char *colors )
 {
 	int				i, j;
 	float			*v, *normal;
-	float			incoming;
 	trRefEntity_t	*ent;
-	int				ambientLightInt;
+	//int				ambientLightInt;
 	vec3_t			ambientLight;
-	vec3_t			lightDir;
-	vec3_t			directedLight;
+	//vec3_t			lightDir;
 	int				numVertexes;
 	ent = backEnd.currentEntity;
-	ambientLightInt = ent->ambientLightInt;
+	//ambientLightInt = ent->ambientLightInt;
 	VectorCopy( ent->ambientLight, ambientLight );
 	//VectorCopy( ent->directedLight, directedLight );
 
 
-	lightDir[0] = 0;
-	lightDir[1] = 0;
-	lightDir[2] = 1;
+	//lightDir[0] = 0;
+	//lightDir[1] = 0;
+	//lightDir[2] = 1;
 
 	v = tess.xyz[0];
 	normal = tess.normal[0];
@@ -1946,15 +1937,14 @@ void RB_CalcFlatDirect( unsigned char *colors )
 {
 	int				i, j;
 	float			*v, *normal;
-	float			incoming;
 	trRefEntity_t	*ent;
-	int				ambientLightInt;
+	//int				ambientLightInt;
 	vec3_t			ambientLight;
-	vec3_t			lightDir;
+	//vec3_t			lightDir;
 	vec3_t			directedLight;
 	int				numVertexes;
 	ent = backEnd.currentEntity;
-	ambientLightInt = ent->ambientLightInt;
+	//ambientLightInt = ent->ambientLightInt;
 	VectorCopy( ent->ambientLight, ambientLight );
 	VectorCopy( ent->directedLight, directedLight );
 	
@@ -1968,9 +1958,9 @@ void RB_CalcFlatDirect( unsigned char *colors )
 	if (directedLight[1] < 0) directedLight[1] = 0;
 	if (directedLight[2] < 0) directedLight[2] = 0;
 
-	lightDir[0] = 0;
-	lightDir[1] = 0;
-	lightDir[2] = 1;
+	//lightDir[0] = 0;
+	//lightDir[1] = 0;
+	//lightDir[2] = 1;
 
 	v = tess.xyz[0];
 	normal = tess.normal[0];
@@ -2026,14 +2016,14 @@ void RB_CalcEyes( float *st, qboolean theothereye)
 {
 	int			i;
 	float		*v, *normal;
-	vec3_t		viewer, reflected, eyepos, eyelook, stare;
-	float		d, l, erp;
+	vec3_t		viewer, reflected, eyepos, stare;
+	float		d; //, erp;
 	int	idk;
 
-	vec3_t		stareat, staree;
-	float dilation = 2;
+	vec3_t		stareat; //, staree;
+	//float dilation = 2;
 
-	VectorCopy(lightOrigin, staree);
+	//VectorCopy(lightOrigin, staree);
 	VectorCopy(backEnd.or.viewOrigin, stareat);
 
 
@@ -2104,7 +2094,6 @@ if (r_leidebugeye->integer == 2)
 	for (i = 0 ; i < tess.numVertexes ; i++, v += 4, normal += 4, st += 2 ) 
 	{
 		
-		float norm1, norm2;
 		// Base eye position
 		VectorSubtract (backEnd.or.viewOrigin, v, viewer);
 		//VectorSubtract (backEnd.currentEntity->e.eyepos[0], v, viewer);
@@ -2136,7 +2125,7 @@ if (r_leidebugeye->integer == 2)
 		VectorSubtract (stareat, v, stare);
 		VectorNormalizeFast (stare);
 
-		erp = DotProduct (normal, stare);
+		//erp = DotProduct (normal, stare);
 
 		// Limit the eye's turning so it doesn't have dead eyes
 		for (idk=0;idk<3;idk++){

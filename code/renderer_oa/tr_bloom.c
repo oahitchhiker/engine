@@ -667,7 +667,7 @@ static void ID_INLINE R_Bloom_QuadTV( int width, int height, float texX, float t
 	int x = 0;
 	int y = 0;
 	float aspcenter = 0;
-	int aspoff = 0;
+	//int aspoff = 0;
 	float raa = r_retroAA->value;
 	if (raa < 1) raa = 1;
 
@@ -724,7 +724,7 @@ static void ID_INLINE R_Bloom_QuadTV( int width, int height, float texX, float t
 
 
 	//aspcenter = 0;
-	aspoff = tvWidth * tvAspectW;
+	//aspoff = tvWidth * tvAspectW;
 
 	if (!aa){
 	qglViewport(aspcenter, 0, 	(tvWidth * tvAspectW), tvHeight );
@@ -748,6 +748,15 @@ static void ID_INLINE R_Bloom_QuadTV( int width, int height, float texX, float t
 
 static void R_Bloom_RestoreScreen_Postprocessed( void ) {
 	glslProgram_t	*program;
+
+	if (!vertexShaders) return;
+	// leilei, please check (eventually instead of return here do a goto jump to
+	// non-glsl part below
+
+	R_GLSL_UseProgram(tr.postprocessingProgram);
+	program=tr.programs[tr.postprocessingProgram];
+	
+
 	if (leifxmode)
 	{
 	if (leifxmode == 1){ if (vertexShaders) R_GLSL_UseProgram(tr.leiFXDitherProgram); program=tr.programs[tr.leiFXDitherProgram];}
@@ -764,33 +773,24 @@ static void R_Bloom_RestoreScreen_Postprocessed( void ) {
 	if (leifxmode == 666){ if (vertexShaders) R_GLSL_UseProgram(tr.BrightnessProgram); program=tr.programs[tr.BrightnessProgram];}
 	if (leifxmode == 1236){ if (vertexShaders) R_GLSL_UseProgram(tr.CRTProgram); program=tr.programs[tr.CRTProgram];}
 	if (leifxmode == 1997){ if (vertexShaders) R_GLSL_UseProgram(tr.paletteProgram); program=tr.programs[tr.paletteProgram];}
-	
 	}
-	else
-	{
-	if (vertexShaders) R_GLSL_UseProgram(tr.postprocessingProgram);
+
 	// Feed GLSL postprocess program
-	program=tr.programs[tr.postprocessingProgram];
-	}
 	if (program->u_ScreenSizeX > -1) R_GLSL_SetUniform_u_ScreenSizeX(program, glConfig.vidWidth);
-
 	if (program->u_ScreenSizeY > -1) R_GLSL_SetUniform_u_ScreenSizeY(program, glConfig.vidHeight);
-
-	if (program->u_FBTexSizeX > -1) R_GLSL_SetUniform_u_FBTexSizeX(program, postproc.screen.width);
-	if (program->u_FBTexSizeY > -1) R_GLSL_SetUniform_u_FBTexSizeY(program, postproc.screen.height);
-
-
-	if (program->u_ScreenToNextPixelX > -1) R_GLSL_SetUniform_u_ScreenToNextPixelX(program, (float)1.0/(float)glConfig.vidWidth);
-
-	if (program->u_ScreenToNextPixelY > -1) R_GLSL_SetUniform_u_ScreenToNextPixelY(program, (float)1.0/(float)glConfig.vidHeight);
-
+	if (program->u_FBTexSizeX > -1) R_GLSL_SetUniform_u_FBTexSizeX(program, (float)glConfig.vidWidth/(float)postproc.screen.width);
+	if (program->u_FBTexSizeY > -1) R_GLSL_SetUniform_u_FBTexSizeY(program, (float)glConfig.vidHeight/(float)postproc.screen.height);
+     // in UV scale (0.0 .. 1.0)
+	if (program->u_ScreenToNextPixelX > -1) R_GLSL_SetUniform_u_ScreenToNextPixelX(program, ((float)glConfig.vidWidth/(float)postproc.screen.width)/(float)glConfig.vidWidth);
+    // in UV space
+	if (program->u_ScreenToNextPixelY > -1) R_GLSL_SetUniform_u_ScreenToNextPixelY(program, ((float)glConfig.vidHeight/(float)postproc.screen.height)/(float)glConfig.vidHeight);
+    // in UV space	
 	// leilei - for TV shaders
 	if (program->u_ActualScreenSizeX > -1) R_GLSL_SetUniform_u_ActualScreenSizeX(program, tvWidth);
 	if (program->u_ActualScreenSizeY > -1) R_GLSL_SetUniform_u_ActualScreenSizeY(program, tvHeight);
 
 	//if (program->u_Time > -1) R_GLSL_SetUniform_Time(program, backEnd.refdef.time);
 	if (program->u_Time > -1) R_GLSL_SetUniform_Time(program, ScreenFrameCount);
-
 
 	// Brightness stuff
 	if (program->u_CC_Brightness > -1) R_GLSL_SetUniform_u_CC_Brightness(program, 1.0);
@@ -809,8 +809,14 @@ static void R_Bloom_RestoreScreen_Postprocessed( void ) {
 	if (program->u_ModelViewProjectionMatrix > -1)
 		R_GLSL_SetUniform_ModelViewProjectionMatrix(program, MVPMatrixSunPos);
 
+	// working
+	oa_SunPos[0]*=((float)glConfig.vidWidth/(float)postproc.screen.width);
+	oa_SunPos[1]*=((float)glConfig.vidHeight/(float)postproc.screen.height);
 	if (program->u_SunPos > -1) R_GLSL_SetUniform_u_SunPos(program, oa_SunPos);
 
+	// does not work yet
+	glsl_rotationBlurPosition_old[0]*=((float)glConfig.vidWidth/(float)postproc.screen.width);
+	glsl_rotationBlurPosition_old[1]*=((float)glConfig.vidHeight/(float)postproc.screen.height);		
 	if (program->u_rotationBlurPosition > -1) R_GLSL_SetUniform_u_rotationBlurPosition(program, glsl_rotationBlurPosition);
 	if (program->u_rotationBlurPositionOld > -1) R_GLSL_SetUniform_u_rotationBlurPositionOld(program, glsl_rotationBlurPosition_old);
 
@@ -818,12 +824,9 @@ static void R_Bloom_RestoreScreen_Postprocessed( void ) {
 	GL_SelectTexture(0);
 	GL_State( GLS_DEPTHTEST_DISABLE | GLS_SRCBLEND_ONE | GLS_DSTBLEND_ZERO );
 	GL_Bind( postproc.screen.texture );
-//	if (program->u_Texture6 > -1)
-	{
 	GL_SelectTexture(6);
 	GL_State( GLS_DEPTHTEST_DISABLE | GLS_SRCBLEND_ONE | GLS_DSTBLEND_ZERO );
     GL_Bind(tonemap);
-	}
 	GL_SelectTexture(7);
 	GL_State( GLS_DEPTHTEST_DISABLE | GLS_SRCBLEND_ONE | GLS_DSTBLEND_ZERO );
 	GL_Bind( postproc.depth.texture );	
@@ -1086,7 +1089,7 @@ R_Postprocess_InitTextures
 static void R_Postprocess_InitTextures( void )
 {
 	byte	*data;
-	int vidinted = glConfig.vidHeight * 0.55f;
+	//int vidinted = glConfig.vidHeight * 0.55f;
 	int intdiv = 1;
 
 	force32upload = 1;
@@ -1105,19 +1108,27 @@ static void R_Postprocess_InitTextures( void )
 	postproc.screen.readW = glConfig.vidWidth / (float)postproc.screen.width;
 	postproc.screen.readH = glConfig.vidHeight / (float)postproc.screen.height;
 
+	postfx_width = glConfig.vidWidth ; 
+	postfx_height = glConfig.vidHeight;
+
+	
 
 
 
 	// find closer power of 2 to effect size 
-	postproc.work.width = r_bloom_sample_size->integer;
+	postproc.work.width = r_bloom_sample_size->integer;  /// ue4 type lens flare texture here (marker for future development)
+	
 	postproc.work.height = postproc.work.width * ( glConfig.vidWidth / glConfig.vidHeight );
 
 	for (postproc.effect.width = 1;postproc.effect.width < postproc.work.width;postproc.effect.width *= 2);
 	for (postproc.effect.height = 1;postproc.effect.height < postproc.work.height;postproc.effect.height *= 2);
 
+
 	postproc.effect.readW = postproc.work.width / (float)postproc.effect.width;
 	postproc.effect.readH = postproc.work.height / (float)postproc.effect.height;
 
+	
+	
 //	postproc.screen.readH /= intdiv; // interlacey
 
 
@@ -1650,7 +1661,6 @@ void R_AltBrightnessInit( void ) {
 void R_FilmScreen( void )
 {
 	vec3_t tone, toneinv, tonecont;
-	vec3_t tonework;
 
 	if( !r_film->integer )
 		return;
@@ -1934,8 +1944,8 @@ void R_MblurScreenPost( void )
 
 static void R_Postprocess_BackupScreenTV( void ) {
 
-	int intdiv;
-	 intdiv = 1;
+	//int intdiv;
+	//intdiv = 1;
 
 
 	GL_TexEnv( GL_MODULATE );
@@ -2079,12 +2089,12 @@ void R_PaletteScreen( void )
 // =================================================================
 // WATER BUFFER TEST
 // =================================================================
-
+/*
 
 static struct {
 	// NO!
 } water;
-
+*/
 // leilei - experimental water effect
 static void R_Water_InitTextures( void )
 {
@@ -2126,4 +2136,13 @@ void R_WaterScreen( void )
 {
 	// NO!
 }
+
+
+// Possibly a single water plane can be defined at 0 vertical position.. then render the scene using a new command called WATERREFLECTION; capture to texture and
+// another time the same scene using WATERREFRACTION;capture to texture and use these textures for water reflections (should happen before the scene is rendered normally)
+// note this will fail if water plane is above of below 0 on vertical axis so could be used with caution by mapping people
+
+
+
+
 

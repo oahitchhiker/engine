@@ -101,6 +101,9 @@ flare_t		*r_activeFlares, *r_inactiveFlares;
 
 vec3_t		sunorg;		// sun flare hack
 int flareCoeff;
+
+char thisOneIsSunFlare;
+
 /*
 ==================
 R_SetFlareCoeff
@@ -148,36 +151,48 @@ This is called at surface tesselation time
 */
 
 float			flaredsize;	// leilei - dirty flare fix for widescreens
-
+float 			flarenotvisible;
 
 void RB_AddFlare(srfFlare_t *surface, int fogNum, vec3_t point, vec3_t color, vec3_t normal, int radii, int efftype, float scaled, int type) {
 	int				i;
-	flare_t			*f, *oldest;
+	flare_t			*f;
 	vec3_t			local;
-	float			d = 1;
+	float			d = 1.0;
 	vec4_t			eye, clip, normalized, window;
 
 	backEnd.pc.c_flareAdds++;
 
+
+			flaredsize = backEnd.viewParms.viewportHeight;
+
+
 	// fade the intensity of the flare down as the
 	// light surface turns away from the viewer
 	if(normal && (normal[0] || normal[1] || normal[2]) )
+		
 	{
 		VectorSubtract( backEnd.viewParms.or.origin, point, local );
-		VectorNormalizeFast(local);
+		VectorNormalize(local);
+		VectorNormalize(normal);
 		d = DotProduct(local, normal);
-
 		// If the viewer is behind the flare don't add it.
 		if(d < 0)
-			return;
+		{
+			return;    
+		}	
 	}
 
-	flaredsize = backEnd.viewParms.viewportHeight;
-
-	R_TransformModelToClip( point, backEnd.or.modelMatrix, 
-		backEnd.viewParms.projectionMatrix, eye, clip );
 
 	
+	
+	flaredsize = backEnd.viewParms.viewportHeight;
+  if (thisOneIsSunFlare>0)
+	R_TransformModelToClip2( point, backEnd.or.modelMatrix, 		backEnd.viewParms.projectionMatrix, eye, clip );
+else
+	R_TransformModelToClip( point, backEnd.or.modelMatrix, 		backEnd.viewParms.projectionMatrix, eye, clip );
+	
+	R_TransformClipToWindow( clip, &backEnd.viewParms, normalized, window );
+		// if SunFlare the store oa_SunPos (divide by scr_width and scr_height and offset like it is in Bloom file)
 
 
 	// check to see if the point is completely off screen
@@ -189,14 +204,15 @@ void RB_AddFlare(srfFlare_t *surface, int fogNum, vec3_t point, vec3_t color, ve
 
 
 	R_TransformClipToWindow( clip, &backEnd.viewParms, normalized, window );
+		// if SunFlare the store oa_SunPos (divide by scr_width and scr_height and offset like it is in Bloom file)
 
+	
 	if ( window[0] < 0 || window[0] >= backEnd.viewParms.viewportWidth
 		|| window[1] < 0 || window[1] >= backEnd.viewParms.viewportHeight ) {
 		return;	// shouldn't happen, since we check the clip[] above, except for FP rounding
 	}
 
 	// see if a flare with a matching surface, scene, and view exists
-	oldest = r_flareStructs;
 	for ( f = r_activeFlares ; f ; f = f->next ) {
 		if ( f->surface == surface && f->frameSceneNum == backEnd.viewParms.frameSceneNum
 			&& f->inPortal == backEnd.viewParms.isPortal ) {
@@ -249,6 +265,7 @@ void RB_AddFlare(srfFlare_t *surface, int fogNum, vec3_t point, vec3_t color, ve
 	f->windowY = backEnd.viewParms.viewportY + window[1];
 
 
+	
 	f->radius = radii * scaled * 0.17; 
 	f->eyeZ = eye[2];
 	f->theshader = tr.flareShader;
@@ -1185,8 +1202,8 @@ void RB_DrawSunFlare( void ) {
 	vec3_t		origin, vec1, vec2;
 	vec3_t		temp;
 	int	fetype;
-
-
+	
+	vec3_t		sunorg;
 
 	if ( !backEnd.skyRenderedThisView ) {
 		return;
@@ -1197,7 +1214,7 @@ void RB_DrawSunFlare( void ) {
 
 	if ( backEnd.doneSunFlare)	// leilei - only do sun once
 		return;
-
+	
 	fetype = r_flareSun->integer;
 
 	qglLoadMatrixf( backEnd.viewParms.world.modelMatrix );
@@ -1245,9 +1262,11 @@ void RB_DrawSunFlare( void ) {
 
 		size = coll[0] + coll[1] + coll[2] * 805;
 
+	
 		RB_AddFlare( (void *)NULL, 0, sunorg, coll, NULL, size, fetype, 1.0f, 2);
+	
 
-
+	
 	}
 
 	// back to normal depth range

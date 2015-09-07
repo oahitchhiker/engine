@@ -691,16 +691,68 @@ void R_InitSkyTexCoords( float heightCloud )
 	}
 }
 
+
+/*
+==========================
+R_TransformToModel
+
+==========================
+*/
+void R_TransformToModel( const vec3_t src, const float *modelMatrix, vec4_t dst ) 
+{
+	int i;
+
+	for ( i = 0 ; i < 4 ; i++ ) {
+		dst[i] = 
+			src[0] * modelMatrix[ i + 0 * 4 ] +
+			src[1] * modelMatrix[ i + 1 * 4 ] +
+			src[2] * modelMatrix[ i + 2 * 4 ] +
+			1.0 * modelMatrix[ i + 3 * 4 ];
+	}
+}
+
+/*
+==========================
+R_TransformToClip
+==========================
+*/
+void R_TransformToClip( const vec3_t src, const float *projectionMatrix, vec4_t dst ) 
+{
+	int i;
+	
+	for ( i = 0 ; i < 4 ; i++ ) {
+		dst[i] = 
+			src[0] * projectionMatrix[ i + 0 * 4 ] +
+			src[1] * projectionMatrix[ i + 1 * 4 ] +
+			src[2] * projectionMatrix[ i + 2 * 4 ] +
+			src[3] * projectionMatrix[ i + 3 * 4 ];
+	}
+}
+
+	float mymatold[16];
 //======================================================================================
 
 /*
 ** RB_DrawSun
 */
 void RB_DrawSun( void ) {
+
+	float d;
+	float mymat[16];
+	vec4_t point_1;
+	vec4_t point,oldpoint;
+	vec4_t dst3, dst4;
+    vec4_t eye;
+    vec4_t normalized, window;
+	vec4_t		 clip;
+	vec3_t		sunorg;
 	float		size;
 	float		dist;
 	vec3_t		origin, vec1, vec2;
 	vec3_t		temp;
+	int i;
+	
+	
 
 	if ( !backEnd.skyRenderedThisView ) {
 		return;
@@ -711,13 +763,19 @@ void RB_DrawSun( void ) {
 
 	if ( backEnd.doneSun)	// leilei - only do sun once
 		return;
-
+	
 	qglLoadMatrixf( backEnd.viewParms.world.modelMatrix );
+	
+	qglGetFloatv(GL_MODELVIEW_MATRIX, mymat);
 	qglTranslatef (backEnd.viewParms.or.origin[0], backEnd.viewParms.or.origin[1], backEnd.viewParms.or.origin[2]);
 
+
+	
 	dist = 	backEnd.viewParms.zFar / 1.75;		// div sqrt(3)
 	size = dist * 0.4;
 
+
+    
 
 	// leilei - SUN color
 	vec3_t	coll;
@@ -758,6 +816,9 @@ void RB_DrawSun( void ) {
 		VectorSubtract( temp, vec1, temp );
 		VectorSubtract( temp, vec2, temp );
 		VectorCopy( temp, tess.xyz[tess.numVertexes] );
+
+
+
 		tess.texCoords[tess.numVertexes][0][0] = 0;
 		tess.texCoords[tess.numVertexes][0][1] = 0;
 		tess.vertexColors[tess.numVertexes][0] = 255;
@@ -809,6 +870,69 @@ void RB_DrawSun( void ) {
 
 	// back to normal depth range
 	qglDepthRange( 0.0, 1.0 );
+	
+/* -------------------------------------------- */
+/*  Get the dot product or forward an sundirection vectors */
+/*  result returned in range 0.0 (perpendicular) to 1.0(looking at) */	
+
+
+	point_1[0]=1000.0;
+	point_1[1]=0.0;
+	point_1[2]=0.0;	
+	
+
+
+	VectorCopy(tr.sunDirection,sunorg);	
+	VectorNormalize(point_1);
+	//VectorNormalize(sunorg);	
+	VectorAdd( sunorg,backEnd.viewParms.or.origin, sunorg );
+	R_TransformModelToClip( sunorg, mymat, tr.viewParms.projectionMatrix, dst4, eye );	
+	
+	R_TransformModelToClip( sunorg, mymat, backEnd.viewParms.projectionMatrix, eye, clip );
+	R_TransformClipToWindow( clip, &backEnd.viewParms, normalized, window );
+	oa_SunPos[0]=(float)window[0]/(float)postfx_width;
+	oa_SunPos[1]=(float)window[1]/(float)postfx_height;			
+
+
+
+	R_RotateForViewer();
+	R_TransformModelToClip( point_1, tr.or.modelMatrix, tr.viewParms.projectionMatrix, dst3, eye );
+	VectorNormalize(dst3);
+	VectorNormalize(dst4);
+	d = DotProduct(dst3,dst4);		
+	if (d<0.0) d= -1.0; else d=1.0;
+	oa_SunPos[2]=d;	
+	
+	/* -------------------------------------------- */
+
+
+	
+	// motion based blur
+	// need rotation component
+	VectorSubtract( glsl_rotationBlurPosition,backEnd.viewParms.or.origin, oldpoint );
+	//oldpoint[0]+=2000.0;
+	//VectorNormalize(oldpoint);	
+	
+	VectorScale(oldpoint,0.1,point);
+	//VectorAdd( point,backEnd.viewParms.or.origin, point );
+	//
+	oldpoint[0]=100.0;
+	oldpoint[1]=0.0;
+	oldpoint[2]=0.0;	
+	//VectorAdd( point,oldpoint, point );
+	
+	qglGetFloatv(GL_MODELVIEW_MATRIX, mymat);	
+	mymat[12]=0.0;	mymat[13]=0.0;	mymat[14]=0.0; mymat[14]=0.0;
+	R_TransformModelToClip( point, mymat, backEnd.viewParms.projectionMatrix, eye, clip );
+	R_TransformClipToWindow( clip, &backEnd.viewParms, normalized, window );
+	glsl_rotationBlurPosition_old[0]=(float)window[0]/(float)postfx_width;
+	glsl_rotationBlurPosition_old[1]=(float)window[1]/(float)postfx_height;			
+	
+	VectorCopy(backEnd.viewParms.or.origin,glsl_rotationBlurPosition);
+		
+   for (i=0;i<16;i++)
+			mymatold[i]=mymat[i];
+
 
 	backEnd.doneSun = qtrue;
 }
@@ -826,10 +950,12 @@ Other things could be stuck in here, like birds in the sky, etc
 ================
 */
 void RB_StageIteratorSky( void ) {
-    vec4_t eye;
-    vec4_t screen;
-    vec4_t normalized, window;
-	vec3_t			local;
+
+
+	
+
+
+	
 	if ( r_fastsky->integer ) {
 		return;
 	}
@@ -854,36 +980,36 @@ void RB_StageIteratorSky( void ) {
 		
 		qglPushMatrix ();
 		GL_State( 0 );
+	
 		qglTranslatef (backEnd.viewParms.or.origin[0], backEnd.viewParms.or.origin[1], backEnd.viewParms.or.origin[2]);
 
 		DrawSkyBox( tess.shader );
 
+		
+		
+		
+		
+		
+		
+		
+		
+		
+
+
 		qglPopMatrix();
 	}
+
 
 	// generate the vertexes for all the clouds, which will be drawn
 	// by the generic shader routine
 	R_BuildCloudData( &tess );
 
-	RB_StageIteratorGeneric();
-
-
-    // calculate light scattering (godrays) Sun position in screen coordinates
-    VectorScale(tr.sunDirection,10000.0, oa_SunPos);
-
-    R_TransformModelToClip( oa_SunPos, glState.currentModelViewMatrix, glState.currentProjectionMatrix,
-                                &eye, &screen);
-    R_TransformClipToWindow( eye, &backEnd.viewParms, normalized, window  );
-    oa_SunPos[0]=normalized[0];
-    oa_SunPos[1]=normalized[1];
-    oa_SunPos[2]=normalized[2];
-
+	RB_StageIteratorGeneric();	
+	
 
     // calculate old view in screen coordinates
     // re-using eye variable
-    eye[0]=0.0;
-    eye[1]=0;
-    eye[2]=0.000001;
+
 
     //VectorScale(tr.or.axis[1],10000.0, glsl_rotationBlurPosition);
     //R_LocalPointToWorld (local, glsl_rotationBlurPosition);
@@ -895,20 +1021,14 @@ void RB_StageIteratorSky( void ) {
     //R_TransformClipToWindow( screen, &backEnd.viewParms, normalized, window  );
 
     // For this frame
-    R_TransformModelToClip( glsl_rotationBlurPosition_old, glState.currentModelViewMatrix, glState.currentProjectionMatrix,
-                                &eye, &screen);
+//    R_TransformModelToClip( glsl_rotationBlurPosition_old, glState.currentModelViewMatrix, glState.currentProjectionMatrix,
+//                                &eye, &screen);
    // R_TransformClipToWindow( screen, &backEnd.viewParms, normalized, window  );
     //R_TransformClipToWindow( screen, &backEnd.viewParms, normalized, window  );
 
 //Matrix4Copy(glState.currentModelViewProjectionMatrix,MVPMatrixSunPos);
 
-    glsl_rotationBlurPosition[0]=eye[0];//backEnd.viewParms.viewportX + window[0];
-    glsl_rotationBlurPosition[1]=eye[1];;//backEnd.viewParms.viewportY + window[1];
-    glsl_rotationBlurPosition[2]=eye[2];;
-    //ri.Printf (PRINT_ALL, "%f %f %f\n",glsl_rotationBlurPosition[0],glsl_rotationBlurPosition[1],glsl_rotationBlurPosition[2]);
-glsl_rotationBlurPosition_old[0]=backEnd.viewParms.or.origin[0]+1000.0;;
-glsl_rotationBlurPosition_old[1]=backEnd.viewParms.or.origin[1];
-glsl_rotationBlurPosition_old[2]=backEnd.viewParms.or.origin[2];
+
     //  For the next frame
     //VectorAdd( backEnd.viewParms.or.origin, eye, glsl_rotationBlurPosition_old );
 	// draw the inner skybox

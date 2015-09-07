@@ -220,6 +220,7 @@ void R_TransformModelToClip( const vec3_t src, const float *modelMatrix, const f
 	}
 }
 
+
 /*
 ==========================
 R_TransformClipToWindow
@@ -377,6 +378,42 @@ void R_RotateForViewer (void)
 	tr.viewParms.world = tr.or;
 
 }
+
+
+/*
+==========================
+R_TransformModelToClip_Postprocess fx
+
+==========================
+*/
+void R_TransformModelToClip2( const vec3_t src, const float *modelMatrix, const float *projectionMatrix,
+							vec4_t eye, vec4_t dst ) {
+	int i;
+	double result;
+	
+	
+	for ( i = 0 ; i < 4 ; i++ ) {
+		result = 100000.0 * (
+			src[0] * modelMatrix[ i + 0 * 4 ] +
+			src[1] * modelMatrix[ i + 1 * 4 ] +
+			src[2] * modelMatrix[ i + 2 * 4 ] +
+			1 * modelMatrix[ i + 3 * 4 ]);
+	eye[i] = result/100000.0;
+	}
+
+	for ( i = 0 ; i < 4 ; i++ ) {
+		  result = 100000.0 * (
+			eye[0] * projectionMatrix[ i + 0 * 4 ] +
+			eye[1] * projectionMatrix[ i + 1 * 4 ] +
+			eye[2] * projectionMatrix[ i + 2 * 4 ] +
+			eye[3] * projectionMatrix[ i + 3 * 4 ]);
+			dst[i] = result/100000.0;
+	}
+
+}
+
+
+
 
 /*
 ** SetFarClip

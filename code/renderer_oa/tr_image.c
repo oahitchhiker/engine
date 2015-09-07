@@ -102,6 +102,8 @@ byte BestColor (int r, int g, int b, int start, int stop)
 	if (berstcolor)
 	//ri.Printf( PRINT_ALL, "returned %i\n", berstcolor );
 	return berstcolor;
+	else 
+	return 0; // not sure which should be the default value returned so assuming 0
 }
 
 // From QUAKE2, but modified to support a transparent color
@@ -208,6 +210,7 @@ void R_GLSLPalette_f ( )
 
 }
 
+
 void R_InitPalette( void ) {
 
 	byte           *buff;
@@ -216,7 +219,10 @@ void R_InitPalette( void ) {
 	ri.Printf( PRINT_ALL, "INIT PALETTE......\n");
 
 	len = ri.FS_ReadFile("gfx/palette.lmp", (void **)&buff);
-	if(!buff){
+
+	// LEILEI look :)
+
+	if(!buff){      // Probably needs to be '  if (!len) '    ???
 
 
 	ri.Printf( PRINT_ALL, "PALLETE FALED :(!\n" );
@@ -349,7 +355,7 @@ void GL_TextureMode( const char *string ) {
 
 	// hack to prevent trilinear from being set on voodoo,
 	// because their driver freaks...
-	if ( i == 5 && glConfig.hardwareType == GLHW_3DFX_2D3D || r_leifx->integer ) {
+	if ( ((i == 5) && (glConfig.hardwareType == GLHW_3DFX_2D3D)) || (r_leifx->integer) ) {
 		ri.Printf( PRINT_ALL, "Refusing to set trilinear on a voodoo.\n" );
 		i = 3;
 	}
@@ -562,9 +568,7 @@ void R_ImageListMapOnly_f( void ) {
 		image_t *image = tr.images[i];
 		char *zipcommand = "zip -9 ";
 		char localName[ MAX_QPATH ];
-		char *sizeSuffix;
 		int estSize;
-		int displaySize;
 
 		estSize = image->uploadHeight * image->uploadWidth;
 
@@ -573,8 +577,6 @@ void R_ImageListMapOnly_f( void ) {
 		if (image->flags & IMGFLAG_MIPMAP)
 			estSize += estSize / 2;
 
-		sizeSuffix = "b ";
-		displaySize = estSize;
 
 	//if ( !strncmp( image->imgName, "textures", 8 ) ) {
 		if (image->maptexture){
@@ -1095,19 +1097,19 @@ static void DumpTex( unsigned *data,
 		byte		*scan;
 		byte *baffer, *alffer, *flipper;
 		scan = ((byte *)data);
-		size_t offset = 0;//, memcount;
+		//size_t offset = 0;//, memcount;
 		int padlen = 0; 
 		int be, ber;
 		int scrale = width * height;
-		int scravg = width + height / 2;
-		int quality = 85; // estimate quality from total size
+		//int scravg = width + height / 2;
+		//int quality = 85; // estimate quality from total size
 		int hasalf = 0;
 		float countw = 0;
 
-		if (scravg > 511) quality = 42; // huge textures
+		/*if (scravg > 511) quality = 42; // huge textures
 		else if (scravg > 255) quality = 62; // large textures
 		else if (scravg > 127) quality = 72; // large textures
-		else if (scravg < 127) quality = 95; // tiny textures
+		else if (scravg < 127) quality = 95; // tiny textures*/
 		baffer = 	ri.Hunk_AllocateTempMemory( width * height * 3 );
 		flipper = 	ri.Hunk_AllocateTempMemory( width * height * 3 );
 		alffer = 	ri.Hunk_AllocateTempMemory( width * height * 3 );
@@ -1172,7 +1174,7 @@ static void Upload32( unsigned *data,
 	unsigned	*scaledBuffer = NULL;
 	unsigned	*resampledBuffer = NULL;
 	int			scaled_width, scaled_height;
-	int			orig_width, orig_height;
+	//int			orig_width, orig_height;
 	int			i, c;
 	byte		*scan;
 	GLenum		internalFormat = GL_RGB;
@@ -1186,8 +1188,8 @@ static void Upload32( unsigned *data,
 	if (lightMap && r_parseStageSimple->integer) hackoperation = 4;
 
 	// leilei - npot support
-	orig_width = width;
-	orig_height = height;
+	//orig_width = width;
+	//orig_height = height;
 
 	//
 	// convert to exact power of 2 sizes
@@ -1357,7 +1359,6 @@ static void Upload32( unsigned *data,
 				{
 					int r, g, b;
 					vec3_t rgb;
-					float amplify;
 					byte alfa = LUMA(scan[i*4], scan[i*4 + 1], scan[i*4 + 2]);
 					//byte alfa = (scan[i*4]+ scan[i*4 + 1]+ scan[i*4 + 2]) / 3;
 
@@ -2430,7 +2431,7 @@ image_t	*R_FindImageFile( const char *name, imgType_t type, imgFlags_t flags )
 	long	hash;
 	float oldtime;
 	float loadtime;
-	float proctime;
+	//float proctime;
 
 	if (!name) {
 		return NULL;

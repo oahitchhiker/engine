@@ -937,6 +937,8 @@ typedef struct {
 
 	vec3_t			oa_SunPos;
 	float 			MVPMatrixSunPos[16];
+	int postfx_width;
+	int postfx_height;
 
 	vec3_t			glsl_rotationBlurPosition;
 	vec3_t			glsl_rotationBlurPosition_old;
@@ -1439,6 +1441,7 @@ int R_CullLocalPointAndRadius( vec3_t origin, float radius );
 
 void R_SetupProjection(viewParms_t *dest, float zProj, qboolean computeFrustum);
 void R_RotateForEntity( const trRefEntity_t *ent, const viewParms_t *viewParms, orientationr_t *or );
+void R_RotateForViewer (void) ;
 
 /*
 ** GL wrapper/helper functions
@@ -1913,11 +1916,12 @@ static ID_INLINE void R_GLSL_SetUniform_u_ScreenSizeY(glslProgram_t *program, GL
 	qglUniform1iARB(program->u_ScreenSizeY, value);
 }
 
-static ID_INLINE void R_GLSL_SetUniform_u_FBTexSizeX(glslProgram_t *program, GLint value) {
-	qglUniform1iARB(program->u_FBTexSizeX, value);
+static ID_INLINE void R_GLSL_SetUniform_u_FBTexSizeX(glslProgram_t *program, float value) {
+	qglUniform1fARB(program->u_FBTexSizeX, value);
+	//ri.Printf (PRINT_ALL, "%f \n",value);
 }
-static ID_INLINE void R_GLSL_SetUniform_u_FBTexSizeY(glslProgram_t *program, GLint value) {
-	qglUniform1iARB(program->u_FBTexSizeY, value);
+static ID_INLINE void R_GLSL_SetUniform_u_FBTexSizeY(glslProgram_t *program, float value) {
+	qglUniform1fARB(program->u_FBTexSizeY, value);
 }
 static ID_INLINE void R_GLSL_SetUniform_u_ScreenToNextPixelX(glslProgram_t *program, GLfloat value) {
 	qglUniform1fARB(program->u_ScreenToNextPixelX, value);
@@ -1935,7 +1939,7 @@ static ID_INLINE void R_GLSL_SetUniform_u_zNear(glslProgram_t *program, GLfloat 
 	qglUniform1fARB(program->u_zNear, value);
 }
 
-static ID_INLINE void R_GLSL_SetUniform_u_SunPos(glslProgram_t *program, const vec3_t value) {
+static ID_INLINE void R_GLSL_SetUniform_u_SunPos(glslProgram_t *program, vec3_t value) {
 	qglUniform3fARB(program->u_SunPos, value[0], value[1], value[2]);
 }
 
@@ -2175,6 +2179,8 @@ void R_LoadTGA( const char *name, byte **pic, int *width, int *height );
 =============================================================
 */
 void	R_TransformModelToClip( const vec3_t src, const float *modelMatrix, const float *projectionMatrix,
+							vec4_t eye, vec4_t dst );
+void	R_TransformModelToClip2( const vec3_t src, const float *modelMatrix, const float *projectionMatrix,
 							vec4_t eye, vec4_t dst );
 void	R_TransformClipToWindow( const vec4_t clip, const viewParms_t *view, vec4_t normalized, vec4_t window );
 
