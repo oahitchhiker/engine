@@ -1704,6 +1704,7 @@ Q3ROAOBJ = \
   $(B)/renderer_oa/tr_mesh.o \
   $(B)/renderer_oa/tr_model.o \
   $(B)/renderer_oa/tr_model_iqm.o \
+  $(B)/renderer_oa/tr_model_mdo.o \
   $(B)/renderer_oa/tr_noise.o \
   $(B)/renderer_oa/tr_scene.o \
   $(B)/renderer_oa/tr_shade.o \
@@ -1777,6 +1778,7 @@ Q3RSOFTOBJ = \
   $(B)/renderer_oa/tr_mesh.o \
   $(B)/renderer_oa/tr_model.o \
   $(B)/renderer_oa/tr_model_iqm.o \
+  $(B)/renderer_oa/tr_model_mdo.o \
   $(B)/renderer_oa/tr_noise.o \
   $(B)/renderer_oa/tr_scene.o \
   $(B)/renderer_oa/tr_shade.o \

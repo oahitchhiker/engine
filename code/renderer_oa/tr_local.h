@@ -31,6 +31,7 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 #include "../renderercommon/tr_public.h"
 #include "../renderercommon/tr_common.h"
 #include "../renderercommon/iqm.h"
+#include "tr_mdo.h"
 #include "../renderercommon/qgl.h"
 
 #define GL_INDEX_TYPE		GL_UNSIGNED_INT
@@ -526,6 +527,7 @@ typedef enum {
 	SF_POLY,
 	SF_MD3,
 	SF_MDR,
+	SF_MDO,
 	SF_IQM,
 	SF_FLARE,
 	SF_ENTITY,				// beams, rails, lightning, etc that can be determined by entity
@@ -926,6 +928,7 @@ typedef enum {
 	MOD_BRUSH,
 	MOD_MESH,
 	MOD_MDR,
+	MOD_MDO,
 	MOD_IQM
 } modtype_t;
 
@@ -937,7 +940,7 @@ typedef struct model_s {
 	int			dataSize;	// just for listing purposes
 	bmodel_t	*bmodel;		// only if type == MOD_BRUSH
 	md3Header_t	*md3[MD3_MAX_LODS];	// only if type == MOD_MESH
-	void	*modelData;			// only if type == (MOD_MDR | MOD_IQM)
+	void	*modelData;			// only if type == (MOD_MDR | MOD_IQM | MOD_MDO)
 
 	int			 numLods;
 } model_t;
