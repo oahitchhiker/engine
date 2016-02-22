@@ -361,13 +361,6 @@ static void RB_TestFlareFast( flare_t *f ) {
 	float			fade;
 	float			screenZ;
 
-	if (f->fadeTime == -666)
-		{
-			RB_TestFlareFast(f);
-			return;
-		}
-
-
 		backEnd.pc.c_flareTests++;
 	
 	
@@ -445,13 +438,6 @@ static void RB_TestFlare( flare_t *f ) {
 	qboolean		visible;
 	float			fade;
 	float			screenZ;
-
-	if (r_flareQuality->integer < 2)
-		{
-			RB_TestFlareFast(f);		// leilei - use the faster hacky path
-			return;
-		}
-
 
 		backEnd.pc.c_flareTests++;
 	
@@ -1167,7 +1153,10 @@ void RB_RenderFlares (void) {
 		f->drawIntensity = 0;
 		if ( f->frameSceneNum == backEnd.viewParms.frameSceneNum
 			&& f->inPortal == backEnd.viewParms.isPortal ) {
+	if (r_flareQuality->integer > 1)		// leilei - flare quality test
 			RB_TestFlare( f );
+		else
+			RB_TestFlareFast( f );
 
 			if ( f->drawIntensity ) {
 				draw = qtrue;
