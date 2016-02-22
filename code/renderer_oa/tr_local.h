@@ -1234,6 +1234,7 @@ extern cvar_t	*r_flareFade;
 extern cvar_t	*r_flareQuality;
 extern cvar_t	*r_flareSun;
 extern cvar_t	*r_flareMethod;
+extern cvar_t	*r_flareDelay;
 
 // coefficient for the flare intensity falloff function.
 #define FLARE_STDCOEFF "150"

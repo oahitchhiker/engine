@@ -191,6 +191,7 @@ cvar_t	*r_lensReflectionBrightness;
 cvar_t	*r_flareMethod;		// method of flare intensity
 cvar_t	*r_flareQuality;	// testing quality of the flares. 
 cvar_t	*r_flareSun;		// type of flare to use for the sun
+cvar_t	*r_flareDelay;		// time delay for medium quality flare testing 
 
 cvar_t	*r_specMode;
 //cvar_t	*r_waveMode;
@@ -1273,7 +1274,7 @@ void R_Register( void )
 	r_lensReflection2 = ri.Cvar_Get( "r_lensReflection2", "0" , CVAR_ARCHIVE); // fuzzy reflection
 	r_lensReflectionBrightness = ri.Cvar_Get( "r_lensReflectionBrightness", "0.5" , CVAR_ARCHIVE);
 
-	r_flareQuality = ri.Cvar_Get( "r_flareQuality", "0" , CVAR_ARCHIVE);	// use fast flares for default
+	r_flareQuality = ri.Cvar_Get( "r_flareQuality", "1" , CVAR_ARCHIVE);	// use medium flares for default
 	r_flareMethod = ri.Cvar_Get( "r_flareMethod", "0" , CVAR_ARCHIVE);	
 	r_flaresDlight = ri.Cvar_Get( "r_flaresDlight", "0" , CVAR_ARCHIVE );	// dynamic light flares 
 	r_flaresDlightShrink = ri.Cvar_Get( "r_flaresDlightShrink", "1" , CVAR_ARCHIVE );	// dynamic light flares shrinking when close (reducing muzzleflash blindness)
@@ -1281,6 +1282,7 @@ void R_Register( void )
 	r_flaresDlightOpacity = ri.Cvar_Get( "r_flaresDlightOpacity", "0.5" , CVAR_ARCHIVE );	// dynamic light flares (workaround poor visibility)
 	r_flaresDlightScale = ri.Cvar_Get( "r_flaresDlightScale", "0.7" , CVAR_ARCHIVE );	// dynamic light flares (workaround poor visibility)
 	r_flareSun = ri.Cvar_Get( "r_flareSun", "0" , CVAR_ARCHIVE);	// it's 0 because mappers expect 0.
+	r_flareDelay = ri.Cvar_Get( "r_flareDelay", "100" , CVAR_CHEAT);	// update delay for flare pixel read checking.
 
 
 	r_mockvr = ri.Cvar_Get( "r_mockvr", "0" , CVAR_CHEAT);	
