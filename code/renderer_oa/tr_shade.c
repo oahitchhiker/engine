@@ -54,6 +54,7 @@ static glslProgram_t *R_GLSL_GetProgramByHandle(qhandle_t index) {
  * Use specified program or switch back to standard rendering pipeline
  */
 void R_GLSL_UseProgram(qhandle_t index) {
+#ifdef GLSL_BACKEND
 	glslProgram_t	*program;
 
 	if (!vertexShaders)
@@ -77,6 +78,7 @@ void R_GLSL_UseProgram(qhandle_t index) {
 
 	qglUseProgramObjectARB(program->program);
 	glState.currentProgram = program->index;
+#endif
 }
 
 /*
@@ -1559,7 +1561,7 @@ static void RB_IterateStagesGeneric( shaderCommands_t *input )
 			qglEnableClientState( GL_COLOR_ARRAY );
 			qglColorPointer( 4, GL_UNSIGNED_BYTE, 0, input->svars.colors );
 		}
-
+#ifdef GLSL_BACKEND
 		if (pStage->isGLSL && vertexShaders && pStage->program && tr.programs[pStage->program]->valid)
 		{
 			GLSL_Feeder(pStage, input);	
@@ -1568,6 +1570,7 @@ static void RB_IterateStagesGeneric( shaderCommands_t *input )
 			GLSL_Clean();
 		}
 		else
+#endif
 		{
 
 		//
@@ -1695,12 +1698,16 @@ void RB_StageIteratorGeneric( void )
 	// 
 	// now do any dynamic lighting needed
 	//
+#ifdef GLSL_BACKEND
 	if (vertexShaders) qglPushClientAttrib(GL_CLIENT_ALL_ATTRIB_BITS);
+#endif
 	if ( tess.dlightBits && tess.shader->sort <= SS_OPAQUE
 		&& !(tess.shader->surfaceFlags & (SURF_NODLIGHT | SURF_SKY) ) ) {
 		ProjectDlightTexture();
 	}
+#ifdef GLSL_BACKEND
 	if (vertexShaders) qglPopClientAttrib();
+#endif
 
 	//
 	// now do fog

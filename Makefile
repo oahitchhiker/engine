@@ -152,6 +152,18 @@ ifndef USE_OPENAL
 USE_OPENAL=1
 endif
 
+ifndef GLSL_POSTPROCESS
+GLSL_POSTPROCESS=1
+endif
+
+ifndef GLSL_TEXTURES
+GLSL_TEXTURES=1
+endif
+
+ifndef GLSL_BACKEND
+GLSL_BACKEND=1
+endif
+
 ifndef USE_OPENAL_DLOPEN
 USE_OPENAL_DLOPEN=1
 endif
@@ -295,7 +307,7 @@ ifeq ($(wildcard .git),.git)
   endif
 endif
 
-
+USE_GIT=0
 #############################################################################
 # SETUP AND BUILD -- LINUX
 #############################################################################
@@ -326,6 +338,7 @@ ifneq (,$(findstring "$(PLATFORM)", "linux" "gnu_kfreebsd" "kfreebsd-gnu"))
 
   OPTIMIZEVM = -O3 -funroll-loops -fomit-frame-pointer
   OPTIMIZE = $(OPTIMIZEVM) -ffast-math
+
 
   ifeq ($(ARCH),x86_64)
     OPTIMIZEVM = -O3 -fomit-frame-pointer -funroll-loops \
@@ -572,6 +585,7 @@ ifeq ($(PLATFORM),mingw32)
       -falign-loops=2 -funroll-loops -falign-jumps=2 -falign-functions=2 \
       -fstrength-reduce
     OPTIMIZE = $(OPTIMIZEVM) -ffast-math
+    OPTIMIZE += -flto
     HAVE_VM_COMPILED = true
   endif
 

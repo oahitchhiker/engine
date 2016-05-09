@@ -1401,6 +1401,7 @@ static glslProgram_t *R_GLSL_AllocProgram(void) {
  */
 
 void R_GLSL_Init(void) {
+#ifdef GLSL_BACKEND
 	glslProgram_t	*program;
 	char			programVertexObjects[MAX_PROGRAM_OBJECTS][MAX_QPATH];
 	char			programFragmentObjects[MAX_PROGRAM_OBJECTS][MAX_QPATH];
@@ -1514,6 +1515,7 @@ void R_GLSL_Init(void) {
 			ri.Printf( PRINT_ALL, "WARNING: Cannot locate postprocessing glsl program %s\n" ,r_postprocess->string);
 		if (tr.postprocessingProgram) postprocess=qtrue;
 		}
+#endif
 }
 
 
@@ -1598,8 +1600,9 @@ void R_Init( void ) {
 	InitOpenGL();
 
 	R_InitImages();
-
+#ifdef GLSL_BACKEND
 	R_GLSL_Init();
+#endif
 	R_InitShaders();
 
 	R_InitSkins();

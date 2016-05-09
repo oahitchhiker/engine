@@ -134,6 +134,7 @@ static qboolean GLimp_HaveExtension(const char *ext)
 void GLimp_InitExtraExtensions()
 {
 	vertexShaders = qfalse;
+#ifdef GLSL_BACKEND
 	if ( GLimp_HaveExtension( "GL_ARB_shader_objects" )
 	     && GLimp_HaveExtension( "GL_ARB_fragment_shader" )
 	     && GLimp_HaveExtension( "GL_ARB_vertex_shader" )
@@ -240,7 +241,7 @@ void GLimp_InitExtraExtensions()
 	{
 		ri.Printf( PRINT_ALL, "...GL_ARB_vertex_shader not found\n" );
 	}
-
+#endif
 	// leilei - paletted texturing
 	palettedTextureSupport = qfalse;
 	if ( GLimp_HaveExtension( "GL_EXT_paletted_texture" ) )
