@@ -221,6 +221,16 @@ typedef struct {
 	float frequency;
 } waveForm_t;
 
+// leilei - texture atlases
+typedef struct {
+	float width;			// columns
+	float height;			// rows
+	float fps;			// frames per second
+	int frame;			// offset frame
+	float mode;			// 0 - static/anim  1 - entityalpha
+} atlas_t;
+
+
 #define TR_MAX_TEXMODS 4
 
 typedef enum {
@@ -231,6 +241,7 @@ typedef enum {
 	TMOD_SCALE,
 	TMOD_STRETCH,
 	TMOD_LIGHTSCALE,		// leilei - cel hack
+	TMOD_ATLAS,			// leilei - atlases
 	TMOD_ROTATE,
 	TMOD_ENTITY_TRANSLATE
 } texMod_t;
@@ -266,6 +277,8 @@ typedef struct {
 	// used for TMOD_SCROLL
 	float			scroll[2];			// s' = s + scroll[0] * time
 										// t' = t + scroll[1] * time
+	// leilei - used for TMOD_ATLAS
+	atlas_t			atlas;
 
 	// + = clockwise
 	// - = counterclockwise
@@ -2130,6 +2143,7 @@ void	RB_CalcAlphaFromEntity( unsigned char *dstColors );
 void	RB_CalcAlphaFromOneMinusEntity( unsigned char *dstColors );
 void	RB_CalcStretchTexCoords( const waveForm_t *wf, float *texCoords );
 void	RB_CalcLightscaleTexCoords( float *texCoords );
+void	RB_CalcAtlasTexCoords( const atlas_t *at, float *st );
 void	RB_CalcColorFromEntity( unsigned char *dstColors );
 void	RB_CalcColorFromOneMinusEntity( unsigned char *dstColors );
 void	RB_CalcSpecularAlpha( unsigned char *alphas );

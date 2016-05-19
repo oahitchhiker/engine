@@ -955,6 +955,55 @@ static void ParseTexMod( char *_text, shaderStage_t *stage )
 		
 		tmi->type = TMOD_STRETCH;
 	}
+//
+	// leilei - atlas
+	//
+	else if ( !Q_stricmp( token, "atlas" ) )
+	{
+		token = COM_ParseExt( text, qfalse );
+		if ( token[0] == 0 )
+		{
+			ri.Printf( PRINT_WARNING, "WARNING: missing atlas parms in shader '%s'\n", shader.name );
+			return;
+		}
+		tmi->atlas.mode = atof( token );
+
+		token = COM_ParseExt( text, qfalse );
+		if ( token[0] == 0 )
+		{
+			ri.Printf( PRINT_WARNING, "WARNING: missing atlas parms in shader '%s'\n", shader.name );
+			return;
+		}
+		tmi->atlas.frame = atof( token );
+
+		token = COM_ParseExt( text, qfalse );
+		if ( token[0] == 0 )
+		{
+			ri.Printf( PRINT_WARNING, "WARNING: missing atlas parms in shader '%s'\n", shader.name );
+			return;
+		}
+		tmi->atlas.fps = atof( token );
+
+		token = COM_ParseExt( text, qfalse );
+		if ( token[0] == 0 )
+		{
+			ri.Printf( PRINT_WARNING, "WARNING: missing atlas parms in shader '%s'\n", shader.name );
+			return;
+		}
+		tmi->atlas.width = atof( token );
+			ri.Printf( PRINT_WARNING, "shader '%s' has width %f\n", shader.name, tmi->atlas.width );
+
+		token = COM_ParseExt( text, qfalse );
+		if ( token[0] == 0 )
+		{
+			ri.Printf( PRINT_WARNING, "WARNING: missing atlas parms in shader '%s'\n", shader.name );
+			return;
+		}
+		tmi->atlas.height = atof( token );
+		
+		tmi->type = TMOD_ATLAS;
+	}
+
 	else if ( !Q_stricmp( token, "lightscale" ) )
 	{
 		token = COM_ParseExt( text, qfalse );

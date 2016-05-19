@@ -1296,6 +1296,11 @@ static void ComputeTexCoords( shaderStage_t *pStage ) {
 						               ( float * ) tess.svars.texcoords[b] );
 				break;
 
+			case TMOD_ATLAS:
+				RB_CalcAtlasTexCoords(  &pStage->bundle[b].texMods[tm].atlas,
+								 ( float * ) tess.svars.texcoords[b] );
+				break;
+
 			case TMOD_LIGHTSCALE:
 				RB_CalcLightscaleTexCoords( ( float * ) tess.svars.texcoords[b] );
 				break;
