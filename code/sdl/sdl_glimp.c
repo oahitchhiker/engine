@@ -769,6 +769,11 @@ static void GLimp_InitExtensions( void )
 
 #define R_MODE_FALLBACK 3 // 640 * 480
 
+#if defined( _WIN32 ) && defined( USE_CONSOLE_WINDOW )
+void	Sys_DestroyConsole(void);
+void Sys_ShowConsole( int visLevel, qboolean quitOnClose );
+#endif
+
 /*
 ===============
 GLimp_Init
@@ -861,6 +866,11 @@ success:
 
 	// This depends on SDL_INIT_VIDEO, hence having it here
 	ri.IN_Init( );
+
+#if defined( _WIN32 ) && defined( USE_CONSOLE_WINDOW )
+		// leilei - hide our console window
+	Sys_ShowConsole(0, 0 );
+#endif
 }
 
 

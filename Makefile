@@ -232,6 +232,10 @@ ifndef USE_RENDERER_DLOPEN
 USE_RENDERER_DLOPEN=1
 endif
 
+ifndef USE_CONSOLE_WINDOW
+USE_CONSOLE_WINDOW=1
+endif
+
 ifndef DEBUG_CFLAGS
 DEBUG_CFLAGS=-g -O0
 endif
@@ -603,6 +607,13 @@ ifeq ($(PLATFORM),mingw32)
   CLIENT_LDFLAGS += -mwindows
   CLIENT_LIBS = -lgdi32 -lole32
   RENDERER_LIBS = -lgdi32 -lole32 -lopengl32
+
+  #ifeq ($(USE_CONSOLE_WINDOW),0)
+    CLIENT_CFLAGS += -DUSE_CONSOLE_WINDOW
+    CLIENT_LIBS += -lcomdlg32 -lcomctl32
+    LIBS += -lcomdlg32 -lcomctl32
+    LIBS += -lgdi32 -lole32 -lcomctl32 -lcomdlg32 #leilei - for console. if it works. :/
+  #endif
 
   ifeq ($(USE_FREETYPE),1)
     BASE_CFLAGS += -Ifreetype2
