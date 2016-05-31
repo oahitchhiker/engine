@@ -773,6 +773,9 @@ void Sys_PlatformInit( void )
 	else
 		SDL_VIDEODRIVER_externallySet = qfalse;
 
+	// leilei - no 3dfx splashes please
+		_putenv("FX_GLIDE_NO_SPLASH=1");
+
 	if(timeGetDevCaps(&ptc, sizeof(ptc)) == MMSYSERR_NOERROR)
 	{
 		timerResolution = ptc.wPeriodMin;

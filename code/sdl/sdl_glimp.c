@@ -845,6 +845,15 @@ success:
 	// http://bugzilla.icculus.org/show_bug.cgi?id=4316
 	glConfig.deviceSupportsGamma = SDL_SetGamma( 1.0f, 1.0f, 1.0f ) >= 0;
 
+
+#ifdef _WIN32
+	// leilei - 3dfx gamma 
+	if ( qwglSetDeviceGammaRamp3DFX )
+	{
+		glConfig.deviceSupportsGamma = 1; // force it
+	}
+#endif
+
 	if ( -1 == r_ignorehwgamma->integer)
 		glConfig.deviceSupportsGamma = 1;
 

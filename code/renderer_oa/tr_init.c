@@ -30,11 +30,14 @@ float       displayAspect = 0.0f;
 qboolean    vertexShaders = qfalse;
 qboolean	postprocess = qfalse;
 qboolean    palettedTextureSupport = qfalse;		// leilei - paletted textures
+
 char 		depthimage;
 
 glstate_t	glState;
 
 static void GfxInfo_f( void );
+
+extern int voodootype;
 
 #ifdef USE_RENDERER_DLOPEN
 cvar_t  *com_altivec;
@@ -104,6 +107,7 @@ cvar_t	*r_ext_texture_filter_anisotropic;
 cvar_t	*r_ext_max_anisotropy;
 cvar_t	*r_ext_vertex_shader;
 cvar_t	*r_ext_paletted_texture;	// leilei - Paletted Texture
+cvar_t	*r_ext_gamma_control;		// leilei - 3dfx gamma control
 cvar_t	*r_postprocess;
 
 cvar_t	*r_ignoreGLErrors;
@@ -1110,6 +1114,18 @@ void GfxInfo_f( void )
 	if ( r_finish->integer ) {
 		ri.Printf( PRINT_ALL, "Forcing glFinish\n" );
 	}
+	if (voodootype){
+
+			if (voodootype == 1)
+				ri.Printf( PRINT_ALL, "3Dfx Voodoo Graphics assumed\n" );
+			else if (voodootype == 2)
+				ri.Printf( PRINT_ALL, "3Dfx Voodoo2 assumed\n" );
+			else if (voodootype == 3)
+				ri.Printf( PRINT_ALL, "3dfx Voodoo3 assumed\n" );
+			else if (voodootype == 4)
+				ri.Printf( PRINT_ALL, "3dfx Voodoo 4 or 5 assumed\n" );
+			
+		}
 }
 
 /*
@@ -1136,6 +1152,7 @@ void R_Register( void )
 			"0", CVAR_ARCHIVE | CVAR_LATCH );
 	r_ext_max_anisotropy = ri.Cvar_Get( "r_ext_max_anisotropy", "2", CVAR_ARCHIVE | CVAR_LATCH );
 	r_ext_paletted_texture = ri.Cvar_Get( "r_ext_paletted_texture", "0", CVAR_ARCHIVE | CVAR_LATCH );	// leilei - paletted texture support
+	r_ext_gamma_control = ri.Cvar_Get( "r_ext_gamma_control", "1", CVAR_ARCHIVE | CVAR_LATCH );	// leilei - 3dfx gamma support
 
 	r_postprocess = ri.Cvar_Get( "r_postprocess", "none", CVAR_ARCHIVE|CVAR_LATCH );
 	r_ext_vertex_shader = ri.Cvar_Get( "r_ext_vertex_shader", "0", CVAR_ARCHIVE|CVAR_LATCH );

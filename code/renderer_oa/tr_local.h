@@ -1360,6 +1360,7 @@ extern	cvar_t	*r_lensReflection2;
 extern	cvar_t	*r_lensReflectionBrightness;
 
 extern cvar_t	*r_ext_paletted_texture;		// leilei - Paletted Texture
+extern cvar_t	*r_ext_gamma_control;			// leilei - 3dfx gamma control
 extern	cvar_t	*r_specMode;		
 //extern	cvar_t	*r_waveMode;	
 
@@ -2330,6 +2331,7 @@ void R_AltBrightnessInit( void );
 void R_FilmScreen( void );	//	leilei - film effect
 extern int softwaremode;
 extern int leifxmode;
+extern int voodootype; // 0 - none 1 - Voodoo Graphics 2 - Voodoo2, 3 - Voodoo Banshee/3, 4 - Voodoo4/5
 
 void RB_UpdateMotionBlur (void);
 void R_MotionBlur_BackupScreen(int which);
