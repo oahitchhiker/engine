@@ -844,8 +844,33 @@ qboolean Sys_PIDIsRunning( int pid )
 	DWORD numBytes, numProcesses;
 	int i;
 
-	if( !EnumProcesses( processes, sizeof( processes ), &numBytes ) )
-		return qfalse; // Assume it's not running
+// leilei - load PSAPI.DLL here, check for EnumProcesses.
+//	Fixes Windows 95 support. 
+	HMODULE psapi = LoadLibrary("psapi.dll");
+	FARPROC qEnumProcesses;
+
+	if(psapi == NULL)
+	{
+		Com_Printf("Unable to load PSAPI.dll\n");
+		FreeLibrary(psapi);
+		return qfalse;
+	}
+
+		qEnumProcesses = GetProcAddress(psapi, "EnumProcesses");
+		if(qEnumProcesses == NULL)
+		{
+			Com_Printf("Unable to find EnumProcesses in psapi.dll\n");
+			FreeLibrary(psapi);
+			return qfalse;
+		}
+
+
+		if( !qEnumProcesses( processes, sizeof( processes ), &numBytes ) ){
+			FreeLibrary(psapi);
+			return qfalse; // Assume it's not running
+		}
+
+	FreeLibrary(psapi); // we're still done
 
 	numProcesses = numBytes / sizeof( DWORD );
 
@@ -855,7 +880,7 @@ qboolean Sys_PIDIsRunning( int pid )
 		if( processes[ i ] == pid )
 			return qtrue;
 	}
-
+	
 	return qfalse;
 }
 

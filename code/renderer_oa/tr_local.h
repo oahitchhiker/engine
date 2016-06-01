@@ -38,7 +38,7 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 typedef unsigned int glIndex_t;
 
 // Lousy hack
-#define GLSL_POSTPROCESS 1
+#define GLSL_POSTPROCESSING 1
 #define GLSL_TEXTURES 1
 #define GLSL_BACKEND 1
 
