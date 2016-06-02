@@ -967,7 +967,7 @@ static void IN_ProcessEvents( void )
 IN_Frame
 ===============
 */
-void IN_Frame( void )
+void IN_Frame( qboolean in_com_frame )
 {
 	qboolean loading;
 
@@ -996,7 +996,7 @@ void IN_Frame( void )
 		IN_ActivateMouse( );
 
 	/* in case we had to delay actual restart of video system... */
-	if ( (vidRestartTime != 0) && (vidRestartTime < Sys_Milliseconds()) )
+	if( !in_com_frame && ( vidRestartTime != 0 ) && ( vidRestartTime < Sys_Milliseconds( ) ) )	// youurayy input lag fix
 	{
 		vidRestartTime = 0;
 		Cbuf_AddText( "vid_restart\n" );
