@@ -1126,6 +1126,9 @@ void GfxInfo_f( void )
 				ri.Printf( PRINT_ALL, "3dfx Voodoo 4 or 5 assumed\n" );
 			
 		}
+
+
+
 }
 
 /*
@@ -1138,6 +1141,14 @@ void R_Register( void )
 	#ifdef USE_RENDERER_DLOPEN
 	com_altivec = ri.Cvar_Get("com_altivec", "1", CVAR_ARCHIVE);
 	#endif	
+
+#if defined( _WIN32 )
+	// leilei -  Get some version info first, code torn from quake
+	OSVERSIONINFO	vinfo;
+
+	vinfo.dwOSVersionInfoSize = sizeof(vinfo);
+
+#endif
 
 	//
 	// latched and archived variables
@@ -1162,14 +1173,26 @@ void R_Register( void )
 	ri.Cvar_CheckRange( r_picmip, 0, 16, qtrue );
 	r_detailTextures = ri.Cvar_Get( "r_detailtextures", "1", CVAR_ARCHIVE | CVAR_LATCH );
 	r_texturebits = ri.Cvar_Get( "r_texturebits", "0", CVAR_ARCHIVE | CVAR_LATCH );
-	r_colorbits = ri.Cvar_Get( "r_colorbits", "0", CVAR_ARCHIVE | CVAR_LATCH );
+	r_colorbits = ri.Cvar_Get( "r_colorbits", "0", CVAR_ARCHIVE | CVAR_LATCH );	// use desktop
 	r_stencilbits = ri.Cvar_Get( "r_stencilbits", "8", CVAR_ARCHIVE | CVAR_LATCH );
 	r_depthbits = ri.Cvar_Get( "r_depthbits", "0", CVAR_ARCHIVE | CVAR_LATCH );
 	r_ext_multisample = ri.Cvar_Get( "r_ext_multisample", "0", CVAR_ARCHIVE | CVAR_LATCH );
 	ri.Cvar_CheckRange( r_ext_multisample, 0, 4, qtrue );
 	r_overBrightBits = ri.Cvar_Get ("r_overBrightBits", "1", CVAR_ARCHIVE | CVAR_LATCH );
 	r_ignorehwgamma = ri.Cvar_Get( "r_ignorehwgamma", "0", CVAR_ARCHIVE | CVAR_LATCH);
-	r_mode = ri.Cvar_Get( "r_mode", "-2", CVAR_ARCHIVE | CVAR_LATCH ); // leilei - changed default from 3, for modern convenience. It will still fallback to 3 if this fails (voodoo etc)
+
+#if defined( _WIN32 )
+
+	if (vinfo.dwPlatformId == VER_PLATFORM_WIN32_NT) // Win2000 and up
+	r_mode = ri.Cvar_Get( "r_mode", "-2", CVAR_ARCHIVE | CVAR_LATCH ); // leilei - -2 is so convenient for modern day PCs
+	else			       // WinNT4/WinME and below
+	r_mode = ri.Cvar_Get( "r_mode", "3", CVAR_ARCHIVE | CVAR_LATCH ); // leilei - initialize 640x480 for <2000 users as there's a problem at figuring out desktop res on them
+
+#else
+
+	r_mode = ri.Cvar_Get( "r_mode", "-2", CVAR_ARCHIVE | CVAR_LATCH ); // leilei - -2 is so convenient for modern day PCs
+#endif
+
 	r_fullscreen = ri.Cvar_Get( "r_fullscreen", "1", CVAR_ARCHIVE );
 	r_noborder = ri.Cvar_Get("r_noborder", "0", CVAR_ARCHIVE | CVAR_LATCH);
 	r_customwidth = ri.Cvar_Get( "r_customwidth", "1600", CVAR_ARCHIVE | CVAR_LATCH );
