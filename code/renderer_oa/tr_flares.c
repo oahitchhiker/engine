@@ -22,6 +22,7 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 // tr_flares.c
 
 #include "tr_local.h"
+#include "../qcommon/cm_local.h"
 
 /*
 =============================================================================
@@ -348,6 +349,10 @@ FLARE BACK END
 */
 
 
+void CM_Trace( trace_t *results, const vec3_t start, const vec3_t end, vec3_t mins, vec3_t maxs,
+						  clipHandle_t model, const vec3_t origin, int brushmask, int capsule, sphere_t *sphere );
+
+
 /*
 ==================
 RB_TestFlareFast
@@ -355,7 +360,7 @@ RB_TestFlareFast
 faster simple one.
 ==================
 */
-static void RB_TestFlareFast( flare_t *f ) {
+static void RB_TestFlareFast( flare_t *f, int dotrace ) {
 	float			depth;
 	qboolean		visible;
 	float			fade;
@@ -367,8 +372,20 @@ static void RB_TestFlareFast( flare_t *f ) {
 		// doing a readpixels is as good as doing a glFinish(), so
 		// don't bother with another sync
 		glState.finishCalled = qfalse;
-	
-
+		if (f->type == 2) dotrace = 0; // sun cant trace
+		// leilei - do trace, then complain
+		if (dotrace){
+			trace_t  yeah;
+			CM_Trace( &yeah, f->origin, backEnd.or.viewOrigin, NULL, NULL, NULL, f->origin, 1, NULL, NULL );
+			if (yeah.fraction < 1){
+				visible = 0;
+			return;
+			}
+			else
+			{
+			visible = 1;
+			}
+		}
 
 	// leilei - delay hack, to speed up the renderer
 
@@ -433,7 +450,7 @@ static void RB_TestFlareFast( flare_t *f ) {
 RB_TestFlare
 ==================
 */
-static void RB_TestFlare( flare_t *f ) {
+static void RB_TestFlare( flare_t *f, int dotrace ) {
 	float			depth;
 	qboolean		visible;
 	float			fade;
@@ -445,6 +462,22 @@ static void RB_TestFlare( flare_t *f ) {
 		// doing a readpixels is as good as doing a glFinish(), so
 		// don't bother with another sync
 		glState.finishCalled = qfalse;
+		
+
+		if (f->type == 2) dotrace = 0; // sun cant trace
+		// leilei - do trace, then complain
+		if (dotrace){
+			trace_t  yeah;
+			CM_Trace( &yeah, f->origin, backEnd.or.viewOrigin, NULL, NULL, NULL, f->origin, 1, NULL, NULL );
+			if (yeah.fraction < 1){
+				visible = 0;
+			return;
+			}
+			else
+			{
+			visible = 1;
+			}
+		}
 
 		// read back the z buffer contents
 
@@ -457,6 +490,59 @@ static void RB_TestFlare( flare_t *f ) {
 		visible = ( -f->eyeZ - -screenZ ) < 24;
 	
 
+	
+		if ( visible ) {
+			if ( !f->visible ) {
+				f->visible = qtrue;
+				f->fadeTime = backEnd.refdef.time - 1;
+		
+			}
+			{
+				fade = ( ( backEnd.refdef.time - f->fadeTime ) / 1000.0f ) * r_flareFade->value;
+			}
+		} else {
+			if ( f->visible ) {
+				f->visible = qfalse;
+				f->fadeTime = backEnd.refdef.time - 1;
+			}
+			fade = 1.0f - ( ( backEnd.refdef.time - f->fadeTime ) / 1000.0f ) * r_flareFade->value;
+		}
+	
+		if ( fade < 0 ) {
+			fade = 0;
+		}
+		if ( fade > 1 ) {
+			fade = 1;
+		}
+	
+		f->drawIntensity = fade;
+	
+}
+
+static void RB_TestFlareTraceOnly( flare_t *f ) {
+	float			depth;
+	qboolean		visible;
+	float			fade;
+	float			screenZ;
+
+		backEnd.pc.c_flareTests++;
+	
+	
+		// doing a readpixels is as good as doing a glFinish(), so
+		// don't bother with another sync
+		glState.finishCalled = qfalse;
+
+		// read from a traceline 
+		trace_t  yeah;
+		CM_Trace( &yeah, f->origin, backEnd.or.viewOrigin, NULL, NULL, NULL, f->origin, 1, NULL, NULL );
+		if (yeah.fraction < 1){
+			visible = 0;
+		return;
+		}
+		else
+		{
+		visible = 1;
+		}
 	
 		if ( visible ) {
 			if ( !f->visible ) {
@@ -1153,10 +1239,18 @@ void RB_RenderFlares (void) {
 		f->drawIntensity = 0;
 		if ( f->frameSceneNum == backEnd.viewParms.frameSceneNum
 			&& f->inPortal == backEnd.viewParms.isPortal ) {
-	if (r_flareQuality->integer > 1)		// leilei - flare quality test
-			RB_TestFlare( f );
+	if (r_flareQuality->integer > 4)		// highest flare quality - only frequent readpixels, no trace
+			RB_TestFlare( f, 0 );
+	else if (r_flareQuality->integer == 4)		// highest flare quality - frequent readpixels, trace
+			RB_TestFlare( f, 1 );
+	else if (r_flareQuality->integer == 3)		// highest flare quality - delayed readpixels, no trace
+			RB_TestFlareFast( f, 0 );
+	else if (r_flareQuality->integer == 2)		// highest flare quality - delayed readpixels, trace
+			RB_TestFlareFast( f, 1 );
+	else if (r_flareQuality->integer == 1)		// highest flare quality - no readpixels, trace
+			RB_TestFlareTraceOnly( f );
 		else
-			RB_TestFlareFast( f );
+			RB_TestFlareFast( f, 1 );
 
 			if ( f->drawIntensity ) {
 				draw = qtrue;
