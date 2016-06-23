@@ -1209,6 +1209,10 @@ void RB_RenderFlares (void) {
 		return;
 	}
 
+	if ( (backEnd.refdef.rdflags & RDF_NOWORLDMODEL)) 	return;		// leilei - don't draw flares in the UI. this prevents
+										// a very very very very nasty error relating to the trace checks
+										// leading to recursive startup in te OA3 menu
+
 	if(r_flareCoeff->modified)
 	{
 		R_SetFlareCoeff();
@@ -1241,16 +1245,16 @@ void RB_RenderFlares (void) {
 			&& f->inPortal == backEnd.viewParms.isPortal ) {
 	if (r_flareQuality->integer > 4)		// highest flare quality - only frequent readpixels, no trace
 			RB_TestFlare( f, 0 );
-	else if (r_flareQuality->integer == 4)		// highest flare quality - frequent readpixels, trace
+	else if (r_flareQuality->integer == 4)		// high flare quality - frequent readpixels, trace
 			RB_TestFlare( f, 1 );
-	else if (r_flareQuality->integer == 3)		// highest flare quality - delayed readpixels, no trace
+	else if (r_flareQuality->integer == 3)		// medium flare quality - delayed readpixels, no trace (faster for some cpus than 2)
 			RB_TestFlareFast( f, 0 );
-	else if (r_flareQuality->integer == 2)		// highest flare quality - delayed readpixels, trace
+	else if (r_flareQuality->integer == 2)		// low flare quality - delayed readpixels, trace
 			RB_TestFlareFast( f, 1 );
-	else if (r_flareQuality->integer == 1)		// highest flare quality - no readpixels, trace
+	else if (r_flareQuality->integer == 1)		// lower flare quality - no readpixels, trace
 			RB_TestFlareTraceOnly( f );
 		else
-			RB_TestFlareFast( f, 1 );
+			RB_TestFlareFast( f, 1 );		// lowest is actually a different surface flare defined elsewhere
 
 			if ( f->drawIntensity ) {
 				draw = qtrue;
