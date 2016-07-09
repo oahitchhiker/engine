@@ -2648,7 +2648,7 @@ $(B)/client/%.o: $(ASMDIR)/%.s
 
 # k8 so inline assembler knows about SSE
 $(B)/client/%.o: $(ASMDIR)/%.c
-	$(DO_CC) -march=k8
+	$(DO_CC) -march=k8 -mmmx -msse2
 
 $(B)/client/%.o: $(CDIR)/%.c
 	$(DO_CC)
@@ -2753,7 +2753,7 @@ $(B)/ded/%.o: $(ASMDIR)/%.s
 
 # k8 so inline assembler knows about SSE
 $(B)/ded/%.o: $(ASMDIR)/%.c
-	$(DO_CC) -march=k8
+	$(DO_CC) -march=k8 -mmmx -msse2
 
 $(B)/ded/%.o: $(SDIR)/%.c
 	$(DO_DED_CC)
