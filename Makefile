@@ -964,15 +964,15 @@ endif
 ifneq ($(BUILD_CLIENT),0)
   ifneq ($(USE_RENDERER_DLOPEN),0)
     TARGETS += $(B)/$(CLIENTBIN)$(FULLBINEXT) $(B)/renderer_openarena1_$(SHLIBNAME)
-    TARGETS += $(B)/renderer_opengl1_$(SHLIBNAME)
-    TARGETS += $(B)/renderer_software_$(SHLIBNAME)
+#    TARGETS += $(B)/renderer_opengl1_$(SHLIBNAME)
+#    TARGETS += $(B)/renderer_software_$(SHLIBNAME)
     ifneq ($(BUILD_RENDERER_OPENGL2), 0)
       TARGETS += $(B)/renderer_opengl2_$(SHLIBNAME)
     endif
   else
     TARGETS += $(B)/$(CLIENTBIN)$(FULLBINEXT)
-    TARGETS += $(B)/$(CLIENTBIN)_opengl1$(FULLBINEXT)
-    TARGETS += $(B)/$(CLIENTBIN)_software$(FULLBINEXT)
+#    TARGETS += $(B)/$(CLIENTBIN)_opengl1$(FULLBINEXT)
+#    TARGETS += $(B)/$(CLIENTBIN)_software$(FULLBINEXT)
     ifneq ($(BUILD_RENDERER_OPENGL2), 0)
       TARGETS += $(B)/$(CLIENTBIN)_opengl2$(FULLBINEXT)
     endif
