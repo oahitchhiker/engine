@@ -196,6 +196,7 @@ cvar_t	*r_flareMethod;		// method of flare intensity
 cvar_t	*r_flareQuality;	// testing quality of the flares. 
 cvar_t	*r_flareSun;		// type of flare to use for the sun
 cvar_t	*r_flareDelay;		// time delay for medium quality flare testing 
+cvar_t	*r_flaresMotionBlur;	// Stretch blur 
 
 cvar_t	*r_specMode;
 //cvar_t	*r_waveMode;
@@ -210,6 +211,7 @@ cvar_t	*r_mockvr;		// Leilei - for debugging PVR only!
 cvar_t	*r_parseStageSimple;	// Leilei - for debugging PVR only!
 cvar_t	*r_leifx;		// Leilei - leifx nostalgia filter
 cvar_t	*r_modelshader;		// Leilei 
+cvar_t	*r_particles;		// Leilei - particle effects motif
 
 cvar_t	*r_ntsc;		// Leilei - ntsc / composite signals
 //cvar_t	*r_tvMode;		// Leilei - tv fake mode
@@ -1314,7 +1316,7 @@ void R_Register( void )
 	r_lensReflection2 = ri.Cvar_Get( "r_lensReflection2", "0" , CVAR_ARCHIVE); // fuzzy reflection
 	r_lensReflectionBrightness = ri.Cvar_Get( "r_lensReflectionBrightness", "0.5" , CVAR_ARCHIVE);
 
-	r_flareQuality = ri.Cvar_Get( "r_flareQuality", "1" , CVAR_ARCHIVE);	// use medium flares for default
+	r_flareQuality = ri.Cvar_Get( "r_flareQuality", "4" , CVAR_ARCHIVE);	// use high flares for default (lower settings stutter vsync or clip too badly)
 	r_flareMethod = ri.Cvar_Get( "r_flareMethod", "0" , CVAR_ARCHIVE);	
 	r_flaresDlight = ri.Cvar_Get( "r_flaresDlight", "0" , CVAR_ARCHIVE );	// dynamic light flares 
 	r_flaresDlightShrink = ri.Cvar_Get( "r_flaresDlightShrink", "1" , CVAR_ARCHIVE );	// dynamic light flares shrinking when close (reducing muzzleflash blindness)
@@ -1323,6 +1325,9 @@ void R_Register( void )
 	r_flaresDlightScale = ri.Cvar_Get( "r_flaresDlightScale", "0.7" , CVAR_ARCHIVE );	// dynamic light flares (workaround poor visibility)
 	r_flareSun = ri.Cvar_Get( "r_flareSun", "0" , CVAR_ARCHIVE);	// it's 0 because mappers expect 0.
 	r_flareDelay = ri.Cvar_Get( "r_flareDelay", "100" , CVAR_CHEAT);	// update delay for flare pixel read checking.
+
+	r_flaresMotionBlur = ri.Cvar_Get( "r_flaresMotionBlur", "0" , CVAR_ARCHIVE );	// fake motion blur on flares
+
 
 
 	r_mockvr = ri.Cvar_Get( "r_mockvr", "0" , CVAR_CHEAT);	
@@ -1345,6 +1350,7 @@ void R_Register( void )
 	r_anime = ri.Cvar_Get( "r_anime", "0" , CVAR_ARCHIVE | CVAR_LATCH);	
 	r_palletize = ri.Cvar_Get( "r_palletize", "0" , CVAR_ARCHIVE | CVAR_LATCH);	
 	r_leidebug = ri.Cvar_Get( "r_leidebug", "0" , CVAR_CHEAT);	
+	r_particles = ri.Cvar_Get( "r_particles", "0" , CVAR_ARCHIVE | CVAR_LATCH);	
 	r_leidebugeye = ri.Cvar_Get( "r_leidebugeye", "0" , CVAR_CHEAT);	
 	r_slowness = ri.Cvar_Get( "r_slowness", "0" , CVAR_ARCHIVE);	// it's 0 because you want it to be the fastest possible by default.
 	r_slowness_cpu = ri.Cvar_Get( "r_slowness_cpu", "300" , CVAR_ARCHIVE);	// it's 0 because you want it to be the fastest possible by default.
@@ -1557,7 +1563,7 @@ void R_GLSL_Init(void) {
 		}
 #endif
 }
-
+extern qboolean		initparticles;
 
 /*
 ===============
@@ -1650,7 +1656,8 @@ void R_Init( void ) {
 	R_ModelInit();
 
 	R_InitFreeType();
-	
+
+
 	err = qglGetError();
 	if ( err != GL_NO_ERROR )
 		ri.Printf (PRINT_ALL, "glGetError() = 0x%x\n", err);
@@ -1763,6 +1770,7 @@ refexport_t *GetRefAPI ( int apiVersion, refimport_t *rimp ) {
 	re.ClearScene = RE_ClearScene;
 	re.AddRefEntityToScene = RE_AddRefEntityToScene;
 	re.AddPolyToScene = RE_AddPolyToScene;
+	re.LFX_ParticleEffect = LFX_ParticleEffect;
 	re.LightForPoint = R_LightForPoint;
 	re.AddLightToScene = RE_AddLightToScene;
 	re.AddAdditiveLightToScene = RE_AddAdditiveLightToScene;
