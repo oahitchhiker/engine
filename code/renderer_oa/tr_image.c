@@ -1214,7 +1214,7 @@ static void Upload32( unsigned *data,
 	//
 	// perform optional picmip operation
 	//
-	if ( picmip ) {
+	if ( picmip && !detailhack ) {
 		scaled_width >>= r_picmip->integer;
 		scaled_height >>= r_picmip->integer;
 	}
