@@ -49,8 +49,8 @@ GLSL_TEXTURES		=1		# for shaders on models, leifxdither, etc
 GLSL_BACKEND		=1		# for the entire backend.
 
 
-#Possible values "gnu90", "gnu99" and "gnu11". Note that the engine uses gnu-extensions. gnu90 is broken in the commit where this message is added.
-CFLAGS+="-std=gnu11"
+#Possible values "gnu90", "gnu99" and "gnu11". Note that the engine uses gnu-extensions. gnu90 is broken in the commit where this message is added. Travis does not support gnu11 at the moment.
+CFLAGS+="-std=gnu99"
 
 
 # You can change these although you probably don't need to
