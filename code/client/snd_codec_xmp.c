@@ -187,37 +187,14 @@ int S_XMP_CodecReadStream(snd_stream_t *stream, int bytes, void *buffer)
 		return 0;
 	}
 
-	int bytesRead = 0;
-	int bytesLeft = bytes;
-	char* bufPtr = buffer;
+	int yeah=xmp_play_buffer(xmpsong, buffer, bytes, 0);
 
-	// cycle until we have the requested or all available bytes read
-	while(-1) {
-		int yeah=xmp_play_buffer(xmpsong, buffer, bytesLeft, 0);
-
-		if (yeah == 0) {	// if we can play it...
-			xmp_get_frame_info(xmpsong, &fi);
-
-			int c = fi.buffer_size;
-
-			// no more bytes are left
-			if(c <= 0) {
-				break;
-			}
-
-			bytesRead += c;
-			bytesLeft -= c;
-			bufPtr += c;
-			xmp_get_module_info(xmpsong, &mi);
-
-			// we have enough bytes
-			if(bytesLeft <= 0) {
-				break;
-			}
-		}
-		else {	// if we can't play it JUST STOP OK
-			break;
-		}
+	if (yeah == 0) {	// if we can play it...
+		xmp_get_frame_info(xmpsong, &fi);
+		xmp_get_module_info(xmpsong, &mi);
+	}
+	else {
+		return 0;
 	}
 
 	return bytes;
