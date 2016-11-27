@@ -160,7 +160,7 @@ float			flaredsize;	// leilei - dirty flare fix for widescreens
 void RB_AddFlare(srfFlare_t *surface, int fogNum, vec3_t point, vec3_t color, vec3_t normal, int radii, int efftype, float scaled, int type)
 {
 	int				i;
-	flare_t			*f, *oldest;
+	flare_t			*f;
 	vec3_t			local;
 	float			d = 1;
 	vec4_t			eye, clip, normalized, window;
@@ -203,7 +203,6 @@ void RB_AddFlare(srfFlare_t *surface, int fogNum, vec3_t point, vec3_t color, ve
 	}
 
 	// see if a flare with a matching surface, scene, and view exists
-	oldest = r_flareStructs;
 	for ( f = r_activeFlares ; f ; f = f->next ) {
 		if ( f->surface == surface && f->frameSceneNum == backEnd.viewParms.frameSceneNum
 		        && f->inPortal == backEnd.viewParms.isPortal ) {
@@ -379,7 +378,7 @@ static void RB_TestFlareFast( flare_t *f, int dotrace )
 	// leilei - do trace, then complain
 	if (dotrace) {
 		trace_t  yeah;
-		CM_Trace( &yeah, f->origin, backEnd.or.viewOrigin, NULL, NULL, NULL, f->origin, 1, NULL, NULL );
+		CM_Trace( &yeah, f->origin, backEnd.or.viewOrigin, NULL, NULL, 0, f->origin, 1, 0, NULL );
 		if (yeah.fraction < 1) {
 			visible = 0;
 			return;
@@ -471,7 +470,7 @@ static void RB_TestFlare( flare_t *f, int dotrace )
 	// leilei - do trace, then complain
 	if (dotrace) {
 		trace_t  yeah;
-		CM_Trace( &yeah, f->origin, backEnd.or.viewOrigin, NULL, NULL, NULL, f->origin, 1, NULL, NULL );
+		CM_Trace( &yeah, f->origin, backEnd.or.viewOrigin, NULL, NULL, 0, f->origin, 1, 0, NULL );
 		if (yeah.fraction < 1) {
 			visible = 0;
 			return;
@@ -524,10 +523,8 @@ static void RB_TestFlare( flare_t *f, int dotrace )
 
 static void RB_TestFlareTraceOnly( flare_t *f )
 {
-	float			depth;
 	qboolean		visible;
 	float			fade;
-	float			screenZ;
 
 	backEnd.pc.c_flareTests++;
 
@@ -538,7 +535,7 @@ static void RB_TestFlareTraceOnly( flare_t *f )
 
 	// read from a traceline
 	trace_t  yeah;
-	CM_Trace( &yeah, f->origin, backEnd.or.viewOrigin, NULL, NULL, NULL, f->origin, 1, NULL, NULL );
+	CM_Trace( &yeah, f->origin, backEnd.or.viewOrigin, NULL, NULL, 0, f->origin, 1, 0, NULL );
 	if (yeah.fraction < 1) {
 		visible = 0;
 		return;

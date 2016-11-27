@@ -673,10 +673,7 @@ extern int mpasses;
 
 static void ID_INLINE R_Bloom_QuadTV( int width, int height, float texX, float texY, float texWidth, float texHeight, int aa )
 {
-	int x = 0;
-	int y = 0;
 	float aspcenter = 0;
-	int aspoff = 0;
 	float raa = r_retroAA->value;
 	if (raa < 1) raa = 1;
 
@@ -684,8 +681,8 @@ static void ID_INLINE R_Bloom_QuadTV( int width, int height, float texX, float t
 	float ypix = 1.0f / height / (4 / raa);
 	float xaa;
 	float yaa;
-	x = 0;
-	y = 0;
+	int x = 0;
+	int y = 0;
 
 
 
@@ -743,10 +740,6 @@ static void ID_INLINE R_Bloom_QuadTV( int width, int height, float texX, float t
 		qglEnd ();
 		qglColor4f( 1.0, 1.0, 1.0, 1 );
 	}
-
-
-	//aspcenter = 0;
-	aspoff = tvWidth * tvAspectW;
 
 	if (!aa) {
 		qglViewport(aspcenter, 0, 	(tvWidth * tvAspectW), tvHeight );
@@ -1129,18 +1122,17 @@ static void R_Postprocess_InitTextures( void )
 {
 #ifdef GLSL_POSTPROCESSING
 	byte	*data;
-	int vidinted = glConfig.vidHeight * 0.55f;
 	int intdiv = 1;
 
 	force32upload = 1;
 	// find closer power of 2 to screen size
-	for (postproc.screen.width = 1; postproc.screen.width< glConfig.vidWidth; postproc.screen.width *= 2);
+	for (postproc.screen.width = 1; postproc.screen.width< glConfig.vidWidth; postproc.screen.width *= 2) {}
 
 //	if (r_tvMode->integer > 1)	// interlaced
 
 //	for (postproc.screen.height = 1;postproc.screen.height < vidinted;postproc.screen.height *= 2);
 //else
-	for (postproc.screen.height = 1; postproc.screen.height < glConfig.vidHeight; postproc.screen.height *= 2);
+	for (postproc.screen.height = 1; postproc.screen.height < glConfig.vidHeight; postproc.screen.height *= 2) {}
 
 //	if (r_tvMode->integer > 1)
 //		intdiv = 2;
@@ -1155,8 +1147,8 @@ static void R_Postprocess_InitTextures( void )
 	postproc.work.width = r_bloom_sample_size->integer;
 	postproc.work.height = postproc.work.width * ( glConfig.vidWidth / glConfig.vidHeight );
 
-	for (postproc.effect.width = 1; postproc.effect.width < postproc.work.width; postproc.effect.width *= 2);
-	for (postproc.effect.height = 1; postproc.effect.height < postproc.work.height; postproc.effect.height *= 2);
+	for (postproc.effect.width = 1; postproc.effect.width < postproc.work.width; postproc.effect.width *= 2) {}
+	for (postproc.effect.height = 1; postproc.effect.height < postproc.work.height; postproc.effect.height *= 2) {}
 
 	postproc.effect.readW = postproc.work.width / (float)postproc.effect.width;
 	postproc.effect.readH = postproc.work.height / (float)postproc.effect.height;
@@ -2070,10 +2062,6 @@ void R_MblurScreenPost( void )
 static void R_Postprocess_BackupScreenTV( void )
 {
 #ifdef GLSL_POSTPROCESSING
-	int intdiv;
-	intdiv = 1;
-
-
 	GL_TexEnv( GL_MODULATE );
 	qglScissor( 0, 0, glConfig.vidWidth, glConfig.vidHeight );
 	qglViewport( 0, 0, glConfig.vidWidth, glConfig.vidHeight );
