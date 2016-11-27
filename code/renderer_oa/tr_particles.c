@@ -1234,7 +1234,7 @@ void R_RenderParticles (void)
 //
 
 
-void R_LFX_Blood (vec3_t org, vec3_t dir, float pressure)
+void R_LFX_Blood (const vec3_t org, const vec3_t dir, float pressure)
 {
 	int i, j;
 	int count = pressure * 4;
@@ -1296,7 +1296,7 @@ void R_LFX_Blood (vec3_t org, vec3_t dir, float pressure)
 }
 
 
-void R_LFX_Smoke (vec3_t org, vec3_t dir, float spread, float speed, vec4_t color1, vec4_t color2, vec4_t color3, vec4_t color4, vec4_t color5, int count, int duration, float scaleup, int blendfunc)
+void R_LFX_Smoke (const vec3_t org, const vec3_t dir, float spread, float speed, vec4_t color1, vec4_t color2, vec4_t color3, vec4_t color4, vec4_t color5, int count, int duration, float scaleup, int blendfunc)
 {
 	int i, j;
 	int cont = 50;
@@ -1389,7 +1389,7 @@ void R_LFX_Smoke (vec3_t org, vec3_t dir, float spread, float speed, vec4_t colo
 
 
 
-void R_LFX_Smoke2 (vec3_t org, vec3_t dir, float spread, float speed, vec4_t color1, vec4_t color2, vec4_t color3, vec4_t color4, vec4_t color5, int count, int duration, float scale, float scaleup, int blendfunc)
+void R_LFX_Smoke2 (const vec3_t org, const vec3_t dir, float spread, float speed, vec4_t color1, vec4_t color2, vec4_t color3, vec4_t color4, vec4_t color5, int count, int duration, float scale, float scaleup, int blendfunc)
 {
 	int i, j;
 	int cont = 50;
@@ -1497,7 +1497,7 @@ void R_LFX_Smoke2 (vec3_t org, vec3_t dir, float spread, float speed, vec4_t col
 }
 
 
-void R_LFX_Shock (vec3_t org, vec3_t dir, float spread, float speed, vec4_t color1, vec4_t color2, vec4_t color3, vec4_t color4, vec4_t color5, int count, int duration, float scaleup, int blendfunc)
+void R_LFX_Shock (const vec3_t org, const vec3_t dir, float spread, float speed, vec4_t color1, vec4_t color2, vec4_t color3, vec4_t color4, vec4_t color5, int count, int duration, float scaleup, int blendfunc)
 {
 	int i, j;
 	particle_t	*p;
@@ -1606,7 +1606,7 @@ void R_LFX_Shock (vec3_t org, vec3_t dir, float spread, float speed, vec4_t colo
 }
 
 
-void R_LFX_Spark (vec3_t org, vec3_t dir, float spread, float speed, vec4_t color1, vec4_t color2, vec4_t color3, vec4_t color4, vec4_t color5, int count, int duration, float scaleup, int blendfunc)
+void R_LFX_Spark (const vec3_t org, const vec3_t dir, float spread, float speed, vec4_t color1, vec4_t color2, vec4_t color3, vec4_t color4, vec4_t color5, int count, int duration, float scaleup, int blendfunc)
 {
 	int i, j;
 	int cont = 50;
@@ -1739,7 +1739,7 @@ void R_LFX_Spark (vec3_t org, vec3_t dir, float spread, float speed, vec4_t colo
 
 
 
-void R_LFX_Burst (vec3_t org, vec3_t dir, float spread, float speed, vec4_t color1, vec4_t color2, vec4_t color3, vec4_t color4, vec4_t color5, int count, int duration, float scaleup, int blendfunc)
+void R_LFX_Burst (const vec3_t org, const vec3_t dir, float spread, float speed, vec4_t color1, vec4_t color2, vec4_t color3, vec4_t color4, vec4_t color5, int count, int duration, float scaleup, int blendfunc)
 {
 	int i, j;
 	int cont = 50;
@@ -1970,7 +1970,7 @@ void R_LFX_Generic (int type, vec3_t org, vec3_t dir, float alpha, int spread, i
 
 
 // give some turbulence to smokes
-void R_LFX_PushSmoke (vec3_t there, float force)
+void R_LFX_PushSmoke (const vec3_t there, float force)
 {
 	// will reimplement properly later
 }
@@ -2001,22 +2001,19 @@ void R_LetsBounce ( particle_t *p)
 
 
 // attempt at generic particles function similar to quake...
-void R_RunParticleEffect (vec3_t org, vec3_t dir, int color, int count)
+void R_RunParticleEffect (const vec3_t org, const vec3_t dir, int color, int count)
 {
-	int i, j;
-	particle_t	*p;
-
-	for (i = 0; i < count; i++) {
+	for (int i = 0; i < count; i++) {
 		if (!free_particles)
 			return;
-		p = free_particles;
+		particle_t	*p = free_particles;
 		free_particles = p->next;
 		p->next = active_particles;
 		active_particles = p;
 		p->die = cl.time + 0.1*(rand()%5);
 		p->color = (color&~7) + (rand()&7);
 		p->type = pt_slowgrav;
-		for (j=0 ; j<3 ; j++) {
+		for (int j=0 ; j<3 ; j++) {
 			p->org[j] = org[j] + ((rand()&15)-8);
 			p->vel[j] = dir[j]*15;// + (rand()%300)-150;
 		}
@@ -2026,7 +2023,7 @@ void R_RunParticleEffect (vec3_t org, vec3_t dir, int color, int count)
 
 // also from Quake!
 
-void R_QarticleExplosion(vec3_t org)
+void R_QarticleExplosion(const vec3_t org)
 {
 	int i, j;
 	particle_t *p;
@@ -2080,7 +2077,7 @@ void R_QarticleExplosion(vec3_t org)
 }
 
 
-void Q_ParticleExplosion (vec3_t org)
+void Q_ParticleExplosion (const vec3_t org)
 {
 	int			i, j;
 	particle_t	*p;
@@ -2246,7 +2243,7 @@ void LFX_ShaderInit ( void )
 // 1996 - it's like the first game ok
 // - just dots
 
-void LFX_ParticleEffect1996 (int effect, vec3_t org, vec3_t dir)
+void LFX_ParticleEffect1996 (int effect, const vec3_t org, const vec3_t dir)
 {
 	vec3_t notatall;
 
@@ -2287,7 +2284,7 @@ void LFX_ParticleEffect1996 (int effect, vec3_t org, vec3_t dir)
 // 200X - most games of that decade...
 // - usually ltos of particles
 // - usually
-void LFX_ParticleEffect200X (int effect, vec3_t org, vec3_t dir)
+void LFX_ParticleEffect200X (int effect, const vec3_t org, const vec3_t dir)
 {
 	vec3_t origin, sprOrg, sprVel; // laziness
 	vec4_t colory, colory2, colory3, colory4;
@@ -2869,7 +2866,7 @@ void LFX_ParticleEffect200X (int effect, vec3_t org, vec3_t dir)
 // - alpha blends ONLY!
 // - low amounts of polygons
 // - high atlas usage
-void LFX_ParticleEffect1997 (int effect, vec3_t org, vec3_t dir)
+void LFX_ParticleEffect1997 (int effect, const vec3_t org, const vec3_t dir)
 {
 	vec3_t origin, sprOrg, sprVel; // laziness
 	vec4_t colory, colory2, colory3, colory4;
@@ -2971,7 +2968,7 @@ void LFX_ParticleEffect1997 (int effect, vec3_t org, vec3_t dir)
 // - sparks, but sparsely and no collision
 // - some flare testing on some effects
 
-void LFX_ParticleEffect1998 (int effect, vec3_t org, vec3_t dir)
+void LFX_ParticleEffect1998 (int effect, const vec3_t org, const vec3_t dir)
 {
 	vec3_t origin, sprOrg, sprVel; // laziness
 	vec4_t colory, colory2, colory3, colory4;
@@ -3137,7 +3134,7 @@ void LFX_ParticleEffect1998 (int effect, vec3_t org, vec3_t dir)
 // 1999 - a certain competing game
 // - high emphasis on atlas animations
 // - no alpha blending - only alpha blend, subtractive blend (for grenade smoke) and GE128 alpha testing.
-void LFX_ParticleEffect1999 (int effect, vec3_t org, vec3_t dir)
+void LFX_ParticleEffect1999 (int effect, const vec3_t org, const vec3_t dir)
 {
 	vec3_t origin, sprOrg, sprVel; // laziness
 	vec4_t colory, colory2, colory3, colory4;
@@ -3320,7 +3317,7 @@ void LFX_ParticleEffect1999 (int effect, vec3_t org, vec3_t dir)
 	}
 }
 
-void LFX_ParticleEffect (int effect, vec3_t org, vec3_t dir)
+void LFX_ParticleEffect (int effect, const vec3_t org, const vec3_t dir)
 {
 	// choosing particle sets
 
