@@ -751,30 +751,33 @@ static void ID_INLINE R_Bloom_QuadTV( int width, int height, float texX, float t
 
 static void R_Bloom_RestoreScreen_Postprocessed( void ) {
 #ifdef GLSL_POSTPROCESSING
-	glslProgram_t	*program;
-	if (leifxmode)
-	{
-	if (leifxmode == 1){ if (vertexShaders) R_GLSL_UseProgram(tr.leiFXDitherProgram); program=tr.programs[tr.leiFXDitherProgram];}
-	if (leifxmode == 2){ if (vertexShaders) R_GLSL_UseProgram(tr.leiFXGammaProgram); program=tr.programs[tr.leiFXGammaProgram];}
-	if (leifxmode == 3){ if (vertexShaders) R_GLSL_UseProgram(tr.leiFXFilterProgram); program=tr.programs[tr.leiFXFilterProgram];}
-	if (leifxmode == 888){ if (vertexShaders) R_GLSL_UseProgram(tr.animeProgram); program=tr.programs[tr.animeProgram];}
-	if (leifxmode == 999){ if (vertexShaders) R_GLSL_UseProgram(tr.animeFilmProgram); program=tr.programs[tr.animeFilmProgram];}
-	if (leifxmode == 777){ if (vertexShaders) R_GLSL_UseProgram(tr.motionBlurProgram); program=tr.programs[tr.motionBlurProgram];}
-	if (leifxmode == 778){ if (vertexShaders) R_GLSL_UseProgram(tr.motionBlurProgram); program=tr.programs[tr.motionBlurProgram];}
-	if (leifxmode == 779){ if (vertexShaders) R_GLSL_UseProgram(tr.motionBlurPostProgram); program=tr.programs[tr.motionBlurPostProgram];}
-	if (leifxmode == 632){ if (vertexShaders) R_GLSL_UseProgram(tr.NTSCEncodeProgram); program=tr.programs[tr.NTSCEncodeProgram];}
-	if (leifxmode == 633){ if (vertexShaders) R_GLSL_UseProgram(tr.NTSCDecodeProgram); program=tr.programs[tr.NTSCDecodeProgram];}
-	if (leifxmode == 634){ if (vertexShaders) R_GLSL_UseProgram(tr.NTSCBleedProgram); program=tr.programs[tr.NTSCBleedProgram];}
-	if (leifxmode == 666){ if (vertexShaders) R_GLSL_UseProgram(tr.BrightnessProgram); program=tr.programs[tr.BrightnessProgram];}
-	if (leifxmode == 1236){ if (vertexShaders) R_GLSL_UseProgram(tr.CRTProgram); program=tr.programs[tr.CRTProgram];}
-	if (leifxmode == 1997){ if (vertexShaders) R_GLSL_UseProgram(tr.paletteProgram); program=tr.programs[tr.paletteProgram];}
+	glslProgram_t	*program = NULL;
+	if (leifxmode) {
+		if (leifxmode == 1){ if (vertexShaders) R_GLSL_UseProgram(tr.leiFXDitherProgram); program=tr.programs[tr.leiFXDitherProgram];}
+		if (leifxmode == 2){ if (vertexShaders) R_GLSL_UseProgram(tr.leiFXGammaProgram); program=tr.programs[tr.leiFXGammaProgram];}
+		if (leifxmode == 3){ if (vertexShaders) R_GLSL_UseProgram(tr.leiFXFilterProgram); program=tr.programs[tr.leiFXFilterProgram];}
+		if (leifxmode == 888){ if (vertexShaders) R_GLSL_UseProgram(tr.animeProgram); program=tr.programs[tr.animeProgram];}
+		if (leifxmode == 999){ if (vertexShaders) R_GLSL_UseProgram(tr.animeFilmProgram); program=tr.programs[tr.animeFilmProgram];}
+		if (leifxmode == 777){ if (vertexShaders) R_GLSL_UseProgram(tr.motionBlurProgram); program=tr.programs[tr.motionBlurProgram];}
+		if (leifxmode == 778){ if (vertexShaders) R_GLSL_UseProgram(tr.motionBlurProgram); program=tr.programs[tr.motionBlurProgram];}
+		if (leifxmode == 779){ if (vertexShaders) R_GLSL_UseProgram(tr.motionBlurPostProgram); program=tr.programs[tr.motionBlurPostProgram];}
+		if (leifxmode == 632){ if (vertexShaders) R_GLSL_UseProgram(tr.NTSCEncodeProgram); program=tr.programs[tr.NTSCEncodeProgram];}
+		if (leifxmode == 633){ if (vertexShaders) R_GLSL_UseProgram(tr.NTSCDecodeProgram); program=tr.programs[tr.NTSCDecodeProgram];}
+		if (leifxmode == 634){ if (vertexShaders) R_GLSL_UseProgram(tr.NTSCBleedProgram); program=tr.programs[tr.NTSCBleedProgram];}
+		if (leifxmode == 666){ if (vertexShaders) R_GLSL_UseProgram(tr.BrightnessProgram); program=tr.programs[tr.BrightnessProgram];}
+		if (leifxmode == 1236){ if (vertexShaders) R_GLSL_UseProgram(tr.CRTProgram); program=tr.programs[tr.CRTProgram];}
+		if (leifxmode == 1997){ if (vertexShaders) R_GLSL_UseProgram(tr.paletteProgram); program=tr.programs[tr.paletteProgram];}
 	
 	}
-	else
-	{
-	if (vertexShaders) R_GLSL_UseProgram(tr.postprocessingProgram);
-	// Feed GLSL postprocess program
-	program=tr.programs[tr.postprocessingProgram];
+	else {
+		if (vertexShaders) R_GLSL_UseProgram(tr.postprocessingProgram);
+		// Feed GLSL postprocess program
+		program=tr.programs[tr.postprocessingProgram];
+	}
+	if (!program) {
+		//If leifsmode has been set to something invalid we have to bail out or we will dereference a null pointer
+		Com_Printf( S_COLOR_YELLOW"WARNING: 'leifxmode' has an invalid value\n" );
+		return;
 	}
 	if (program->u_ScreenSizeX > -1) R_GLSL_SetUniform_u_ScreenSizeX(program, glConfig.vidWidth);
 
@@ -1133,11 +1136,13 @@ static void R_Postprocess_InitTextures( void )
 
 	//	postproc.tvwork.height /= intdiv; // interlacey
 	
-		for (postproc.tveffect.width = 1;postproc.tveffect.width < postproc.tvwork.width;postproc.tveffect.width *= 2);
-if (intdiv > 1)
-		for (postproc.tveffect.height = 1;(postproc.tveffect.height/2) < postproc.tvwork.height;postproc.tveffect.height *= 2);
-		else
-		for (postproc.tveffect.height = 1;postproc.tveffect.height < postproc.tvwork.height;postproc.tveffect.height *= 2);
+		for (postproc.tveffect.width = 1;postproc.tveffect.width < postproc.tvwork.width;postproc.tveffect.width *= 2) {}
+		if (intdiv > 1) {
+			for (postproc.tveffect.height = 1;(postproc.tveffect.height/2) < postproc.tvwork.height;postproc.tveffect.height *= 2) {}
+		}
+		else {
+			for (postproc.tveffect.height = 1;postproc.tveffect.height < postproc.tvwork.height;postproc.tveffect.height *= 2) {}
+		}
 
 		postproc.tveffect.readW = postproc.tvwork.width / (float)postproc.tveffect.width;
 		postproc.tveffect.readH = postproc.tvwork.height / (float)postproc.tveffect.height;
@@ -1340,9 +1345,9 @@ void R_LeiFXPostprocessDitherScreen( void )
 		leifxmode = 1;			// reduct and dither - 1 pass
 		R_Postprocess_BackupScreen();
 		R_Bloom_RestoreScreen_Postprocessed();
-		}
+	}
 
-		force32upload = 0;	
+	force32upload = 0;	
 #endif	
 }
 
@@ -1365,9 +1370,10 @@ void R_LeiFXPostprocessFilterScreen( void )
 			return;
 	}
 
-	if ( !backEnd.projection2D )
+	if ( !backEnd.projection2D ) {
 		RB_SetGL2D();
-		force32upload = 1;
+	}
+	force32upload = 1;
 
 //	postprocess = 1;
 
@@ -1381,8 +1387,8 @@ void R_LeiFXPostprocessFilterScreen( void )
 */						// Gamma disabled because r_alternateBrightness 2 makes it redundant now.
 	if (r_leifx->integer > 3){
 		leifxmode = 3;			// filter - 4 pass
-	// The stupidest hack in america
-	R_LeiFX_Stupid_Hack();
+		// The stupidest hack in america
+		R_LeiFX_Stupid_Hack();
 		leifxpass = 0;
 		R_Postprocess_BackupScreen();
 		R_Bloom_RestoreScreen_Postprocessed();
@@ -1395,10 +1401,10 @@ void R_LeiFXPostprocessFilterScreen( void )
 		leifxpass = 3;
 		R_Postprocess_BackupScreen();
 		R_Bloom_RestoreScreen_Postprocessed();
-		}
+	}
 	backEnd.doneleifx = qtrue;
 
-			force32upload = 0;
+	force32upload = 0;
 	
 #endif
 }
@@ -1432,9 +1438,10 @@ void R_NTSCScreen( void )
 			return;
 	}
 
-	if ( !backEnd.projection2D )
+	if ( !backEnd.projection2D ) {
 		RB_SetGL2D();
-		force32upload = 1;
+	}
+	force32upload = 1;
 
 	int ntsc_bleed	= 0;
 	int ntsc_encode = 0;
@@ -1545,7 +1552,7 @@ void R_BrightItUp (int dst, int src, float intensity)
 
 void R_BrightScreen( void )
 {
-	int mode;	// 0 = none; 1 = blend; 2 = shader
+	int mode = 0;	// 0 = none; 1 = blend; 2 = shader
 	if( !r_alternateBrightness->integer)
 		return;
 	if ( backEnd.doneAltBrightness)
@@ -1557,10 +1564,12 @@ void R_BrightScreen( void )
 	if (r_alternateBrightness->integer == 2)
 	{
 		// Automatically determine from capabilities
-		if ( vertexShaders )
-		mode = 2;
-		else
-		mode = 1;
+		if ( vertexShaders ) {
+			mode = 2;
+		}
+		else {
+			mode = 1;
+		}
 	}
 
 	// the modern pixel shader way
@@ -1595,14 +1604,12 @@ void R_BrightScreen( void )
 	else if (mode == 1)
 #endif
 	{
-
 		int eh, ah;
-		if ((r_overBrightBits->integer))
-			{
+		if ((r_overBrightBits->integer)) {
 	
 			ah = r_overBrightBits->integer;
-			if (ah < 1) ah = 1; if (ah > 2) ah = 2; // clamp so it never looks stupid
-
+			if (ah < 1) { ah = 1; } 
+			if (ah > 2) { ah = 2; } // clamp so it never looks stupid
 
 			// Blend method
 			// do a loop for every overbright bit enabled
@@ -1611,8 +1618,7 @@ void R_BrightScreen( void )
 			R_BrightItUp(GLS_SRCBLEND_DST_COLOR, GLS_DSTBLEND_ONE, 1.0f); 
 
 			backEnd.doneAltBrightness = qtrue;
-			}
-
+		}
 	}
 	
 }
@@ -1638,7 +1644,6 @@ void R_AltBrightnessInit( void ) {
 void R_FilmScreen( void )
 {
 	vec3_t tone, toneinv, tonecont;
-	vec3_t tonework;
 
 	if( !r_film->integer )
 		return;
@@ -1648,83 +1653,78 @@ void R_FilmScreen( void )
 		RB_SetGL2D();
 	backEnd.doneFilm = qtrue;
 
-		// set up our colors, this is our default
-		tone[0] = 0.8f;
-		tone[1] = 0.9f;
-		tone[2] = 1.0f;
+	// set up our colors, this is our default
+	tone[0] = 0.8f;
+	tone[1] = 0.9f;
+	tone[2] = 1.0f;
 	//VectorCopy( backEnd.currentEntity->ambientLight, tone );
-		if (backEnd.currentEntity){
-			if (backEnd.currentEntity->ambientLight[0] > 0.001f && backEnd.currentEntity->ambientLight[1] > 0.001f && backEnd.currentEntity->ambientLight[2] > 0.001f){
-				tone[0] = backEnd.currentEntity->ambientLight[0];
-				tone[1] = backEnd.currentEntity->ambientLight[1];
-				tone[2] = backEnd.currentEntity->ambientLight[2];
-			}
+	if (backEnd.currentEntity){
+		if (backEnd.currentEntity->ambientLight[0] > 0.001f && backEnd.currentEntity->ambientLight[1] > 0.001f && backEnd.currentEntity->ambientLight[2] > 0.001f){
+			tone[0] = backEnd.currentEntity->ambientLight[0];
+			tone[1] = backEnd.currentEntity->ambientLight[1];
+			tone[2] = backEnd.currentEntity->ambientLight[2];
 		}
+	}
 
 	//	VectorNormalize(tone);
 
-		tone[0] *= 0.3 + 0.7;
-		tone[1] *= 0.3 + 0.7;
-		tone[2] *= 0.3 + 0.7;
+	tone[0] *= 0.3 + 0.7;
+	tone[1] *= 0.3 + 0.7;
+	tone[2] *= 0.3 + 0.7;
 
 	//	tone[0] = 1.6f;
 	//	tone[1] = 1.2f;
 	//	tone[2] = 0.7f;
 
 
-		// TODO: Get overexposure to flares raising this faking "HDR"
-		tonecont[0] = 0.0f;
-		tonecont[1] = 0.0f;
-		tonecont[2] = 0.0f;
-	
-
-		// inverted
-
-		toneinv[0] = tone[0] * -1 + 1 + tonecont[0];
-		toneinv[1] = tone[1] * -1 + 1 + tonecont[1];
-		toneinv[2] = tone[2] * -1 + 1 + tonecont[2];
-
-		// darken vignette.
-		GL_State( GLS_DEPTHTEST_DISABLE | GLS_SRCBLEND_DST_COLOR | GLS_DSTBLEND_ZERO);GL_Bind( tr.dlightImage );	GL_Cull( CT_TWO_SIDED );
-		qglColor4f( 0.941177, 0.952941, 0.968628, 1.0f );
-		R_Brighter_Quad( glConfig.vidWidth, glConfig.vidHeight, 0.35f, 0.35f, 0.2f, 0.2f );
+	// TODO: Get overexposure to flares raising this faking "HDR"
+	tonecont[0] = 0.0f;
+	tonecont[1] = 0.0f;
+	tonecont[2] = 0.0f;
 
 
+	// inverted
 
-		// brighten.
-		GL_State( GLS_DEPTHTEST_DISABLE | GLS_SRCBLEND_DST_COLOR | GLS_DSTBLEND_ONE);GL_Bind( tr.dlightImage );	GL_Cull( CT_TWO_SIDED );
-		//qglColor4f( 0.941177, 0.952941, 0.968628, 1.0f );
-		qglColor4f( (0.9f + (tone[0] * 0.5)), (0.9f + (tone[1] * 0.5)), (0.9f + (tone[2] * 0.5)), 1.0f );
+	toneinv[0] = tone[0] * -1 + 1 + tonecont[0];
+	toneinv[1] = tone[1] * -1 + 1 + tonecont[1];
+	toneinv[2] = tone[2] * -1 + 1 + tonecont[2];
 
-		R_Brighter_Quad( glConfig.vidWidth, glConfig.vidHeight, 0.25f, 0.25f, 0.48f, 0.48f );
+	// darken vignette.
+	GL_State( GLS_DEPTHTEST_DISABLE | GLS_SRCBLEND_DST_COLOR | GLS_DSTBLEND_ZERO);GL_Bind( tr.dlightImage );	GL_Cull( CT_TWO_SIDED );
+	qglColor4f( 0.941177, 0.952941, 0.968628, 1.0f );
+	R_Brighter_Quad( glConfig.vidWidth, glConfig.vidHeight, 0.35f, 0.35f, 0.2f, 0.2f );
 
-		// invert.
-		GL_State( GLS_DEPTHTEST_DISABLE | GLS_SRCBLEND_ONE_MINUS_DST_COLOR | GLS_DSTBLEND_ONE_MINUS_SRC_COLOR);GL_Bind( tr.whiteImage );	GL_Cull( CT_TWO_SIDED );
+
+
+	// brighten.
+	GL_State( GLS_DEPTHTEST_DISABLE | GLS_SRCBLEND_DST_COLOR | GLS_DSTBLEND_ONE);GL_Bind( tr.dlightImage );	GL_Cull( CT_TWO_SIDED );
+	//qglColor4f( 0.941177, 0.952941, 0.968628, 1.0f );
+	qglColor4f( (0.9f + (tone[0] * 0.5)), (0.9f + (tone[1] * 0.5)), (0.9f + (tone[2] * 0.5)), 1.0f );
+
+	R_Brighter_Quad( glConfig.vidWidth, glConfig.vidHeight, 0.25f, 0.25f, 0.48f, 0.48f );
+
+	// invert.
+	GL_State( GLS_DEPTHTEST_DISABLE | GLS_SRCBLEND_ONE_MINUS_DST_COLOR | GLS_DSTBLEND_ONE_MINUS_SRC_COLOR);GL_Bind( tr.whiteImage );	GL_Cull( CT_TWO_SIDED );
 	//	qglColor4f(0.85098, 0.85098, 0.815686, 1.0f );
-		qglColor4f( (0.8f + (toneinv[0] * 0.5)), (0.8f + (toneinv[1] * 0.5)), (0.8f + (toneinv[2] * 0.5)), 1.0f );
-		R_Brighter_Quad( glConfig.vidWidth, glConfig.vidHeight, 0, 0, 1, 1 );
+	qglColor4f( (0.8f + (toneinv[0] * 0.5)), (0.8f + (toneinv[1] * 0.5)), (0.8f + (toneinv[2] * 0.5)), 1.0f );
+	R_Brighter_Quad( glConfig.vidWidth, glConfig.vidHeight, 0, 0, 1, 1 );
 
-		// brighten.
-		GL_State( GLS_DEPTHTEST_DISABLE | GLS_SRCBLEND_DST_COLOR | GLS_DSTBLEND_SRC_COLOR);GL_Bind( tr.whiteImage );	GL_Cull( CT_TWO_SIDED );
-		qglColor4f( 0.615686, 0.615686, 0.615686, 1.0f );
-		R_Brighter_Quad( glConfig.vidWidth, glConfig.vidHeight, 0, 0, 1, 1 );
+	// brighten.
+	GL_State( GLS_DEPTHTEST_DISABLE | GLS_SRCBLEND_DST_COLOR | GLS_DSTBLEND_SRC_COLOR);GL_Bind( tr.whiteImage );	GL_Cull( CT_TWO_SIDED );
+	qglColor4f( 0.615686, 0.615686, 0.615686, 1.0f );
+	R_Brighter_Quad( glConfig.vidWidth, glConfig.vidHeight, 0, 0, 1, 1 );
 
 
-		// invoort.
-		GL_State( GLS_DEPTHTEST_DISABLE | GLS_SRCBLEND_ONE_MINUS_DST_COLOR | GLS_DSTBLEND_ONE_MINUS_SRC_COLOR);GL_Bind( tr.whiteImage );	GL_Cull( CT_TWO_SIDED );
-		qglColor4f(1.0f, 1.0f, 1.0f , 1.0f );
-		R_Brighter_Quad( glConfig.vidWidth, glConfig.vidHeight, 0, 0, 1, 1 );
+	// invoort.
+	GL_State( GLS_DEPTHTEST_DISABLE | GLS_SRCBLEND_ONE_MINUS_DST_COLOR | GLS_DSTBLEND_ONE_MINUS_SRC_COLOR);GL_Bind( tr.whiteImage );	GL_Cull( CT_TWO_SIDED );
+	qglColor4f(1.0f, 1.0f, 1.0f , 1.0f );
+	R_Brighter_Quad( glConfig.vidWidth, glConfig.vidHeight, 0, 0, 1, 1 );
 
-		// brighten.
-		GL_State( GLS_DEPTHTEST_DISABLE | GLS_SRCBLEND_DST_COLOR | GLS_DSTBLEND_SRC_COLOR);GL_Bind( tr.whiteImage );	GL_Cull( CT_TWO_SIDED );
+	// brighten.
+	GL_State( GLS_DEPTHTEST_DISABLE | GLS_SRCBLEND_DST_COLOR | GLS_DSTBLEND_SRC_COLOR);GL_Bind( tr.whiteImage );	GL_Cull( CT_TWO_SIDED );
 	//	qglColor4f(  0.866667, 0.847059, 0.776471, 1.0f );
-		qglColor4f( (0.73f + (toneinv[0] * 0.4)), (0.73f + (toneinv[1] * 0.4)), (0.73f + (toneinv[2] * 0.4)), 1.0f );
-		R_Brighter_Quad( glConfig.vidWidth, glConfig.vidHeight, 0, 0, 1, 1 );
-
-
-
-
-
+	qglColor4f( (0.73f + (toneinv[0] * 0.4)), (0.73f + (toneinv[1] * 0.4)), (0.73f + (toneinv[2] * 0.4)), 1.0f );
+	R_Brighter_Quad( glConfig.vidWidth, glConfig.vidHeight, 0, 0, 1, 1 );
 }
 
 
