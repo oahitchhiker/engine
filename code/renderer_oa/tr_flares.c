@@ -79,17 +79,17 @@ typedef struct flare_s {
 	vec3_t		origin;
 	vec3_t		color;
 	int		radius;				// leilei - for dynamic light flares
-	qboolean 	peek;  
+	qboolean 	peek;
 	int		ftype;			// leilei - flare types
-						// 0 - off
-						// 1 - nromal flare
-						// 2 - hexagonal polygons (tcpp)
-						// 3 - glow polygons	(tcpp)
-						// 4 - hex and glow polygons	(tcpp)
-						// 5 - lens reflections like it's 1997
-						// 6 - fully modulated lens reflections
-						// 7 - unmodulated lens reflections
-						// 8 - anamorphic like it's 2009
+	// 0 - off
+	// 1 - nromal flare
+	// 2 - hexagonal polygons (tcpp)
+	// 3 - glow polygons	(tcpp)
+	// 4 - hex and glow polygons	(tcpp)
+	// 5 - lens reflections like it's 1997
+	// 6 - fully modulated lens reflections
+	// 7 - unmodulated lens reflections
+	// 8 - anamorphic like it's 2009
 	struct shader_s		*theshader;	// leilei - custom flare shaders
 	int		type;			// 0 - map, 1 - dlight, 2 - sun
 	float		delay;			// update delay time
@@ -110,7 +110,8 @@ int flareCoeff;
 R_SetFlareCoeff
 ==================
 */
-static void R_SetFlareCoeff( void ) {
+static void R_SetFlareCoeff( void )
+{
 
 	if(r_flareCoeff->value == 0.0f)
 		flareCoeff = atof(FLARE_STDCOEFF);
@@ -123,12 +124,13 @@ qboolean 	forceit;	// for low quality flare testing
 
 
 static int 	pvrhack		=	0;			// leilei = powervr workarounds
-/*	
+/*
 ==================
 R_ClearFlares
 ==================
 */
-void R_ClearFlares( void ) {
+void R_ClearFlares( void )
+{
 	int		i;
 
 	Com_Memset( r_flareStructs, 0, sizeof( r_flareStructs ) );
@@ -155,7 +157,8 @@ float			flaredsize;	// leilei - dirty flare fix for widescreens
 
 
 
-void RB_AddFlare(srfFlare_t *surface, int fogNum, vec3_t point, vec3_t color, vec3_t normal, int radii, int efftype, float scaled, int type) {
+void RB_AddFlare(srfFlare_t *surface, int fogNum, vec3_t point, vec3_t color, vec3_t normal, int radii, int efftype, float scaled, int type)
+{
 	int				i;
 	flare_t			*f, *oldest;
 	vec3_t			local;
@@ -166,8 +169,7 @@ void RB_AddFlare(srfFlare_t *surface, int fogNum, vec3_t point, vec3_t color, ve
 
 	// fade the intensity of the flare down as the
 	// light surface turns away from the viewer
-	if(normal && (normal[0] || normal[1] || normal[2]) )
-	{
+	if(normal && (normal[0] || normal[1] || normal[2]) ) {
 		VectorSubtract( backEnd.viewParms.or.origin, point, local );
 		VectorNormalizeFast(local);
 		d = DotProduct(local, normal);
@@ -179,10 +181,10 @@ void RB_AddFlare(srfFlare_t *surface, int fogNum, vec3_t point, vec3_t color, ve
 
 	flaredsize = backEnd.viewParms.viewportHeight;
 
-	R_TransformModelToClip( point, backEnd.or.modelMatrix, 
-		backEnd.viewParms.projectionMatrix, eye, clip );
+	R_TransformModelToClip( point, backEnd.or.modelMatrix,
+	                        backEnd.viewParms.projectionMatrix, eye, clip );
 
-	
+
 
 
 	// check to see if the point is completely off screen
@@ -196,7 +198,7 @@ void RB_AddFlare(srfFlare_t *surface, int fogNum, vec3_t point, vec3_t color, ve
 	R_TransformClipToWindow( clip, &backEnd.viewParms, normalized, window );
 
 	if ( window[0] < 0 || window[0] >= backEnd.viewParms.viewportWidth
-		|| window[1] < 0 || window[1] >= backEnd.viewParms.viewportHeight ) {
+	        || window[1] < 0 || window[1] >= backEnd.viewParms.viewportHeight ) {
 		return;	// shouldn't happen, since we check the clip[] above, except for FP rounding
 	}
 
@@ -204,7 +206,7 @@ void RB_AddFlare(srfFlare_t *surface, int fogNum, vec3_t point, vec3_t color, ve
 	oldest = r_flareStructs;
 	for ( f = r_activeFlares ; f ; f = f->next ) {
 		if ( f->surface == surface && f->frameSceneNum == backEnd.viewParms.frameSceneNum
-			&& f->inPortal == backEnd.viewParms.isPortal ) {
+		        && f->inPortal == backEnd.viewParms.isPortal ) {
 			break;
 		}
 	}
@@ -247,37 +249,37 @@ void RB_AddFlare(srfFlare_t *surface, int fogNum, vec3_t point, vec3_t color, ve
 
 
 	if (!pvrhack)	// leilei - don't do this on powervr
-	VectorScale( f->color, d, f->color ); 
+		VectorScale( f->color, d, f->color );
 
 	// save info needed to test
 	f->windowX = backEnd.viewParms.viewportX + window[0];
 	f->windowY = backEnd.viewParms.viewportY + window[1];
 
 
-	f->radius = radii * scaled * 0.17; 
+	f->radius = radii * scaled * 0.17;
 	f->eyeZ = eye[2];
 	f->theshader = tr.flareShader;
 	f->type = type;
 
 	if (f->type == 0)
-	f->theshader = surface->shadder;
+		f->theshader = surface->shadder;
 	else
-	f->theshader = tr.flareShader;
+		f->theshader = tr.flareShader;
 
 
 	if ( (type == 1) && (r_flaresDlightScale->value) ) {	// leilei - dynamic light flare scale
 		float ef = r_flaresDlightScale->value;
-			if (ef > 1.0f) ef = 1.0f;
-			if (ef < 0.01f) ef = 0.01f;
-			
+		if (ef > 1.0f) ef = 1.0f;
+		if (ef < 0.01f) ef = 0.01f;
+
 		f->radius *= ef;
 	}
 
 	if ( (type == 1) && (r_flaresDlightOpacity->value) ) {	// leilei - dynamic light flare scale
 		float ef = r_flaresDlightOpacity->value;
-			if (ef > 1.0f) ef = 1.0f;
-			if (ef < 0.1f) ef = 0.1f;
-			
+		if (ef > 1.0f) ef = 1.0f;
+		if (ef < 0.1f) ef = 0.1f;
+
 		f->color[0] *= ef;
 		f->color[1] *= ef;
 		f->color[2] *= ef;
@@ -288,7 +290,7 @@ void RB_AddFlare(srfFlare_t *surface, int fogNum, vec3_t point, vec3_t color, ve
 //	{
 
 
-//	}	
+//	}
 
 
 }
@@ -298,7 +300,8 @@ void RB_AddFlare(srfFlare_t *surface, int fogNum, vec3_t point, vec3_t color, ve
 RB_AddDlightFlares
 ==================
 */
-void RB_AddDlightFlares( void ) {
+void RB_AddDlightFlares( void )
+{
 	dlight_t		*l;
 	int				i, j, k;
 	fog_t			*fog = NULL;
@@ -315,9 +318,8 @@ void RB_AddDlightFlares( void ) {
 
 	for (i=0 ; i<backEnd.refdef.num_dlights ; i++, l++) {
 
-		if(fog)
-		{
-			// find which fog volume the light is in 
+		if(fog) {
+			// find which fog volume the light is in
 			for ( j = 1 ; j < tr.world->numfogs ; j++ ) {
 				fog = &tr.world->fogs[j];
 				for ( k = 0 ; k < 3 ; k++ ) {
@@ -350,7 +352,7 @@ FLARE BACK END
 
 
 void CM_Trace( trace_t *results, const vec3_t start, const vec3_t end, vec3_t mins, vec3_t maxs,
-						  clipHandle_t model, const vec3_t origin, int brushmask, int capsule, sphere_t *sphere );
+               clipHandle_t model, const vec3_t origin, int brushmask, int capsule, sphere_t *sphere );
 
 
 /*
@@ -360,89 +362,89 @@ RB_TestFlareFast
 faster simple one.
 ==================
 */
-static void RB_TestFlareFast( flare_t *f, int dotrace ) {
+static void RB_TestFlareFast( flare_t *f, int dotrace )
+{
 	float			depth;
 	qboolean		visible;
 	float			fade;
 	float			screenZ;
 
-		backEnd.pc.c_flareTests++;
-	
-	
-		// doing a readpixels is as good as doing a glFinish(), so
-		// don't bother with another sync
-		glState.finishCalled = qfalse;
-		if (f->type == 2) dotrace = 0; // sun cant trace
-		// leilei - do trace, then complain
-		if (dotrace){
-			trace_t  yeah;
-			CM_Trace( &yeah, f->origin, backEnd.or.viewOrigin, NULL, NULL, NULL, f->origin, 1, NULL, NULL );
-			if (yeah.fraction < 1){
-				visible = 0;
+	backEnd.pc.c_flareTests++;
+
+
+	// doing a readpixels is as good as doing a glFinish(), so
+	// don't bother with another sync
+	glState.finishCalled = qfalse;
+	if (f->type == 2) dotrace = 0; // sun cant trace
+	// leilei - do trace, then complain
+	if (dotrace) {
+		trace_t  yeah;
+		CM_Trace( &yeah, f->origin, backEnd.or.viewOrigin, NULL, NULL, NULL, f->origin, 1, NULL, NULL );
+		if (yeah.fraction < 1) {
+			visible = 0;
 			return;
-			}
-			else
-			{
-			visible = 1;
-			}
 		}
+		else {
+			visible = 1;
+		}
+	}
 
 	// leilei - delay hack, to speed up the renderer
 
-	if (backEnd.refdef.time > f->delay){
-		
+	if (backEnd.refdef.time > f->delay) {
+
 		// read back the z buffer contents
 
 		qglReadPixels( f->windowX, f->windowY, 1, 1, GL_DEPTH_COMPONENT, GL_FLOAT, &depth );
 		f->delay = backEnd.refdef.time + r_flareDelay->value;
-		
-	
-		screenZ = backEnd.viewParms.projectionMatrix[14] / 
-			( ( 2*depth - 1 ) * backEnd.viewParms.projectionMatrix[11] - backEnd.viewParms.projectionMatrix[10] );
-	
-		visible = ( -f->eyeZ - -screenZ ) < 24;
-	
 
-	
+
+		screenZ = backEnd.viewParms.projectionMatrix[14] /
+		          ( ( 2*depth - 1 ) * backEnd.viewParms.projectionMatrix[11] - backEnd.viewParms.projectionMatrix[10] );
+
+		visible = ( -f->eyeZ - -screenZ ) < 24;
+
+
+
 		if ( visible ) {
 			if ( !f->visible ) {
 				f->visible = qtrue;
 				f->fadeTime = backEnd.refdef.time - 1;
-		
+
 			}
 			{
 				fade = ( ( backEnd.refdef.time - f->fadeTime ) / 1000.0f ) * r_flareFade->value;
 			}
-		} else {
+		}
+		else {
 			if ( f->visible ) {
 				f->visible = qfalse;
 				f->fadeTime = backEnd.refdef.time - 1;
 			}
 			fade = 1.0f - ( ( backEnd.refdef.time - f->fadeTime ) / 1000.0f ) * r_flareFade->value;
 		}
-	
+
 		if ( fade < 0 ) {
 			fade = 0;
 		}
 		if ( fade > 1 ) {
 			fade = 1;
 		}
-	
+
 		f->drawIntensity = fade;
-		
+
 	}
 	else
-	// leilei - continue drawing the flare from where we last checked
+		// leilei - continue drawing the flare from where we last checked
 	{
 		if (f->visible) {
 			f->drawIntensity  = 1;
 		}
-		else
-		{
+		else {
 			f->drawIntensity  = 0;
 		}
 	}
-	
+
 }
 
 /*
@@ -450,126 +452,128 @@ static void RB_TestFlareFast( flare_t *f, int dotrace ) {
 RB_TestFlare
 ==================
 */
-static void RB_TestFlare( flare_t *f, int dotrace ) {
+static void RB_TestFlare( flare_t *f, int dotrace )
+{
 	float			depth;
 	qboolean		visible;
 	float			fade;
 	float			screenZ;
 
-		backEnd.pc.c_flareTests++;
-	
-	
-		// doing a readpixels is as good as doing a glFinish(), so
-		// don't bother with another sync
-		glState.finishCalled = qfalse;
-		
+	backEnd.pc.c_flareTests++;
 
-		if (f->type == 2) dotrace = 0; // sun cant trace
-		// leilei - do trace, then complain
-		if (dotrace){
-			trace_t  yeah;
-			CM_Trace( &yeah, f->origin, backEnd.or.viewOrigin, NULL, NULL, NULL, f->origin, 1, NULL, NULL );
-			if (yeah.fraction < 1){
-				visible = 0;
-			return;
-			}
-			else
-			{
-			visible = 1;
-			}
-		}
 
-		// read back the z buffer contents
+	// doing a readpixels is as good as doing a glFinish(), so
+	// don't bother with another sync
+	glState.finishCalled = qfalse;
 
-		qglReadPixels( f->windowX, f->windowY, 1, 1, GL_DEPTH_COMPONENT, GL_FLOAT, &depth );
-	
-	
-		screenZ = backEnd.viewParms.projectionMatrix[14] / 
-			( ( 2*depth - 1 ) * backEnd.viewParms.projectionMatrix[11] - backEnd.viewParms.projectionMatrix[10] );
-	
-		visible = ( -f->eyeZ - -screenZ ) < 24;
-	
 
-	
-		if ( visible ) {
-			if ( !f->visible ) {
-				f->visible = qtrue;
-				f->fadeTime = backEnd.refdef.time - 1;
-		
-			}
-			{
-				fade = ( ( backEnd.refdef.time - f->fadeTime ) / 1000.0f ) * r_flareFade->value;
-			}
-		} else {
-			if ( f->visible ) {
-				f->visible = qfalse;
-				f->fadeTime = backEnd.refdef.time - 1;
-			}
-			fade = 1.0f - ( ( backEnd.refdef.time - f->fadeTime ) / 1000.0f ) * r_flareFade->value;
-		}
-	
-		if ( fade < 0 ) {
-			fade = 0;
-		}
-		if ( fade > 1 ) {
-			fade = 1;
-		}
-	
-		f->drawIntensity = fade;
-	
-}
-
-static void RB_TestFlareTraceOnly( flare_t *f ) {
-	float			depth;
-	qboolean		visible;
-	float			fade;
-	float			screenZ;
-
-		backEnd.pc.c_flareTests++;
-	
-	
-		// doing a readpixels is as good as doing a glFinish(), so
-		// don't bother with another sync
-		glState.finishCalled = qfalse;
-
-		// read from a traceline 
+	if (f->type == 2) dotrace = 0; // sun cant trace
+	// leilei - do trace, then complain
+	if (dotrace) {
 		trace_t  yeah;
 		CM_Trace( &yeah, f->origin, backEnd.or.viewOrigin, NULL, NULL, NULL, f->origin, 1, NULL, NULL );
-		if (yeah.fraction < 1){
+		if (yeah.fraction < 1) {
 			visible = 0;
-		return;
+			return;
 		}
-		else
+		else {
+			visible = 1;
+		}
+	}
+
+	// read back the z buffer contents
+
+	qglReadPixels( f->windowX, f->windowY, 1, 1, GL_DEPTH_COMPONENT, GL_FLOAT, &depth );
+
+
+	screenZ = backEnd.viewParms.projectionMatrix[14] /
+	          ( ( 2*depth - 1 ) * backEnd.viewParms.projectionMatrix[11] - backEnd.viewParms.projectionMatrix[10] );
+
+	visible = ( -f->eyeZ - -screenZ ) < 24;
+
+
+
+	if ( visible ) {
+		if ( !f->visible ) {
+			f->visible = qtrue;
+			f->fadeTime = backEnd.refdef.time - 1;
+
+		}
 		{
+			fade = ( ( backEnd.refdef.time - f->fadeTime ) / 1000.0f ) * r_flareFade->value;
+		}
+	}
+	else {
+		if ( f->visible ) {
+			f->visible = qfalse;
+			f->fadeTime = backEnd.refdef.time - 1;
+		}
+		fade = 1.0f - ( ( backEnd.refdef.time - f->fadeTime ) / 1000.0f ) * r_flareFade->value;
+	}
+
+	if ( fade < 0 ) {
+		fade = 0;
+	}
+	if ( fade > 1 ) {
+		fade = 1;
+	}
+
+	f->drawIntensity = fade;
+
+}
+
+static void RB_TestFlareTraceOnly( flare_t *f )
+{
+	float			depth;
+	qboolean		visible;
+	float			fade;
+	float			screenZ;
+
+	backEnd.pc.c_flareTests++;
+
+
+	// doing a readpixels is as good as doing a glFinish(), so
+	// don't bother with another sync
+	glState.finishCalled = qfalse;
+
+	// read from a traceline
+	trace_t  yeah;
+	CM_Trace( &yeah, f->origin, backEnd.or.viewOrigin, NULL, NULL, NULL, f->origin, 1, NULL, NULL );
+	if (yeah.fraction < 1) {
+		visible = 0;
+		return;
+	}
+	else {
 		visible = 1;
+	}
+
+	if ( visible ) {
+		if ( !f->visible ) {
+			f->visible = qtrue;
+			f->fadeTime = backEnd.refdef.time - 1;
+
 		}
-	
-		if ( visible ) {
-			if ( !f->visible ) {
-				f->visible = qtrue;
-				f->fadeTime = backEnd.refdef.time - 1;
-		
-			}
-			{
-				fade = ( ( backEnd.refdef.time - f->fadeTime ) / 1000.0f ) * r_flareFade->value;
-			}
-		} else {
-			if ( f->visible ) {
-				f->visible = qfalse;
-				f->fadeTime = backEnd.refdef.time - 1;
-			}
-			fade = 1.0f - ( ( backEnd.refdef.time - f->fadeTime ) / 1000.0f ) * r_flareFade->value;
+		{
+			fade = ( ( backEnd.refdef.time - f->fadeTime ) / 1000.0f ) * r_flareFade->value;
 		}
-	
-		if ( fade < 0 ) {
-			fade = 0;
+	}
+	else {
+		if ( f->visible ) {
+			f->visible = qfalse;
+			f->fadeTime = backEnd.refdef.time - 1;
 		}
-		if ( fade > 1 ) {
-			fade = 1;
-		}
-	
-		f->drawIntensity = fade;
-	
+		fade = 1.0f - ( ( backEnd.refdef.time - f->fadeTime ) / 1000.0f ) * r_flareFade->value;
+	}
+
+	if ( fade < 0 ) {
+		fade = 0;
+	}
+	if ( fade > 1 ) {
+		fade = 1;
+	}
+
+	f->drawIntensity = fade;
+
 }
 
 
@@ -580,7 +584,8 @@ RB_RenderFlare
 ==================
 */
 
-void RB_RenderFlare( flare_t *f ) {
+void RB_RenderFlare( flare_t *f )
+{
 	float			size;
 	vec3_t			color;
 	int				iColor[3];
@@ -599,14 +604,13 @@ void RB_RenderFlare( flare_t *f ) {
 	else
 		distance = -f->eyeZ;
 
-	if ( (r_flaresDlightShrink->integer) && (f->type == 1) ) 	// leilei - dynamic light flares shrinking when close
-	{
+	if ( (r_flaresDlightShrink->integer) && (f->type == 1) ) {	// leilei - dynamic light flares shrinking when close
 
 		float newd = distance / (48.0f);
 		if (newd > 1) newd = 1.0f;
 
 		flaredsize *= newd;
-	}	
+	}
 
 
 	if(!f->radius)
@@ -614,21 +618,21 @@ void RB_RenderFlare( flare_t *f ) {
 
 	// calculate the flare size..
 
-/*
- * This is an alternative to intensity scaling. It changes the size of the flare on screen instead
- * with growing distance. See in the description at the top why this is not the way to go.
-*/
+	/*
+	 * This is an alternative to intensity scaling. It changes the size of the flare on screen instead
+	 * with growing distance. See in the description at the top why this is not the way to go.
+	*/
 	// size will change ~ 1/r.
-	if (r_flareMethod->integer == 1 || r_flareMethod->integer == 4 ){			// The "not the way to go" method.
-												// seen in EF
+	if (r_flareMethod->integer == 1 || r_flareMethod->integer == 4 ) {			// The "not the way to go" method.
+		// seen in EF
 		size = flaredsize * (r_flareSize->value / (distance * -2.0f));
 	}
-	else if (r_flareMethod->integer == 2){			// Raven method
-		size = flaredsize * ( r_flareSize->value/640.0f + 8 / -f->eyeZ );	}
-	else
-	{
+	else if (r_flareMethod->integer == 2) {			// Raven method
+		size = flaredsize * ( r_flareSize->value/640.0f + 8 / -f->eyeZ );
+	}
+	else {
 
-	size = flaredsize * ( (r_flareSize->value) /640.0f + 8 / distance );
+		size = flaredsize * ( (r_flareSize->value) /640.0f + 8 / distance );
 
 
 
@@ -638,54 +642,52 @@ void RB_RenderFlare( flare_t *f ) {
 
 
 
-/*
- * As flare sizes stay nearly constant with increasing distance we must decrease the intensity
- * to achieve a reasonable visual result. The intensity is ~ (size^2 / distance^2) which can be
- * got by considering the ratio of
- * (flaresurface on screen) : (Surface of sphere defined by flare origin and distance from flare)
- * An important requirement is:
- * intensity <= 1 for all distances.
- *
- * The formula used here to compute the intensity is as follows:
- * intensity = flareCoeff * size^2 / (distance + size*sqrt(flareCoeff))^2
- * As you can see, the intensity will have a max. of 1 when the distance is 0.
- * The coefficient flareCoeff will determine the falloff speed with increasing distance.
- */
+	/*
+	 * As flare sizes stay nearly constant with increasing distance we must decrease the intensity
+	 * to achieve a reasonable visual result. The intensity is ~ (size^2 / distance^2) which can be
+	 * got by considering the ratio of
+	 * (flaresurface on screen) : (Surface of sphere defined by flare origin and distance from flare)
+	 * An important requirement is:
+	 * intensity <= 1 for all distances.
+	 *
+	 * The formula used here to compute the intensity is as follows:
+	 * intensity = flareCoeff * size^2 / (distance + size*sqrt(flareCoeff))^2
+	 * As you can see, the intensity will have a max. of 1 when the distance is 0.
+	 * The coefficient flareCoeff will determine the falloff speed with increasing distance.
+	 */
 
 	factor = distance + size * sqrt(flareCoeff);
 
-	
+
 
 	if (r_flareMethod->integer == 4)		// leilei - EF didn't scale intensity on distance. Speed I guess
-	intensity = 1;
+		intensity = 1;
 	else
-	intensity = flareCoeff * size * size / (factor * factor);
+		intensity = flareCoeff * size * size / (factor * factor);
 
-	if (r_flareMethod->integer == 1)		// leilei - stupid hack to fix the not the way method
-	{
+	if (r_flareMethod->integer == 1) {	// leilei - stupid hack to fix the not the way method
 		if (intensity > 1) intensity = 1;
 
-   	}
+	}
 
-	if (pvrhack)		
-	VectorScale(f->color, 1, color );  
+	if (pvrhack)
+		VectorScale(f->color, 1, color );
 	else
-	VectorScale(f->color, f->drawIntensity * intensity, color);
+		VectorScale(f->color, f->drawIntensity * intensity, color);
 
 
 
-	
+
 
 
 // Calculations for fogging
-	if(tr.world && f->fogNum > 0 && f->fogNum < tr.world->numfogs)
-	{
+	if(tr.world && f->fogNum > 0 && f->fogNum < tr.world->numfogs) {
 		tess.numVertexes = 1;
 		VectorCopy(f->origin, tess.xyz[0]);
 		tess.fogNum = f->fogNum;
-	
+
 		RB_CalcModulateColorsByFog(fogFactors);
-		
+
 		// We don't need to render the flare if colors are 0 anyways.
 		if(!(fogFactors[0] || fogFactors[1] || fogFactors[2]))
 			return;
@@ -697,37 +699,34 @@ void RB_RenderFlare( flare_t *f ) {
 	iColor[1] = color[1] * fogFactors[1];
 	iColor[2] = color[2] * fogFactors[2];
 	if (pvrhack)
-	alphcal = f->drawIntensity * tr.identityLight * 255;	// Calculate alphas from intensity instead 
+		alphcal = f->drawIntensity * tr.identityLight * 255;	// Calculate alphas from intensity instead
 	else
-	alphcal = 255;				// Don't mess with alpha.
+		alphcal = 255;				// Don't mess with alpha.
 
 
-		
+
 
 	float halfer = 1;
-	if (f->ftype == 5 || f->ftype == 6 || f->ftype == 7 || f->ftype == 166){
-		RB_BeginSurface( tr.flareShaderAtlas, f->fogNum ); 
+	if (f->ftype == 5 || f->ftype == 6 || f->ftype == 7 || f->ftype == 166) {
+		RB_BeginSurface( tr.flareShaderAtlas, f->fogNum );
 		halfer = 0.5f;
-		}
-	else
-		{
+	}
+	else {
 
 
-		if (r_flareQuality->integer)		// leilei - high quality flares get no depth testing
-		{
+		if (r_flareQuality->integer) {	// leilei - high quality flares get no depth testing
 			int index;
-			
-			for(index = 0; index <f->theshader->numUnfoggedPasses; index++)
-			{
+
+			for(index = 0; index <f->theshader->numUnfoggedPasses; index++) {
 				f->theshader->stages[index]->adjustColorsForFog = ACFF_NONE;
 				f->theshader->stages[index]->stateBits |= GLS_DEPTHTEST_DISABLE;
 			}
 		}
 
 
-		RB_BeginSurface( f->theshader, f->fogNum ); 
+		RB_BeginSurface( f->theshader, f->fogNum );
 
-					
+
 		halfer = 1;
 	}
 
@@ -771,22 +770,22 @@ void RB_RenderFlare( flare_t *f ) {
 	tess.vertexColors[tess.numVertexes][2] = iColor[2];
 	tess.vertexColors[tess.numVertexes][3] = alphcal;
 	tess.numVertexes++;
-	
+
 	tess.indexes[tess.numIndexes++] = 0;
 	tess.indexes[tess.numIndexes++] = 1;
 	tess.indexes[tess.numIndexes++] = 2;
 	tess.indexes[tess.numIndexes++] = 0;
 	tess.indexes[tess.numIndexes++] = 2;
 	tess.indexes[tess.numIndexes++] = 3;
-	
+
 	ind+=4;
-	
+
 	// reflections -- tcpparena
-	
-	if(f->ftype == 2 || f->ftype == 4){
-		
+
+	if(f->ftype == 2 || f->ftype == 4) {
+
 		// renders sharp lens flare.
-		
+
 		float cx, cy;
 		float dx, dy;
 		float size2;
@@ -799,15 +798,15 @@ void RB_RenderFlare( flare_t *f ) {
 		int n;
 		cx=backEnd.viewParms.viewportX+(backEnd.viewParms.viewportWidth>>1);
 		cy=backEnd.viewParms.viewportY+(backEnd.viewParms.viewportHeight>>1);
-		for(n=0;n<5;n++){
+		for(n=0; n<5; n++) {
 			dx=(f->windowX-cx)*poses[n]+cx;
 			dy=(f->windowY-cy)*poses[n]+cy;
 			size2=sizes[n]*backEnd.viewParms.viewportWidth*.25f;
-			
+
 			brightness1[n]=(int)(brightness1[n]*r_lensReflectionBrightness->value);
 			brightness2[n]=(int)(brightness2[n]*r_lensReflectionBrightness->value);
 			brightness3[n]=(int)(brightness3[n]*r_lensReflectionBrightness->value);
-			
+
 			tess.xyz[tess.numVertexes][0] = dx-size2;
 			tess.xyz[tess.numVertexes][1] = dy;
 			tess.texCoords[tess.numVertexes][0][0] = .5f;
@@ -817,7 +816,7 @@ void RB_RenderFlare( flare_t *f ) {
 			tess.vertexColors[tess.numVertexes][2] = (iColor[2]*brightness3[n])>>8;
 			tess.vertexColors[tess.numVertexes][3] = 255;
 			tess.numVertexes++;
-			
+
 			tess.xyz[tess.numVertexes][0] = dx-size2*.5f;
 			tess.xyz[tess.numVertexes][1] = dy-size2*r3_2;
 			tess.texCoords[tess.numVertexes][0][0] = .5f;
@@ -827,7 +826,7 @@ void RB_RenderFlare( flare_t *f ) {
 			tess.vertexColors[tess.numVertexes][2] = (iColor[2]*brightness3[n])>>8;
 			tess.vertexColors[tess.numVertexes][3] = 255;
 			tess.numVertexes++;
-			
+
 			tess.xyz[tess.numVertexes][0] = dx+size2*.5f;
 			tess.xyz[tess.numVertexes][1] = dy-size2*r3_2;
 			tess.texCoords[tess.numVertexes][0][0] = .5f;
@@ -837,7 +836,7 @@ void RB_RenderFlare( flare_t *f ) {
 			tess.vertexColors[tess.numVertexes][2] = (iColor[2]*brightness3[n])>>8;
 			tess.vertexColors[tess.numVertexes][3] = 255;
 			tess.numVertexes++;
-			
+
 			tess.xyz[tess.numVertexes][0] = dx+size2;
 			tess.xyz[tess.numVertexes][1] = dy;
 			tess.texCoords[tess.numVertexes][0][0] = .5f;
@@ -847,7 +846,7 @@ void RB_RenderFlare( flare_t *f ) {
 			tess.vertexColors[tess.numVertexes][2] = (iColor[2]*brightness3[n])>>8;
 			tess.vertexColors[tess.numVertexes][3] = 255;
 			tess.numVertexes++;
-			
+
 			tess.xyz[tess.numVertexes][0] = dx+size2*.5f;
 			tess.xyz[tess.numVertexes][1] = dy+size2*r3_2;
 			tess.texCoords[tess.numVertexes][0][0] = .5f;
@@ -857,7 +856,7 @@ void RB_RenderFlare( flare_t *f ) {
 			tess.vertexColors[tess.numVertexes][2] = (iColor[2]*brightness3[n])>>8;
 			tess.vertexColors[tess.numVertexes][3] = 255;
 			tess.numVertexes++;
-			
+
 			tess.xyz[tess.numVertexes][0] = dx-size2*.5f;
 			tess.xyz[tess.numVertexes][1] = dy+size2*r3_2;
 			tess.texCoords[tess.numVertexes][0][0] = .5f;
@@ -867,7 +866,7 @@ void RB_RenderFlare( flare_t *f ) {
 			tess.vertexColors[tess.numVertexes][2] = (iColor[2]*brightness3[n])>>8;
 			tess.vertexColors[tess.numVertexes][3] = 255;
 			tess.numVertexes++;
-			
+
 			tess.indexes[tess.numIndexes++] = 2+ind;
 			tess.indexes[tess.numIndexes++] = 1+ind;
 			tess.indexes[tess.numIndexes++] = 0+ind;
@@ -880,18 +879,18 @@ void RB_RenderFlare( flare_t *f ) {
 			tess.indexes[tess.numIndexes++] = 5+ind;
 			tess.indexes[tess.numIndexes++] = 4+ind;
 			tess.indexes[tess.numIndexes++] = 0+ind;
-			
+
 			ind+=6;
-			
+
 		}
 	}
 
 
 
-	if(f->ftype == 3 || f->ftype == 4){
-		
+	if(f->ftype == 3 || f->ftype == 4) {
+
 		// renders fuzzy lens flare.
-		
+
 		float cx, cy;
 		float dx, dy;
 		float size2;
@@ -903,17 +902,17 @@ void RB_RenderFlare( flare_t *f ) {
 		int n;
 		cx=backEnd.viewParms.viewportX+(backEnd.viewParms.viewportWidth>>1);
 		cy=backEnd.viewParms.viewportY+(backEnd.viewParms.viewportHeight>>1);
-		
-		
-		for(n=0;n<2;n++){
+
+
+		for(n=0; n<2; n++) {
 			dx=(f->windowX-cx)*poses[n]+cx;
 			dy=(f->windowY-cy)*poses[n]+cy;
 			size2=sizes[n]*flaredsize2*.25f;
-			
+
 			brightness1[n]=(int)(brightness1[n]*r_lensReflectionBrightness->value);
 			brightness2[n]=(int)(brightness2[n]*r_lensReflectionBrightness->value);
 			brightness3[n]=(int)(brightness3[n]*r_lensReflectionBrightness->value);
-			
+
 			tess.xyz[tess.numVertexes][0] = dx-size2;
 			tess.xyz[tess.numVertexes][1] = dy-size2;
 			tess.texCoords[tess.numVertexes][0][0] = 0.f;
@@ -923,7 +922,7 @@ void RB_RenderFlare( flare_t *f ) {
 			tess.vertexColors[tess.numVertexes][2] = (iColor[2]*brightness3[n])>>8;
 			tess.vertexColors[tess.numVertexes][3] = alphcal;
 			tess.numVertexes++;
-			
+
 			tess.xyz[tess.numVertexes][0] = dx-size2;
 			tess.xyz[tess.numVertexes][1] = dy+size2;
 			tess.texCoords[tess.numVertexes][0][0] = 0.f;
@@ -933,7 +932,7 @@ void RB_RenderFlare( flare_t *f ) {
 			tess.vertexColors[tess.numVertexes][2] = (iColor[2]*brightness3[n])>>8;
 			tess.vertexColors[tess.numVertexes][3] = alphcal;
 			tess.numVertexes++;
-			
+
 			tess.xyz[tess.numVertexes][0] = dx+size2;
 			tess.xyz[tess.numVertexes][1] = dy+size2;
 			tess.texCoords[tess.numVertexes][0][0] = 1.f;
@@ -943,7 +942,7 @@ void RB_RenderFlare( flare_t *f ) {
 			tess.vertexColors[tess.numVertexes][2] = (iColor[2]*brightness3[n])>>8;
 			tess.vertexColors[tess.numVertexes][3] = alphcal;
 			tess.numVertexes++;
-			
+
 			tess.xyz[tess.numVertexes][0] = dx+size2;
 			tess.xyz[tess.numVertexes][1] = dy-size2;
 			tess.texCoords[tess.numVertexes][0][0] = 1.f;
@@ -953,25 +952,25 @@ void RB_RenderFlare( flare_t *f ) {
 			tess.vertexColors[tess.numVertexes][2] = (iColor[2]*brightness3[n])>>8;
 			tess.vertexColors[tess.numVertexes][3] = alphcal;
 			tess.numVertexes++;
-		
+
 			tess.indexes[tess.numIndexes++] = 0+ind;
 			tess.indexes[tess.numIndexes++] = 1+ind;
 			tess.indexes[tess.numIndexes++] = 2+ind;
 			tess.indexes[tess.numIndexes++] = 0+ind;
 			tess.indexes[tess.numIndexes++] = 2+ind;
 			tess.indexes[tess.numIndexes++] = 3+ind;
-			
+
 			ind+=4;
-		
-			
+
+
 		}
 	}
 
-		float drak;
+	float drak;
 
-	if(f->ftype == 5 || f->ftype == 6 || f->ftype == 7 || f->ftype == 166){
-		
-		// renders special atlas lens flare like fuzzy but not fuzzy 
+	if(f->ftype == 5 || f->ftype == 6 || f->ftype == 7 || f->ftype == 166) {
+
+		// renders special atlas lens flare like fuzzy but not fuzzy
 		int modess;
 		if (f->ftype == 6) modess = 1;		// mono rings
 		else if (f->ftype == 7 || f->ftype == 166) modess = 2;	// force normal colored rings
@@ -981,69 +980,83 @@ void RB_RenderFlare( flare_t *f ) {
 		float size2;
 		float poses[]=	{-1.0f, -0.75f, -0.64f, -0.57f, -0.37f, -0.35f, -0.3f, 1.2f, -.21f, 0.15f, .38f, .56f, .52f, 0.6f, 1.2f, 1.37f};
 		float sizes[]=	{1.15f, 0.7f, 0.2f, 0.35f, 0.24f, .86f, .357f, 2.3f, 0.15f, 0.09f, 0.21f, 0.7f, 0.37f, 	0.23f, 0.3f, 1.2f};
-	        float atlases[]={4, 2, 1, 2, 2, 2, 2, 1, 1, 1, 2, 7, 8, 2, 3, 2};
+		float atlases[]= {4, 2, 1, 2, 2, 2, 2, 1, 1, 1, 2, 7, 8, 2, 3, 2};
 
 		float downsize1 = 0.25f;
 		float downsize2 = 0.25f;
 
-		int brightness1[]=	{16, 5, 6, 18, 18, 38, 18, 12, 	24, 24, 18, 3, 3, 0, 12, 12};		
-		int brightness2[]=	{16, 32, 8, 17, 17, 37, 17, 11, 28, 28, 17, 3, 3, 0, 12, 10};	
-		int brightness3[]=	{27, 3, 24, 0, 0, 17, 0, 4, 28, 28, 0, 	17, 12, 12, 10, 10};		
+		int brightness1[]=	{16, 5, 6, 18, 18, 38, 18, 12, 	24, 24, 18, 3, 3, 0, 12, 12};
+		int brightness2[]=	{16, 32, 8, 17, 17, 37, 17, 11, 28, 28, 17, 3, 3, 0, 12, 10};
+		int brightness3[]=	{27, 3, 24, 0, 0, 17, 0, 4, 28, 28, 0, 	17, 12, 12, 10, 10};
 
 
 		int n;
 		vec3_t	colarz;
 		cx=backEnd.viewParms.viewportX+(backEnd.viewParms.viewportWidth>>1);
 		cy=backEnd.viewParms.viewportY+(backEnd.viewParms.viewportHeight>>1);
-		
-		
-		for(n=0;n<16;n++){
+
+
+		for(n=0; n<16; n++) {
 			dx=(f->windowX-cx)*poses[n]+cx;
 			dy=(f->windowY-cy)*poses[n]+cy;
 			size2=sizes[n]*flaredsize2*.25f;
 
 			drak = f->radius * 0.07;
-			if (atlases[n] == 1){ downsize1 = 1; downsize2 = 1;		};
-			if (atlases[n] == 3){ downsize1 = 1; downsize2 = -1;		};
-			if (atlases[n] == 4){ downsize1 = -1; downsize2 = -1;		};
-			if (atlases[n] == 2){ downsize1 = -1; downsize2 = 1;		};
-			
+			if (atlases[n] == 1) {
+				downsize1 = 1;
+				downsize2 = 1;
+			};
+			if (atlases[n] == 3) {
+				downsize1 = 1;
+				downsize2 = -1;
+			};
+			if (atlases[n] == 4) {
+				downsize1 = -1;
+				downsize2 = -1;
+			};
+			if (atlases[n] == 2) {
+				downsize1 = -1;
+				downsize2 = 1;
+			};
 
-			if (modess == 1){
-			brightness1[n] = brightness1[n] + brightness2[n] + brightness3[n] * 0.0100;
-			brightness2[n] = brightness1[n];  brightness3[n] = brightness1[n];
+
+			if (modess == 1) {
+				brightness1[n] = brightness1[n] + brightness2[n] + brightness3[n] * 0.0100;
+				brightness2[n] = brightness1[n];
+				brightness3[n] = brightness1[n];
 			}
 			brightness1[n]=(int)(brightness1[n]*r_lensReflectionBrightness->value) * drak;
 			brightness2[n]=(int)(brightness2[n]*r_lensReflectionBrightness->value) * drak;
 			brightness3[n]=(int)(brightness3[n]*r_lensReflectionBrightness->value) * drak;
 
-			if (modess == 2){
-				iColor[0] = 32.0f; iColor[1] = 32.0f;    iColor[2] = 32.0f;
+			if (modess == 2) {
+				iColor[0] = 32.0f;
+				iColor[1] = 32.0f;
+				iColor[2] = 32.0f;
 			}
 
-			if (pvrhack){
-			if (modess == 2){
-			colarz[0] = ceil(iColor[0]*brightness1[n]);
-			colarz[1] = ceil(iColor[1]*brightness2[n]);
-			colarz[2] = ceil(iColor[2]*brightness3[n]);
+			if (pvrhack) {
+				if (modess == 2) {
+					colarz[0] = ceil(iColor[0]*brightness1[n]);
+					colarz[1] = ceil(iColor[1]*brightness2[n]);
+					colarz[2] = ceil(iColor[2]*brightness3[n]);
+				}
+				else {
+					colarz[0] = ceil(iColor[0]);
+					colarz[1] = ceil(iColor[1]);
+					colarz[2] = ceil(iColor[2]);
+				}
+
+				alphcal=r_lensReflectionBrightness->value * drak * 56;
 			}
 			else
-			{
-			colarz[0] = ceil(iColor[0]);
-			colarz[1] = ceil(iColor[1]);
-			colarz[2] = ceil(iColor[2]);
-			}
-
-			alphcal=r_lensReflectionBrightness->value * drak * 56;
-			}
-			else
 
 			{
-			colarz[0] = (iColor[0]*brightness1[n])>>8;
-			colarz[1] = (iColor[1]*brightness2[n])>>8;
-			colarz[2] = (iColor[2]*brightness3[n])>>8;
+				colarz[0] = (iColor[0]*brightness1[n])>>8;
+				colarz[1] = (iColor[1]*brightness2[n])>>8;
+				colarz[2] = (iColor[2]*brightness3[n])>>8;
 			}
-			
+
 			tess.xyz[tess.numVertexes][0] = dx-size2;
 			tess.xyz[tess.numVertexes][1] = dy-size2;
 			tess.texCoords[tess.numVertexes][0][0] = 0.f;
@@ -1053,7 +1066,7 @@ void RB_RenderFlare( flare_t *f ) {
 			tess.vertexColors[tess.numVertexes][2] = colarz[2];
 			tess.vertexColors[tess.numVertexes][3] = alphcal;
 			tess.numVertexes++;
-			
+
 			tess.xyz[tess.numVertexes][0] = dx-size2;
 			tess.xyz[tess.numVertexes][1] = dy+size2;
 			tess.texCoords[tess.numVertexes][0][0] = 0.f;
@@ -1063,7 +1076,7 @@ void RB_RenderFlare( flare_t *f ) {
 			tess.vertexColors[tess.numVertexes][2] = colarz[2];
 			tess.vertexColors[tess.numVertexes][3] = alphcal;
 			tess.numVertexes++;
-			
+
 			tess.xyz[tess.numVertexes][0] = dx+size2;
 			tess.xyz[tess.numVertexes][1] = dy+size2;
 			tess.texCoords[tess.numVertexes][0][0] = 0.5f  * downsize1;
@@ -1073,7 +1086,7 @@ void RB_RenderFlare( flare_t *f ) {
 			tess.vertexColors[tess.numVertexes][2] = colarz[2];
 			tess.vertexColors[tess.numVertexes][3] = alphcal;
 			tess.numVertexes++;
-			
+
 			tess.xyz[tess.numVertexes][0] = dx+size2;
 			tess.xyz[tess.numVertexes][1] = dy-size2;
 			tess.texCoords[tess.numVertexes][0][0] = 0.5f * downsize1;
@@ -1083,25 +1096,25 @@ void RB_RenderFlare( flare_t *f ) {
 			tess.vertexColors[tess.numVertexes][2] = colarz[2];
 			tess.vertexColors[tess.numVertexes][3] = alphcal;
 			tess.numVertexes++;
-		
-		
+
+
 			tess.indexes[tess.numIndexes++] = 0+ind;
 			tess.indexes[tess.numIndexes++] = 1+ind;
 			tess.indexes[tess.numIndexes++] = 2+ind;
 			tess.indexes[tess.numIndexes++] = 0+ind;
 			tess.indexes[tess.numIndexes++] = 2+ind;
 			tess.indexes[tess.numIndexes++] = 3+ind;
-			
+
 			ind+=4;
-		
-			
+
+
 		}
 	}
 
-	if(f->ftype == 8 ){
-		
+	if(f->ftype == 8 ) {
+
 		// renders anamorphic flare
-		// JUST LIKE TEH MOVEEZ!!!!!!!!!		
+		// JUST LIKE TEH MOVEEZ!!!!!!!!!
 		float cx, cy;
 		float dx, dy;
 		float size2;
@@ -1115,18 +1128,18 @@ void RB_RenderFlare( flare_t *f ) {
 		int n;
 		cx=backEnd.viewParms.viewportX+(backEnd.viewParms.viewportWidth>>1);
 		cy=backEnd.viewParms.viewportY+(backEnd.viewParms.viewportHeight>>1);
-		
-			drak = f->radius * 0.02;
-		for(n=0;n<3;n++){
+
+		drak = f->radius * 0.02;
+		for(n=0; n<3; n++) {
 			dx=(f->windowX-cx)*poses[n]+cx;
 			dy=(f->windowY-cy)*poses[n]+cy;
 			size2=sizes[n]*flaredsize2 * drak*.25f;
 			size3=sizes2[n]*flaredsize2 * (drak) *.25f;
-			
+
 			brightness1[n]=(int)(brightness1[n]*6 *r_lensReflectionBrightness->value);
 			brightness2[n]=(int)(brightness2[n]*6 *r_lensReflectionBrightness->value);
 			brightness3[n]=(int)(brightness3[n]*6 *r_lensReflectionBrightness->value);
-			
+
 			tess.xyz[tess.numVertexes][0] = dx-size2;
 			tess.xyz[tess.numVertexes][1] = dy-size3;
 			tess.texCoords[tess.numVertexes][0][0] = 0.f;
@@ -1136,7 +1149,7 @@ void RB_RenderFlare( flare_t *f ) {
 			tess.vertexColors[tess.numVertexes][2] = (iColor[2]*brightness3[n])>>8;
 			tess.vertexColors[tess.numVertexes][3] = alphcal;
 			tess.numVertexes++;
-			
+
 			tess.xyz[tess.numVertexes][0] = dx-size2;
 			tess.xyz[tess.numVertexes][1] = dy+size3;
 			tess.texCoords[tess.numVertexes][0][0] = 0.f;
@@ -1146,7 +1159,7 @@ void RB_RenderFlare( flare_t *f ) {
 			tess.vertexColors[tess.numVertexes][2] = (iColor[2]*brightness3[n])>>8;
 			tess.vertexColors[tess.numVertexes][3] = alphcal;
 			tess.numVertexes++;
-			
+
 			tess.xyz[tess.numVertexes][0] = dx+size2;
 			tess.xyz[tess.numVertexes][1] = dy+size3;
 			tess.texCoords[tess.numVertexes][0][0] = 1.f;
@@ -1156,7 +1169,7 @@ void RB_RenderFlare( flare_t *f ) {
 			tess.vertexColors[tess.numVertexes][2] = (iColor[2]*brightness3[n])>>8;
 			tess.vertexColors[tess.numVertexes][3] = alphcal;
 			tess.numVertexes++;
-			
+
 			tess.xyz[tess.numVertexes][0] = dx+size2;
 			tess.xyz[tess.numVertexes][1] = dy-size3;
 			tess.texCoords[tess.numVertexes][0][0] = 1.f;
@@ -1166,17 +1179,17 @@ void RB_RenderFlare( flare_t *f ) {
 			tess.vertexColors[tess.numVertexes][2] = (iColor[2]*brightness3[n])>>8;
 			tess.vertexColors[tess.numVertexes][3] = alphcal;
 			tess.numVertexes++;
-		
+
 			tess.indexes[tess.numIndexes++] = 0+ind;
 			tess.indexes[tess.numIndexes++] = 1+ind;
 			tess.indexes[tess.numIndexes++] = 2+ind;
 			tess.indexes[tess.numIndexes++] = 0+ind;
 			tess.indexes[tess.numIndexes++] = 2+ind;
 			tess.indexes[tess.numIndexes++] = 3+ind;
-			
+
 			ind+=4;
-		
-			
+
+
 		}
 	}
 	RB_EndSurface();
@@ -1200,7 +1213,8 @@ when occluded by something in the main view, and portal flares that should
 extend past the portal edge will be overwritten.
 ==================
 */
-void RB_RenderFlares (void) {
+void RB_RenderFlares (void)
+{
 	flare_t		*f;
 	flare_t		**prev;
 	qboolean	draw;
@@ -1210,11 +1224,10 @@ void RB_RenderFlares (void) {
 	}
 
 	if ( (backEnd.refdef.rdflags & RDF_NOWORLDMODEL)) 	return;		// leilei - don't draw flares in the UI. this prevents
-										// a very very very very nasty error relating to the trace checks
-										// leading to recursive startup in te OA3 menu
+	// a very very very very nasty error relating to the trace checks
+	// leading to recursive startup in te OA3 menu
 
-	if(r_flareCoeff->modified)
-	{
+	if(r_flareCoeff->modified) {
 		R_SetFlareCoeff();
 		r_flareCoeff->modified = qfalse;
 	}
@@ -1242,23 +1255,24 @@ void RB_RenderFlares (void) {
 		// don't draw any here that aren't from this scene / portal
 		f->drawIntensity = 0;
 		if ( f->frameSceneNum == backEnd.viewParms.frameSceneNum
-			&& f->inPortal == backEnd.viewParms.isPortal ) {
-	if (r_flareQuality->integer > 4)		// highest flare quality - only frequent readpixels, no trace
-			RB_TestFlare( f, 0 );
-	else if (r_flareQuality->integer == 4)		// high flare quality - frequent readpixels, trace
-			RB_TestFlare( f, 1 );
-	else if (r_flareQuality->integer == 3)		// medium flare quality - delayed readpixels, no trace (faster for some cpus than 2)
-			RB_TestFlareFast( f, 0 );
-	else if (r_flareQuality->integer == 2)		// low flare quality - delayed readpixels, trace
-			RB_TestFlareFast( f, 1 );
-	else if (r_flareQuality->integer == 1)		// lower flare quality - no readpixels, trace
-			RB_TestFlareTraceOnly( f );
-		else
-			RB_TestFlareFast( f, 1 );		// lowest is actually a different surface flare defined elsewhere
+		        && f->inPortal == backEnd.viewParms.isPortal ) {
+			if (r_flareQuality->integer > 4)		// highest flare quality - only frequent readpixels, no trace
+				RB_TestFlare( f, 0 );
+			else if (r_flareQuality->integer == 4)		// high flare quality - frequent readpixels, trace
+				RB_TestFlare( f, 1 );
+			else if (r_flareQuality->integer == 3)		// medium flare quality - delayed readpixels, no trace (faster for some cpus than 2)
+				RB_TestFlareFast( f, 0 );
+			else if (r_flareQuality->integer == 2)		// low flare quality - delayed readpixels, trace
+				RB_TestFlareFast( f, 1 );
+			else if (r_flareQuality->integer == 1)		// lower flare quality - no readpixels, trace
+				RB_TestFlareTraceOnly( f );
+			else
+				RB_TestFlareFast( f, 1 );		// lowest is actually a different surface flare defined elsewhere
 
 			if ( f->drawIntensity ) {
 				draw = qtrue;
-			} else {
+			}
+			else {
 				// this flare has completely faded out, so remove it from the chain
 				*prev = f->next;
 				f->next = r_inactiveFlares;
@@ -1279,18 +1293,18 @@ void RB_RenderFlares (void) {
 	}
 
 	qglPushMatrix();
-    qglLoadIdentity();
+	qglLoadIdentity();
 	qglMatrixMode( GL_PROJECTION );
 	qglPushMatrix();
-    qglLoadIdentity();
+	qglLoadIdentity();
 	qglOrtho( backEnd.viewParms.viewportX, backEnd.viewParms.viewportX + backEnd.viewParms.viewportWidth,
-			  backEnd.viewParms.viewportY, backEnd.viewParms.viewportY + backEnd.viewParms.viewportHeight,
-			  -99999, 99999 );
+	          backEnd.viewParms.viewportY, backEnd.viewParms.viewportY + backEnd.viewParms.viewportHeight,
+	          -99999, 99999 );
 
 	for ( f = r_activeFlares ; f ; f = f->next ) {
 		if ( f->frameSceneNum == backEnd.viewParms.frameSceneNum
-			&& f->inPortal == backEnd.viewParms.isPortal
-			&& f->drawIntensity ) {
+		        && f->inPortal == backEnd.viewParms.isPortal
+		        && f->drawIntensity ) {
 			RB_RenderFlare( f );
 		}
 	}
@@ -1302,7 +1316,8 @@ void RB_RenderFlares (void) {
 
 
 
-void RB_DrawSunFlare( void ) {
+void RB_DrawSunFlare( void )
+{
 	float		size;
 	float		dist;
 	vec3_t		origin, vec1, vec2;
@@ -1354,8 +1369,8 @@ void RB_DrawSunFlare( void ) {
 
 
 		int g;
-		for (g=0;g<3;g++)
-		if (coll[g] > 1) coll[g] = 1;
+		for (g=0; g<3; g++)
+			if (coll[g] > 1) coll[g] = 1;
 
 		VectorCopy( origin, temp );
 		VectorSubtract( temp, vec1, temp );
