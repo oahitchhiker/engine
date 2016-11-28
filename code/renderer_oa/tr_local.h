@@ -2373,18 +2373,18 @@ void R_MotionBlur_BackupScreen(int which);
 void R_AddParticles (void);
 void R_RenderParticles (void);
 void R_ClearParticles (void);
-void R_LFX_Spark (vec3_t org, vec3_t dir, float spread, float speed, vec4_t color1, vec4_t color2, vec4_t color3, vec4_t color4, vec4_t color5, int count, int duration, float scaleup, int blendfunc);
-void R_LFX_Smoke (vec3_t org, vec3_t dir, float spread, float speed, vec4_t color1, vec4_t color2, vec4_t color3, vec4_t color4, vec4_t color5, int count, int duration, float scaleup, int blendfunc);
-void R_LFX_Smoke2 (vec3_t org, vec3_t dir, float spread, float speed, vec4_t color1, vec4_t color2, vec4_t color3, vec4_t color4, vec4_t color5, int count, int duration, float scale, float scaleup, int blendfunc);
-void R_LFX_Shock (vec3_t org, vec3_t dir, float spread, float speed, vec4_t color1, vec4_t color2, vec4_t color3, vec4_t color4, vec4_t color5, int count, int duration, float scaleup, int blendfunc);
-void R_LFX_Burst (vec3_t org, vec3_t dir, float spread, float speed, vec4_t color1, vec4_t color2, vec4_t color3, vec4_t color4, vec4_t color5, int count, int duration, float scaleup, int blendfunc);
-void R_LFX_PushSmoke (vec3_t there, float force);
+void R_LFX_Spark (const vec3_t org, const vec3_t dir, float spread, float speed, vec4_t color1, vec4_t color2, vec4_t color3, vec4_t color4, vec4_t color5, int count, int duration, float scaleup, int blendfunc);
+void R_LFX_Smoke (const vec3_t org, const vec3_t dir, float spread, float speed, vec4_t color1, vec4_t color2, vec4_t color3, vec4_t color4, vec4_t color5, int count, int duration, float scaleup, int blendfunc);
+void R_LFX_Smoke2 (const vec3_t org, const vec3_t dir, float spread, float speed, vec4_t color1, vec4_t color2, vec4_t color3, vec4_t color4, vec4_t color5, int count, int duration, float scale, float scaleup, int blendfunc);
+void R_LFX_Shock (const vec3_t org, const vec3_t dir, float spread, float speed, vec4_t color1, vec4_t color2, vec4_t color3, vec4_t color4, vec4_t color5, int count, int duration, float scaleup, int blendfunc);
+void R_LFX_Burst (const vec3_t org, const vec3_t dir, float spread, float speed, vec4_t color1, vec4_t color2, vec4_t color3, vec4_t color4, vec4_t color5, int count, int duration, float scaleup, int blendfunc);
+void R_LFX_PushSmoke (const vec3_t there, float force);
 
-void R_RunParticleEffect (vec3_t org, vec3_t dir, int color, int count);
-void R_QarticleExplosion(vec3_t org);
-void R_LFX_Blood (vec3_t org, vec3_t dir, float pressure) ;
+void R_RunParticleEffect (const vec3_t org, const vec3_t dir, int color, int count);
+void R_QarticleExplosion(const vec3_t org);
+void R_LFX_Blood (const vec3_t org, const vec3_t dir, float pressure) ;
 void LFX_ShaderInit(void);
-void LFX_ParticleEffect (int effect, vec3_t org, vec3_t dir);
+void LFX_ParticleEffect (int effect, const vec3_t org, const vec3_t dir);
 
 #endif //TR_LOCAL_H
 
