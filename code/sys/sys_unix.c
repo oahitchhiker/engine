@@ -150,7 +150,7 @@ static void CreateXDGPathAndMisc( void ) {
 			Com_Printf("Failed to move \"%s\" to \"%s\". Error code: %d. Non fatal.", homeClassic, homeXdg, errCode);
 		}
 	}
-	if (Sys_IsDir(homeXdg)) {
+	if (!Sys_IsDir(homeXdg)) {
 		int errCode = Sys_Mkdir(homeXdg);
 		if (errCode) {
 			Com_Printf("Failed to create \"%s\". Error code: %d. This is quite bad.", homeXdg, errCode);
