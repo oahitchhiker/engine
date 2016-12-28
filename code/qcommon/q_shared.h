@@ -32,6 +32,7 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
   #define CLIENT_WINDOW_TITLE     	"OpenArena"
   #define CLIENT_WINDOW_MIN_TITLE 	"OA"
   #define HOMEPATH_NAME_UNIX		".openarena"
+  #define HOMEPATH_NAME_XDG         "openarena"
   #define HOMEPATH_NAME_WIN		"OpenArena"
   #define HOMEPATH_NAME_MACOSX		HOMEPATH_NAME_WIN
   #define GAMENAME_FOR_MASTER		"Quake3Arena"	// must NOT contain whitespace.  No servers show up if you use "openarena"
