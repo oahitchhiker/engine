@@ -107,7 +107,7 @@ static void Sys_SetHomePaths( void ) {
  */
 static qboolean Sys_IsSymbolic(const char* path) {
 	struct stat buf;
-    int errCode = lstat(path, &buf);
+	int errCode = lstat(path, &buf);
 	return (errCode == 0);
 }
 
