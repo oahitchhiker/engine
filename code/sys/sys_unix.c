@@ -68,6 +68,7 @@ static void Sys_ConcatXdgHomepathName(char* dest, size_t n) {
 /**
  * Assignes a buffer with the value of the Xdg home.
  * Normally: "$HOME/.local/share/openarena"
+ * XDG_DATA_HOME will also be recursivly created if it is missing
  * If it failes the destination buffer will be the empty string.
  * @param dest Buffer to place the value into
  * @param n Size of buffer
@@ -77,12 +78,14 @@ static void Sys_SetXdgDataHomePath(char* dest, size_t n) {
 	dest[0] = '\0';
 	if (xdgDataPath) {
 		Com_sprintf(dest, n, "%s/", xdgDataPath);
+		FS_CreatePath(dest);
 		Sys_ConcatXdgHomepathName(dest, n);
 		return;
 	}
 	const char* homeFolder = getHome();
 	if (homeFolder) {
 		Com_sprintf(dest, n, "%s/.local/share/", homeFolder);
+		FS_CreatePath(dest);
 		Sys_ConcatXdgHomepathName(dest, n);
 	}
 }
