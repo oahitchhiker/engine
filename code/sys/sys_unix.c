@@ -150,6 +150,14 @@ static void CreateXDGPathAndMisc( void ) {
 			Com_Printf("Failed to move \"%s\" to \"%s\". Error code: %d. Non fatal.", homeClassic, homeXdg, errCode);
 		}
 	}
+	if (!Sys_IsDir(homeXdg) && Sys_IsDir(homeClassic)) {
+		//Home classic does still exist and home Xdg does not. This means that the rename above must have failed.
+		//Link it istead
+		int errCode = symlink(homeClassic, homeXdg);
+		if (errCode) {
+			Com_Printf("Failed to create symbolic link \"%s\". Error code: %d. This is quite bad.", homeXdg, errCode);
+		}
+	}
 	if (!Sys_IsDir(homeXdg)) {
 		int errCode = Sys_Mkdir(homeXdg);
 		if (errCode) {
@@ -160,12 +168,6 @@ static void CreateXDGPathAndMisc( void ) {
 		int errCode = symlink(homeXdg, homeClassic);
 		if (errCode) {
 			Com_Printf("Failed to create symbolic link \"%s\". Error code: %d. This is quite bad.", homeClassic, errCode);
-		}
-	}
-	if (!Sys_IsDir(homeXdg) && Sys_IsDir(homeClassic)) {
-		int errCode = symlink(homeClassic, homeXdg);
-		if (errCode) {
-			Com_Printf("Failed to create symbolic link \"%s\". Error code: %d. This is quite bad.", homeXdg, errCode);
 		}
 	}
 }
@@ -193,12 +195,6 @@ const char *Sys_DefaultHomePath(void)
 			else
 				Q_strcat(homePath, sizeof(homePath), HOMEPATH_NAME_MACOSX);
 #else
-#if 0
-			if(com_homepath->string[0])
-				Q_strcat(homePath, sizeof(homePath), com_homepath->string);
-			else
-				Q_strcat(homePath, sizeof(homePath), HOMEPATH_NAME_UNIX);
-#endif
 			CreateXDGPathAndMisc();
 			Com_sprintf(homePath, sizeof(homePath), "%s", homeXdg);
 #endif
