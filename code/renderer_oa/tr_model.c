@@ -194,20 +194,21 @@ qhandle_t R_RegisterMDO(const char *name, model_t *mod)
 		unsigned *u;
 		void *v;
 	} buf;
-	int	ident;
 	qboolean loaded = qfalse;
-	int filesize;
-
-	filesize = ri.FS_ReadFile(name, (void **) &buf.v);
+#if 0
+	int filesize = 
+#endif
+	ri.FS_ReadFile(name, (void **) &buf.v);
 	if(!buf.u)
 	{
 		mod->type = MOD_BAD;
 		return 0;
 	}
-	
-	ident = LittleLong(*(unsigned *)buf.u);
+#if 0
+	int ident = LittleLong(*(unsigned *)buf.u);
 	if(ident == MDO_IDENT)
 		loaded = R_LoadMDO(mod, buf.u, filesize, name);
+#endif
 
 	ri.FS_FreeFile (buf.v);
 	

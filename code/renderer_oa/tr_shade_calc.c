@@ -115,13 +115,14 @@ void RB_CalcLightscaleTexCoords(float *st )
 	float p;
 	texModInfo_t tmi;
 	float light = 1.0f;
-	float ilength;
+#if 0
 	vec3_t		lightDir;
 	vec3_t		ambientLight;
-	vec3_t		directedLight;
 	VectorCopy( backEnd.currentEntity->ambientLight, ambientLight );
-	VectorCopy( backEnd.currentEntity->directedLight, directedLight );
 	VectorCopy( backEnd.currentEntity->lightDir, lightDir );
+#endif
+	vec3_t		directedLight;
+	VectorCopy( backEnd.currentEntity->directedLight, directedLight );
 	//light = DotProduct (directedLight, lightDir);
 	light = ((directedLight[0] + directedLight[1] + directedLight[2]) * 0.333) / 255;
 	if (light > 1)
@@ -653,39 +654,41 @@ void RB_DeformTessGeometry( void ) {
 		ds = &tess.shader->deforms[ i ];
 
 		switch ( ds->deformation ) {
-        case DEFORM_NONE:
-            break;
-		case DEFORM_NORMALS:
-			RB_CalcDeformNormals( ds );
-			break;
-		case DEFORM_WAVE:
-			RB_CalcDeformVertexes( ds );
-			break;
-		case DEFORM_BULGE:
-			RB_CalcBulgeVertexes( ds );
-			break;
-		case DEFORM_MOVE:
-			RB_CalcMoveVertexes( ds );
-			break;
-		case DEFORM_PROJECTION_SHADOW:
-			RB_ProjectionShadowDeform();
-			break;
-		case DEFORM_AUTOSPRITE:
-			AutospriteDeform();
-			break;
-		case DEFORM_AUTOSPRITE2:
-			Autosprite2Deform();
-			break;
-		case DEFORM_TEXT0:
-		case DEFORM_TEXT1:
-		case DEFORM_TEXT2:
-		case DEFORM_TEXT3:
-		case DEFORM_TEXT4:
-		case DEFORM_TEXT5:
-		case DEFORM_TEXT6:
-		case DEFORM_TEXT7:
-			DeformText( backEnd.refdef.text[ds->deformation - DEFORM_TEXT0] );
-			break;
+			case DEFORM_NONE:
+				break;
+			case DEFORM_NORMALS:
+				RB_CalcDeformNormals( ds );
+				break;
+			case DEFORM_WAVE:
+				RB_CalcDeformVertexes( ds );
+				break;
+			case DEFORM_BULGE:
+				RB_CalcBulgeVertexes( ds );
+				break;
+			case DEFORM_MOVE:
+				RB_CalcMoveVertexes( ds );
+				break;
+			case DEFORM_PROJECTION_SHADOW:
+				RB_ProjectionShadowDeform();
+				break;
+			case DEFORM_AUTOSPRITE:
+				AutospriteDeform();
+				break;
+			case DEFORM_AUTOSPRITE2:
+				Autosprite2Deform();
+				break;
+			case DEFORM_TEXT0:
+			case DEFORM_TEXT1:
+			case DEFORM_TEXT2:
+			case DEFORM_TEXT3:
+			case DEFORM_TEXT4:
+			case DEFORM_TEXT5:
+			case DEFORM_TEXT6:
+			case DEFORM_TEXT7:
+				DeformText( backEnd.refdef.text[ds->deformation - DEFORM_TEXT0] );
+				break;
+			default:
+				break;
 		}
 	}
 }
@@ -1034,7 +1037,7 @@ void RB_CalcEnvironmentTexCoordsNew( float *st )
 	int			i;
 	float		*v, *normal;
 	vec3_t		viewer, reflected, where, what, why, who;
-	float		d, a;
+	float		d = 0.0f;
 
 	v = tess.xyz[0];
 	normal = tess.normal[0];
@@ -1056,7 +1059,6 @@ void RB_CalcEnvironmentTexCoordsNew( float *st )
 		VectorNormalizeFast (who);
 
 		d = DotProduct (normal, viewer);
-		a = DotProduct (normal, where);
 
 		if ( backEnd.currentEntity == &tr.worldEntity ){
 

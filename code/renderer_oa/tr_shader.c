@@ -3142,8 +3142,7 @@ qboolean ParseStageSimple( shaderStage_t *stage, char **text )
 			imgFlags_t flags = IMGFLAG_CLAMPTOEDGE;
 
 			token = COM_ParseExt( text, qfalse );
-			if ( !token[0] )
-			{
+			if ( !token[0] ) {
 				ri.Printf( PRINT_WARNING, "WARNING: missing parameter for 'clampmap' keyword in shader '%s'\n", shader.name );
 				return qfalse;
 			}
@@ -3151,13 +3150,14 @@ qboolean ParseStageSimple( shaderStage_t *stage, char **text )
 			if (!shader.noMipMaps)
 				flags |= IMGFLAG_MIPMAP;
 
-			if (!shader.noPicMip)
+			if (!shader.noPicMip) {
 				flags |= IMGFLAG_PICMIP;
+			}
 
-				stage->bundle[0].image[0] = tr.whiteImage;
-				COM_StripExtension( token, imageName, MAX_QPATH );
-				itype = type; iflags = flags;
-				loadlater = 1;
+			stage->bundle[0].image[0] = tr.whiteImage;
+			COM_StripExtension( token, imageName, MAX_QPATH );
+			itype = type; iflags = flags;
+			loadlater = 1;
 		}
 		//
 		// animMap <frequency> <image1> .... <imageN>
@@ -5232,7 +5232,7 @@ shader_t *R_FindShaderReal( const char *name, int lightmapIndex, qboolean mipRaw
 	// LEILEI's DETAIL TEXTURE STUFFS
 	//
 	int material;	// leilei - for picking detail texture
-	int shouldIDetail = 0; // leilei - checking if I should detail.
+	qboolean shouldIDetail = qfalse; // leilei - checking if I should detail.
 	int wi, hi; // leilei - for determining detail texture size by uploaded texture
 	int detailScale; // leilei - detail scale hack
 	int detailLayer; // leilei - detail layer hack
@@ -5318,96 +5318,95 @@ shader_t *R_FindShaderReal( const char *name, int lightmapIndex, qboolean mipRaw
 			shader.defaultShader = qtrue;
 		}
 
-		if (shader.surfaceFlags || SURF_METALSTEPS)
+		if (shader.surfaceFlags | SURF_METALSTEPS) {
 			material = 1;
+		}
 
 
-			// leilei -  SUPER detail hack to existing shaders,very aggressive and won't look good on 100% of shaders
-		
-			if((shader.lightmapIndex != LIGHTMAP_WHITEIMAGE && shader.lightmapIndex != LIGHTMAP_BY_VERTEX && shader.lightmapIndex != LIGHTMAP_2D && shader.lightmapIndex != LIGHTMAP_NONE) ){
-			if (r_detailTextures->integer)
-				{
-					image_t		*imageDetail;		 // for snagging it into more layers if we find a defined one
-					int e = 0;
-					int f = 0;
-					int gotdetailalready = 0;
-					int hasaDetailImage = 0;
-					int thisstage = 0;
-					material = 0;
-					wi = hi = 32; // reset to none....
+		// leilei -  SUPER detail hack to existing shaders,very aggressive and won't look good on 100% of shaders
+		if((shader.lightmapIndex != LIGHTMAP_WHITEIMAGE && shader.lightmapIndex != LIGHTMAP_BY_VERTEX && shader.lightmapIndex != LIGHTMAP_2D && shader.lightmapIndex != LIGHTMAP_NONE) ){
+			if (r_detailTextures->integer) {
+				image_t *imageDetail = NULL;  // for snagging it into more layers if we find a defined one
+				int e = 0;
+				int f = 0;
+				qboolean gotdetailalready = qfalse;
+				qboolean hasaDetailImage = qfalse;
+				int thisstage = 0;
+				material = 0;
+				wi = hi = 32; // reset to none....
 
-					shouldIDetail = 0; //yeah
-					for (f=0;f<detailLayer;f++){
-					for (e=0;e<(MAX_SHADER_STAGES-1);e++)
-					{
+				shouldIDetail = qfalse; //yeah
+				for (f=0;f<detailLayer;f++) {
+					for (e=0;e<(MAX_SHADER_STAGES-1);e++) {
 						if (shader.defaultShader)
 							break; // DON'T! This fixes a crash, trying to stage up placeholder/default textures
 
 						// Pick the first free stage to do, hopefully the last
-						if (stages[e].active == qfalse){ thisstage = e; shouldIDetail = 1; break;}
-			
+						if (stages[e].active == qfalse){
+							thisstage = e;
+							shouldIDetail = qtrue;
+							break;
+						}
+
 						// find detail texture scale by determining which of the stages have the largest image
 						if (stages[e].bundle[0].image[0]->uploadHeight > wi) wi = stages[e].bundle[0].image[0]->uploadWidth;
 						if (stages[e].bundle[0].image[0]->uploadHeight > hi) hi = stages[e].bundle[0].image[0]->uploadHeight;
 
 						// for adjusting the detail textures and skipping some redundancy
 						if (stages[e].isDetail){ 
-	
-							if (f < 1){ gotdetailalready = 1; shouldIDetail = 0;
 
-							imageDetail = stages[e].bundle[0].image[0]; // this is it
-							hasaDetailImage = 1;
-									}
-							if (r_detailTextureScale->integer){
-
-								if (stages[e].bundle[0].texMods[0].type == TMOD_SCALE)
-								{
-										wi = 0.25 * wi / (detailScale / (f + 1));
-										hi = 0.25 * hi / (detailScale / (f + 1));
-										stages[e].bundle[0].texMods[0].scale[0] = wi;
-										stages[e].bundle[0].texMods[0].scale[1] = hi;
+							if (f < 1) { 
+								gotdetailalready = qtrue; 
+								shouldIDetail = qfalse;
+								imageDetail = stages[e].bundle[0].image[0]; // this is it
+								hasaDetailImage = qtrue;
+							}
+							if (r_detailTextureScale->integer) {
+								if (stages[e].bundle[0].texMods[0].type == TMOD_SCALE) {
+									wi = 0.25 * wi / (detailScale / (f + 1));
+									hi = 0.25 * hi / (detailScale / (f + 1));
+									stages[e].bundle[0].texMods[0].scale[0] = wi;
+									stages[e].bundle[0].texMods[0].scale[1] = hi;
 								}
 							}
 						}						
 
 					}
-					if (r_detailTextures->integer < 3) shouldIDetail = 0; // don't add detail for low settings
-
-					if ((!gotdetailalready || thisstage) && (shouldIDetail)){
-		
-						// detail it up because i don't care.
-							{
-
-								wi = 0.25  * (f + 1)  * wi / detailScale;
-								hi = 0.25  * (f + 1)  * hi / detailScale;
-
-								detailhack = 1;
-								if (material == 1)	// metalsteps
-							 	stages[thisstage].bundle[0].image[0] = R_FindImageFile( "gfx/fx/detail/d_genericmetal.tga", IMGFLAG_MIPMAP , IMGFLAG_MIPMAP);
-								else if (hasaDetailImage && imageDetail)
-							 	stages[thisstage].bundle[0].image[0] = imageDetail;
-								else
-							 	stages[thisstage].bundle[0].image[0] = R_FindImageFile( "gfx/fx/detail/d_generic.tga", IMGFLAG_MIPMAP , IMGFLAG_MIPMAP);
-								stages[thisstage].active = qtrue;
-								stages[thisstage].rgbGen = CGEN_IDENTITY;
-								stages[thisstage].stateBits |= GLS_SRCBLEND_DST_COLOR | GLS_DSTBLEND_SRC_COLOR | GLS_DEPTHFUNC_EQUAL;
-								stages[thisstage].bundle[0].texMods[0].scale[0] = wi;
-								stages[thisstage].bundle[0].texMods[0].scale[1] = hi;
-								stages[thisstage].bundle[0].texMods[0].type = TMOD_SCALE;
-								stages[thisstage].isDetail = qtrue;
-								stages[thisstage].bundle[0].numTexMods = 1;
-								detailhack = 0;
-				
-							}			
-		
-		
-						}
+					if (r_detailTextures->integer < 3) {
+						// don't add detail for low settings
+						shouldIDetail = qfalse;
 					}
-				
-				}
+
+					if ((!gotdetailalready || thisstage) && (shouldIDetail)) {
+						// detail it up because i don't care.
+						wi = 0.25  * (f + 1)  * wi / detailScale;
+						hi = 0.25  * (f + 1)  * hi / detailScale;
+
+						detailhack = 1;
+						if (material == 1) {
+							// metalsteps
+							stages[thisstage].bundle[0].image[0] = R_FindImageFile( "gfx/fx/detail/d_genericmetal.tga", IMGFLAG_MIPMAP , IMGFLAG_MIPMAP);
+						}
+						else if (hasaDetailImage && imageDetail) {
+							stages[thisstage].bundle[0].image[0] = imageDetail;
+						}
+						else {
+							stages[thisstage].bundle[0].image[0] = R_FindImageFile( "gfx/fx/detail/d_generic.tga", IMGFLAG_MIPMAP , IMGFLAG_MIPMAP);
+						}
+						stages[thisstage].active = qtrue;
+						stages[thisstage].rgbGen = CGEN_IDENTITY;
+						stages[thisstage].stateBits |= GLS_SRCBLEND_DST_COLOR | GLS_DSTBLEND_SRC_COLOR | GLS_DEPTHFUNC_EQUAL;
+						stages[thisstage].bundle[0].texMods[0].scale[0] = wi;
+						stages[thisstage].bundle[0].texMods[0].scale[1] = hi;
+						stages[thisstage].bundle[0].texMods[0].type = TMOD_SCALE;
+						stages[thisstage].isDetail = qtrue;
+						stages[thisstage].bundle[0].numTexMods = 1;
+						detailhack = 0;
+					}
 				}
 
-
+			}
+		}
 		sh = FinishShader();
 		return sh;
 	}
