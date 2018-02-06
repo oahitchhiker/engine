@@ -2246,6 +2246,7 @@ void LFX_ShaderInit ( void )
 void LFX_ParticleEffect1996 (int effect, const vec3_t org, const vec3_t dir)
 {
 	vec3_t notatall;
+	memset(&notatall, 0, sizeof(notatall));
 
 	// Smoke trails on grenades and rockets
 	if (effect == 1) {
@@ -2868,12 +2869,13 @@ void LFX_ParticleEffect200X (int effect, const vec3_t org, const vec3_t dir)
 // - high atlas usage
 void LFX_ParticleEffect1997 (int effect, const vec3_t org, const vec3_t dir)
 {
+#if 0
 	vec3_t origin, sprOrg, sprVel; // laziness
-	vec4_t colory, colory2, colory3, colory4;
 
 	VectorCopy(org, sprOrg);
 	VectorCopy(org, origin);
 	VectorCopy(dir, sprVel);
+#endif
 
 	// Smoke trails on grenades and rockets
 	// this should be several smoke atlases along a line.
@@ -2918,9 +2920,9 @@ void LFX_ParticleEffect1997 (int effect, const vec3_t org, const vec3_t dir)
 
 
 	}
-
+#if 0
 	// Blood Sprays for bullets
-
+	vec4_t colory, colory2, colory3, colory4;
 	if (effect == 14 && com_blood->integer) {
 		colory[0] = 1.0;
 		colory[1] = 0.0;
@@ -2941,6 +2943,7 @@ void LFX_ParticleEffect1997 (int effect, const vec3_t org, const vec3_t dir)
 		//R_LFX_Smoke2 (sprOrg, sprVel, 2 + (random()*6), 6.54+ (random()*8.7), colory, colory2, colory3, colory4, colory4, 1, 800 + (random()*2000), 2, 8+ (random()*6), 0);
 		//R_LFX_Smoke2 (sprOrg, sprVel, 2 + (random()*6), 3.54+ (random()*8.7), colory, colory2, colory3, colory4, colory4, 1, 300 + (random()*2000), 2, 8+ (random()*6), 4);
 	}
+#endif
 
 	// "Blood" Sprays for bullets
 	if (effect == 14 && !com_blood->integer) {

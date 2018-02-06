@@ -2214,7 +2214,7 @@ void R_PaletteScreen( void )
 // WATER BUFFER TEST
 // =================================================================
 
-
+#if 0
 static struct {
 	// NO!
 } water;
@@ -2224,7 +2224,7 @@ static void R_Water_InitTextures( void )
 {
 	// NO!
 }
-
+#endif
 
 
 
@@ -2234,7 +2234,7 @@ void R_InitWaterTextures( void )
 }
 
 
-
+#if 0
 static void R_Water_BackupScreen( void )
 {
 	// NO!
@@ -2250,7 +2250,7 @@ static void R_Water_RestoreScreen( void )
 {
 	// NO!
 }
-
+#endif
 
 void R_WaterInit( void )
 {

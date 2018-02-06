@@ -27,7 +27,7 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 #define C2 0.2241438680420134
 #define C3 -0.1294095225512604
 
-void daub4(float b[], unsigned long n, int isign)
+static void daub4(float b[], unsigned long n, int isign)
 {
 	float wksp[4097] = { 0.0f };
 	float	*a=b-1;						// numerical recipies so a[1] = b[0]
@@ -57,7 +57,7 @@ void daub4(float b[], unsigned long n, int isign)
 	}
 }
 
-void wt1(float a[], unsigned long n, int isign)
+static void wt1(float a[], unsigned long n, int isign)
 {
 	unsigned long nn;
 	int inverseStartLength = n/4;

@@ -99,8 +99,9 @@ byte BestColor (int r, int g, int b, int start, int stop)
 			berstcolor = i;
 		}
 	}
-	if (berstcolor)
-	//ri.Printf( PRINT_ALL, "returned %i\n", berstcolor );
+	if (berstcolor) {
+		//ri.Printf( PRINT_ALL, "returned %i\n", berstcolor );
+	}
 	return berstcolor;
 }
 
@@ -211,17 +212,14 @@ void R_GLSLPalette_f ( )
 void R_InitPalette( void ) {
 
 	byte           *buff;
-	int             len;
 	int i, v;
 	ri.Printf( PRINT_ALL, "INIT PALETTE......\n");
 
-	len = ri.FS_ReadFile("gfx/palette.lmp", (void **)&buff);
+	ri.FS_ReadFile("gfx/palette.lmp", (void **)&buff);
 	if(!buff){
-
-
-	ri.Printf( PRINT_ALL, "PALLETE FALED :(!\n" );
-	paletteavailable = 0;	// Don't have a palette
-	paletteenabled   = 0;	// Don't do 8-bit textures
+		ri.Printf( PRINT_ALL, "PALLETE FALED :(!\n" );
+		paletteavailable = 0;	// Don't have a palette
+		paletteenabled   = 0;	// Don't do 8-bit textures
 		return;
 	}
 
@@ -229,21 +227,23 @@ void R_InitPalette( void ) {
 	ri.Printf( PRINT_ALL, "PALETTE LOADDEEEED!!!!!!!!!!!!1\n" );
 	paletteavailable = 1;	// Do have a palette
 
-	if (palettedTextureSupport)
+	if (palettedTextureSupport) {
 		paletteability = 1;
-	else
+	}
+	else {
 		paletteability = 0;
+	}
 
 	// change the transparent color to black
-		palettemain[255*3] = 0;
-		palettemain[255*3+1] = 0;
-		palettemain[255*3+2] = 0;
+	palettemain[255*3] = 0;
+	palettemain[255*3+1] = 0;
+	palettemain[255*3+2] = 0;
 
 
 	if (paletteability)		// load this palette for GL
 		{
 		qglEnable( GL_SHARED_TEXTURE_PALETTE_EXT );
-		R_SetTexturePalette( palettemain );
+		R_SetTexturePalette( (unsigned*)palettemain );
 		R_SetPalette(palettemain);
 
 		}
@@ -252,13 +252,10 @@ void R_InitPalette( void ) {
 	{
 		int r, g, b, beastcolor;
 		ri.Printf( PRINT_ALL, "15bpp lookup generation.\n" );
-		for (r=0 ; r<256 ; r+=8)
-			{
+		for (r=0 ; r<256 ; r+=8) {
 			ri.Printf( PRINT_ALL, "." );
-				for (g=0 ; g<256 ; g+=8)
-				{
-					for (b=0 ; b<256 ; b+=8)
-					{
+				for (g=0 ; g<256 ; g+=8) {
+					for (b=0 ; b<256 ; b+=8) {
 						beastcolor = BestColor (r, g, b, 1, 254);
 						palmap[r>>3][g>>3][b>>3] = beastcolor;
 					}
@@ -269,16 +266,15 @@ void R_InitPalette( void ) {
 
 	{
 	int re, ge, be;
-	for (i=0 ; i<256 ; i++)
-	{
-		re = palettemain[0];
-		ge = palettemain[1];
-		be = palettemain[2];
-		palettemain += 3;
+		for (i=0 ; i<256 ; i++){
+			re = palettemain[0];
+			ge = palettemain[1];
+			be = palettemain[2];
+			palettemain += 3;
 
-		v = (255<<24) + (re<<0) + (ge<<8) + (be<<16);
-		d_8to24table[i] = v;
-	}
+			v = (255<<24) + (re<<0) + (ge<<8) + (be<<16);
+			d_8to24table[i] = v;
+		}
 	}
 
 }
@@ -354,7 +350,7 @@ void GL_TextureMode( const char *string ) {
 
 	// hack to prevent trilinear from being set on voodoo,
 	// because their driver freaks...
-	if ( i == 5 && glConfig.hardwareType == GLHW_3DFX_2D3D || r_leifx->integer ) {
+	if ( (i == 5 && glConfig.hardwareType == GLHW_3DFX_2D3D) || r_leifx->integer ) {
 		ri.Printf( PRINT_ALL, "Refusing to set trilinear on a voodoo.\n" );
 		i = 3;
 	}
@@ -562,30 +558,22 @@ R_ImageListMapOnly_f
 void R_ImageListMapOnly_f( void ) {
 	int i;
 
-	for ( i = 0 ; i < tr.numImages ; i++ )
-	{
+	for ( i = 0 ; i < tr.numImages ; i++ ) {
 		image_t *image = tr.images[i];
 		char *zipcommand = "zip -9 ";
 		char localName[ MAX_QPATH ];
-		char *sizeSuffix;
 		int estSize;
-		int displaySize;
 
 		estSize = image->uploadHeight * image->uploadWidth;
 
-		
 		// mipmap adds about 50%
 		if (image->flags & IMGFLAG_MIPMAP)
 			estSize += estSize / 2;
 
-		sizeSuffix = "b ";
-		displaySize = estSize;
 
-	//if ( !strncmp( image->imgName, "textures", 8 ) ) {
-		if (image->maptexture){
-
-		COM_StripExtension( image->imgName, localName, MAX_QPATH );
-		ri.Printf(PRINT_ALL, "%s pak1-map-mapname.pk3 %s.*\n", zipcommand, localName);
+		if (image->maptexture) {
+			COM_StripExtension( image->imgName, localName, MAX_QPATH );
+			ri.Printf(PRINT_ALL, "%s pak1-map-mapname.pk3 %s.*\n", zipcommand, localName);
 		}
 	}
 
@@ -923,7 +911,7 @@ static void R_MipMap (byte *in, int width, int height) {
 static void R_MipMap8 (byte *in, int width, int height)
 {
 	int		i, j;
-	byte	*out, *at1;//, *at2, *at3, *at4;
+	byte	*out, at1;//, *at2, *at3, *at4;
 
 	height >>= 1;
 	out = in;
@@ -1052,71 +1040,70 @@ static void DumpTex( unsigned *data,
 {
 
 // leilei - Do crazy dumping crap
-		byte		*scan;
-		byte *baffer, *alffer, *flipper;
-		scan = ((byte *)data);
-		size_t offset = 0;//, memcount;
-		int padlen = 0; 
-		int be, ber;
-		int scrale = width * height;
-		int scravg = width + height / 2;
-		int quality = 85; // estimate quality from total size
-		int hasalf = 0;
-		float countw = 0;
-
-		if (scravg > 511) quality = 42; // huge textures
-		else if (scravg > 255) quality = 62; // large textures
-		else if (scravg > 127) quality = 72; // large textures
-		else if (scravg < 127) quality = 95; // tiny textures
-		baffer = 	ri.Hunk_AllocateTempMemory( width * height * 3 );
-		flipper = 	ri.Hunk_AllocateTempMemory( width * height * 3 );
-		alffer = 	ri.Hunk_AllocateTempMemory( width * height * 3 );
-		// TODO: Save alpha separately
-		// I'm gonna flip......
-		int alfcnt = 0;
-
-
-
-		for (be=0; be<scrale; be++){
-			int bib;
-
-			if (countw > width)
-			countw = 0;
-			else
-			countw++;
-			ber = scrale - be - 1;
-			bib = be;
-			if (bib < 0) bib = 0;
-			if (bib > scrale) bib = 0;
-			baffer[bib*3] 	= scan[ber*4];
-			baffer[bib*3+1] 	= scan[ber*4+1];
-			baffer[bib*3+2] 	= scan[ber*4+2];
-			alffer[bib*3] 	= scan[ber*4+3];
-			alffer[bib*3+1] 	= scan[ber*4+3];
-			alffer[bib*3+2] 	= scan[ber*4+3];
-			if (scan[ber*4+3] > 1){ hasalf = 1;}
-			if (scan[ber*4+3] == 255){ alfcnt += 1; }
-		}
-
-
-		// NOW FIX IT
+	byte		*scan;
+	byte *baffer, *alffer, *flipper;
+	scan = ((byte *)data);
+	int padlen = 0; 
+	int be, ber;
+	int scrale = width * height;
+	int hasalf = 0;
+	float countw = 0;
+#if 0
+	int scravg = width + height / 2;
+	int quality = 85; // estimate quality from total size
+	if (scravg > 511) quality = 42; // huge textures
+	else if (scravg > 255) quality = 62; // large textures
+	else if (scravg > 127) quality = 72; // large textures
+	else if (scravg < 127) quality = 95; // tiny textures
+#endif
+	baffer = 	ri.Hunk_AllocateTempMemory( width * height * 3 );
+	flipper = 	ri.Hunk_AllocateTempMemory( width * height * 3 );
+	alffer = 	ri.Hunk_AllocateTempMemory( width * height * 3 );
+	// TODO: Save alpha separately
+	// I'm gonna flip......
+	int alfcnt = 0;
 
 
 
-			
-		//memcount = (width * 3 + padlen) * height;
-		if ((width > 16) && (height > 16)){
+	for (be=0; be<scrale; be++){
+		int bib;
+
+		if (countw > width)
+		countw = 0;
+		else
+		countw++;
+		ber = scrale - be - 1;
+		bib = be;
+		if (bib < 0) bib = 0;
+		if (bib > scrale) bib = 0;
+		baffer[bib*3] 	= scan[ber*4];
+		baffer[bib*3+1] 	= scan[ber*4+1];
+		baffer[bib*3+2] 	= scan[ber*4+2];
+		alffer[bib*3] 	= scan[ber*4+3];
+		alffer[bib*3+1] 	= scan[ber*4+3];
+		alffer[bib*3+2] 	= scan[ber*4+3];
+		if (scan[ber*4+3] > 1){ hasalf = 1;}
+		if (scan[ber*4+3] == 255){ alfcnt += 1; }
+	}
+
+
+	// NOW FIX IT
+
+
+	//memcount = (width * 3 + padlen) * height;
+	if ((width > 16) && (height > 16)){
 		RE_SaveJPG( va("dump/%s.jpg", dumpname), 85,width, height, baffer, padlen);
-		if (hasalf)
-		RE_SaveJPG( va("dump/%s_alpha.jpg", dumpname), 85,width, height, alffer, padlen);
+		if (hasalf) {
+			RE_SaveJPG( va("dump/%s_alpha.jpg", dumpname), 85,width, height, alffer, padlen);
 		}
-		ri.Printf( PRINT_ALL, "TEXDUMP: %s \n", dumpname );
+	}
+	ri.Printf( PRINT_ALL, "TEXDUMP: %s \n", dumpname );
 
-	//	if ( baffer != 0 )
-		ri.Hunk_FreeTempMemory( baffer );
-	//	if ( alffer != 0 )
-		ri.Hunk_FreeTempMemory( alffer );
-		ri.Hunk_FreeTempMemory( flipper );
+//	if ( baffer != 0 )
+	ri.Hunk_FreeTempMemory( baffer );
+//	if ( alffer != 0 )
+	ri.Hunk_FreeTempMemory( alffer );
+	ri.Hunk_FreeTempMemory( flipper );
 }
 
 
@@ -1132,7 +1119,6 @@ static void Upload32( unsigned *data,
 	unsigned	*scaledBuffer = NULL;
 	unsigned	*resampledBuffer = NULL;
 	int			scaled_width, scaled_height;
-	int			orig_width, orig_height;
 	int			i, c;
 	byte		*scan;
 	GLenum		internalFormat = GL_RGB;
@@ -1145,9 +1131,6 @@ static void Upload32( unsigned *data,
 
 	if (lightMap && r_parseStageSimple->integer) hackoperation = 4;
 
-	// leilei - npot support
-	orig_width = width;
-	orig_height = height;
 
 	//
 	// convert to exact power of 2 sizes
@@ -1317,7 +1300,6 @@ static void Upload32( unsigned *data,
 				{
 					int r, g, b;
 					vec3_t rgb;
-					float amplify;
 					byte alfa = LUMA(scan[i*4], scan[i*4 + 1], scan[i*4 + 2]);
 					//byte alfa = (scan[i*4]+ scan[i*4 + 1]+ scan[i*4 + 2]) / 3;
 
@@ -1975,12 +1957,9 @@ static void Upload8( unsigned *data,
 	if (paletteability)
 	 R_PickTexturePalette(1);
 
-
-	if (paletteability && !isalphaedrgba)				// Preparing for native upload
-	{
-
-	for ( i = 0; i < c; i++ )
-		{
+	// Preparing for native upload
+	if (paletteability && !isalphaedrgba) {
+		for ( i = 0; i < c; i++ ) {
 			int thecol;
 			int r, g, b, a;
 			r = scan[i*4];
@@ -1992,17 +1971,15 @@ static void Upload8( unsigned *data,
 			a /= 255;
 			a *= 255;
 			if (!a){
-			thecol = 255; // transparent color
+				thecol = 255; // transparent color
 			}
 			scan[i] = thecol;
 			samples = 1;
 		}
-
 	}
-	else						// Preparing for simulated RGBA upload
-	{
-	for ( i = 0; i < c; i++ )
-		{
+	else {
+		// Preparing for simulated RGBA upload
+		for ( i = 0; i < c; i++ ) {
 			int thecol;
 			int r, g, b, a;
 			unsigned char *pix24;
@@ -2012,42 +1989,33 @@ static void Upload8( unsigned *data,
 			a = scan[i*4 +3];
 			thecol = palmap[r>>3][g>>3][b>>3];
 		
-
 			a *= 1.9;
 			a /= 255;
 			a *= 255;
 			
 			pix24 = (unsigned char *)&d_8to24table[thecol]; 
-			if (!a){
-			thecol = 255; // transparent color
-			samples = 4;
+			if (!a) {
+				thecol = 255; // transparent color
+				samples = 4;
 			}
 			scan[i*4] = 	pix24[0];
 			scan[i*4+1] = 	pix24[1];
 			scan[i*4+2] = 	pix24[2];
 			scan[i*4+3] = 	a;
-
-
 		}
 	}
 
 
-
 	{
-
 		// select proper internal format
-
-
-		if ( samples == 1 )
-		{
-			internalFormat = GL_LUMINANCE;	// leilei - gl has no knowledge of a paletted format, so use this for imagelist
+		if ( samples == 1 ) {
+			// leilei - gl has no knowledge of a paletted format, so use this for imagelist
+			internalFormat = GL_LUMINANCE;
 		}
-		else if ( samples == 3 )
-		{
+		else if ( samples == 3 ) {
 			internalFormat = GL_RGB;
 		}
-		else if ( samples == 4 )
-		{
+		else if ( samples == 4 ) {
 			internalFormat = GL_RGBA;
 		}
 
@@ -2058,33 +2026,36 @@ static void Upload8( unsigned *data,
 	
 
 
-	if ( ( scaled_width == width ) && 
-		( scaled_height == height ) ) {
-		if (!mipmap)
-		{
-	if (paletteability && !isalphaedrgba)	
-		qglTexImage2D( GL_TEXTURE_2D,  0,  palettedformat,	  scaled_width,	  scaled_height,  0,	  GL_COLOR_INDEX,  GL_UNSIGNED_BYTE,  data);
-			else
-			qglTexImage2D (GL_TEXTURE_2D, 0, internalFormat, scaled_width, scaled_height, 0, temp_GLformat, temp_GLtype, data);
+	if ( ( scaled_width == width ) && ( scaled_height == height ) ) {
+		if (!mipmap) {
+			if (paletteability && !isalphaedrgba) {
+				qglTexImage2D( GL_TEXTURE_2D,  0,  palettedformat,	  scaled_width,	  scaled_height,  0,	  GL_COLOR_INDEX,  GL_UNSIGNED_BYTE,  data);
+			}
+			else {
+				qglTexImage2D (GL_TEXTURE_2D, 0, internalFormat, scaled_width, scaled_height, 0, temp_GLformat, temp_GLtype, data);
+			}
 			*pUploadWidth = scaled_width;
 			*pUploadHeight = scaled_height;
 			*format = internalFormat;
 
 			goto done;
 		}
-	if (!paletteability || isalphaedrgba)	
-		Com_Memcpy (scaledBuffer, data, width*height*4);
-	else	Com_Memcpy (scaledBuffer, data, width*height);
-
+		if (!paletteability || isalphaedrgba) {
+			Com_Memcpy (scaledBuffer, data, width*height*4);
+		}
+		else {
+			Com_Memcpy (scaledBuffer, data, width*height);
+		}
 	}
-	else
-	{
+	else {
 		// use the normal mip-mapping function to go down from here
 		while ( width > scaled_width || height > scaled_height ) {
-	if (paletteability && !isalphaedrgba)	
-			R_MipMap8( (byte *)data, width, height );
-		else
-			R_MipMap( (byte *)data, width, height );
+			if (paletteability && !isalphaedrgba) {
+				R_MipMap8( (byte *)data, width, height );
+			}
+			else {
+				R_MipMap( (byte *)data, width, height );
+			}
 			width >>= 1;
 			height >>= 1;
 			if ( width < 1 ) {
@@ -2094,9 +2065,12 @@ static void Upload8( unsigned *data,
 				height = 1;
 			}
 		}
-	if (!paletteability || isalphaedrgba)	
-		Com_Memcpy( scaledBuffer, data, width * height * 4 );
-	else	Com_Memcpy( scaledBuffer, data, width * height);
+		if (!paletteability || isalphaedrgba) {
+			Com_Memcpy( scaledBuffer, data, width * height * 4 );
+		}
+		else {
+			Com_Memcpy( scaledBuffer, data, width * height);
+		}
 	}
 
 
@@ -2105,63 +2079,68 @@ static void Upload8( unsigned *data,
 	*format = internalFormat;
 
 
-	if (paletteability && !isalphaedrgba)	
-	qglTexImage2D( GL_TEXTURE_2D,  0,  palettedformat,	  scaled_width,	  scaled_height,  0,	  GL_COLOR_INDEX,  GL_UNSIGNED_BYTE,  scaledBuffer );
-		else
-	qglTexImage2D (GL_TEXTURE_2D, 0, internalFormat, scaled_width, scaled_height, 0, temp_GLformat, temp_GLtype, scaledBuffer );
+	if (paletteability && !isalphaedrgba) {
+		qglTexImage2D( GL_TEXTURE_2D,  0,  palettedformat,	  scaled_width,	  scaled_height,  0,	  GL_COLOR_INDEX,  GL_UNSIGNED_BYTE,  scaledBuffer );
+	}
+	else {
+		qglTexImage2D (GL_TEXTURE_2D, 0, internalFormat, scaled_width, scaled_height, 0, temp_GLformat, temp_GLtype, scaledBuffer );
+	}
 
 	if (mipmap)
 	{
 		int		miplevel;
 
 		miplevel = 0;
-		while (scaled_width > 1 || scaled_height > 1)
-		{
-	if (paletteability && !isalphaedrgba)
-			R_MipMap8( (byte *)scaledBuffer, scaled_width, scaled_height );
-		else
-			R_MipMap( (byte *)scaledBuffer, scaled_width, scaled_height );
+		while (scaled_width > 1 || scaled_height > 1) {
+			if (paletteability && !isalphaedrgba) {
+				R_MipMap8( (byte *)scaledBuffer, scaled_width, scaled_height );
+			}
+			else {
+				R_MipMap( (byte *)scaledBuffer, scaled_width, scaled_height );
+			}
 
 			scaled_width >>= 1;
 			scaled_height >>= 1;
-			if (scaled_width < 1)
+			if (scaled_width < 1) {
 				scaled_width = 1;
-			if (scaled_height < 1)
+			}
+			if (scaled_height < 1) {
 				scaled_height = 1;
+			}
 			miplevel++;
 
 
-	if (paletteability && !isalphaedrgba)
-		qglTexImage2D( GL_TEXTURE_2D,  miplevel, palettedformat,  scaled_width,  scaled_height,  0,  GL_COLOR_INDEX,  GL_UNSIGNED_BYTE, scaledBuffer );
-		else
-		qglTexImage2D (GL_TEXTURE_2D, miplevel, internalFormat, scaled_width, scaled_height, 0, temp_GLformat, temp_GLtype, scaledBuffer );
-
+			if (paletteability && !isalphaedrgba) {
+				qglTexImage2D( GL_TEXTURE_2D,  miplevel, palettedformat,  scaled_width,  scaled_height,  0,  GL_COLOR_INDEX,  GL_UNSIGNED_BYTE, scaledBuffer );
+			}
+			else {
+				qglTexImage2D (GL_TEXTURE_2D, miplevel, internalFormat, scaled_width, scaled_height, 0, temp_GLformat, temp_GLtype, scaledBuffer );
+			}
 		}
 	}
 done:
 
-	if (mipmap)
-	{
-		if ( textureFilterAnisotropic )
+	if (mipmap) {
+		if ( textureFilterAnisotropic ) {
 			qglTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_MAX_ANISOTROPY_EXT,
 					(GLint)Com_Clamp( 1, maxAnisotropy, r_ext_max_anisotropy->integer ) );
-
+		}
 		qglTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, gl_filter_min);
 		qglTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, gl_filter_max);
 	}
-	else
-	{
-		if ( textureFilterAnisotropic )
+	else {
+		if ( textureFilterAnisotropic ) {
 			qglTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_MAX_ANISOTROPY_EXT, 1 );
-
+		}
 		qglTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR );
 		qglTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR );
 	}
 
-	if (softwaremode) {	// leilei - software speedup
+	if (softwaremode) {
+		// leilei - software speedup
 		qglTexParameterf( GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST );
 		qglTexParameterf( GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST );
-		}
+	}
 
 	GL_CheckErrors();
 
@@ -2240,28 +2219,29 @@ image_t *R_CreateImage( const char *name, byte *pic, int width, int height,
 	GL_Bind(image);
 
 	// leilei - texture dumping
-	if (r_texdump->integer){
-			COM_StripExtension( name, dumpname, MAX_QPATH );	// leilei - transfer name for texdump
-			DumpTex( (unsigned *)pic, image->width, image->height);
-		}
+	if (r_texdump->integer) {
+		COM_StripExtension( name, dumpname, MAX_QPATH );	// leilei - transfer name for texdump
+		DumpTex( (unsigned *)pic, image->width, image->height);
+	}
 
-	if (paletteavailable && r_texturebits->integer == 8 && !isLightmap && !depthimage && !force32upload)
-	Upload8( (unsigned *)pic, image->width, image->height, 
+	if (paletteavailable && r_texturebits->integer == 8 && !isLightmap && !depthimage && !force32upload) {
+		Upload8( (unsigned *)pic, image->width, image->height, 
 								image->flags & IMGFLAG_MIPMAP,
 								image->flags & IMGFLAG_PICMIP,
 								isLightmap,
 								&image->internalFormat,
 								&image->uploadWidth,
 								&image->uploadHeight );
-
-	else
-	Upload32( (unsigned *)pic, image->width, image->height, 
+	}
+	else {
+		Upload32( (unsigned *)pic, image->width, image->height, 
 								image->flags & IMGFLAG_MIPMAP,
 								image->flags & IMGFLAG_PICMIP,
 								isLightmap,
 								&image->internalFormat,
 								&image->uploadWidth,
 								&image->uploadHeight );
+	}
 
 	qglTexParameterf( GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, glWrapClampMode );
 	qglTexParameterf( GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, glWrapClampMode );
@@ -2410,7 +2390,6 @@ image_t	*R_FindImageFile( const char *name, imgType_t type, imgFlags_t flags )
 	long	hash;
 	float oldtime;
 	float loadtime;
-	float proctime;
 
 	if (!name) {
 		return NULL;
@@ -2439,15 +2418,16 @@ image_t	*R_FindImageFile( const char *name, imgType_t type, imgFlags_t flags )
 	if ( !Q_strncmp( name, "textures/detail/", 16 )  || !Q_strncmp( name, "gfx/fx/detail/", 14 ))  {
 		ri.Printf( PRINT_DEVELOPER, "DETAILHACK: %s - mips will be gray\n", name );
 		detailhack = 1;		// leilei - attempt to fade detail mips to gray, EXPECTS DST_COLOR/SRC_COLOR for this to work right
-		}
+	}
 
 	// leilei - iconmip hack
 
-	if ( !Q_strncmp( name, "icons/", 5 )  || ((!Q_strncmp( name, "gfx/2d", 6 )) && (Q_strncmp( name, "gfx/2d/bigchars", 14 )))){
+	if ( !Q_strncmp( name, "icons/", 5 )  || ((!Q_strncmp( name, "gfx/2d", 6 )) && (Q_strncmp( name, "gfx/2d/bigchars", 14 )))) {
 		isicon = 1;
-		}
-	else
+	}
+	else {
 		isicon = 0;
+	}
 
 	//
 	// load the pic from disk
@@ -2455,7 +2435,7 @@ image_t	*R_FindImageFile( const char *name, imgType_t type, imgFlags_t flags )
 
 	oldtime = ri.Milliseconds() * 100;
 	dontgotsafe = 0;
-	if (r_suggestiveThemes->integer == 1) dontgotsafe = 1;
+	if (r_suggestiveThemes->integer == 1) { dontgotsafe = 1; }
 
 
 	// leilei - load safe or lewd textures if desired.
@@ -2467,7 +2447,7 @@ image_t	*R_FindImageFile( const char *name, imgType_t type, imgFlags_t flags )
 			char	narm[ MAX_QPATH ];
 			COM_StripExtension( name, narm, MAX_QPATH );
 			R_LoadImage( va("%s_safe", narm), &pic, &width, &height );
-			if ( pic == NULL ) 
+			if ( pic == NULL )
 				dontgotsafe = 1;
 			else
 				dontgotsafe = 0;
@@ -2482,7 +2462,6 @@ image_t	*R_FindImageFile( const char *name, imgType_t type, imgFlags_t flags )
 				dontgotsafe = 1;
 			else
 				dontgotsafe = 0;
-			
 		}
 	}
 	
@@ -2505,23 +2484,23 @@ image_t	*R_FindImageFile( const char *name, imgType_t type, imgFlags_t flags )
 
 
 	// leilei - if we need to change the texture upload with a special image prefix to separate from differently blended things
-	if (hackoperation)
-		{
-			char hackName[MAX_QPATH];
-			char *hackedName;
-			COM_StripExtension( name, hackName, MAX_QPATH );
-			if(hackoperation==1) hackedName = va("%shackadd", hackName);
-			if(hackoperation==2) hackedName = va("%shacknob", hackName);
-			if(hackoperation==3) hackedName = va("%shacksub", hackName);
-			if(hackoperation==4) hackedName = va("%shackmod", hackName);
-			else hackedName = va("%shackblend", hackName);
-			image = R_CreateImage( ( char * ) hackedName, pic, width, height, type, flags, 0 );
+	if (hackoperation) {
+		char hackName[MAX_QPATH];
+		char *hackedName;
+		COM_StripExtension( name, hackName, MAX_QPATH );
+		if(hackoperation==1) hackedName = va("%shackadd", hackName);
+		if(hackoperation==2) hackedName = va("%shacknob", hackName);
+		if(hackoperation==3) hackedName = va("%shacksub", hackName);
+		if(hackoperation==4) {
+			hackedName = va("%shackmod", hackName);
 		}
-
-	else
-
-	{
-	image = R_CreateImage( ( char * ) name, pic, width, height, type, flags, 0 );
+		else {
+			hackedName = va("%shackblend", hackName);
+		}
+		image = R_CreateImage( ( char * ) hackedName, pic, width, height, type, flags, 0 );
+	}
+	else {
+		image = R_CreateImage( ( char * ) name, pic, width, height, type, flags, 0 );
 	}
 
 
@@ -2577,7 +2556,7 @@ image_t	*R_FindImageFileIfItsThere( const char *name, imgType_t type, imgFlags_t
 	if ( !Q_strncmp( name, "textures/detail/", 16 )  || !Q_strncmp( name, "gfx/fx/detail/", 14 ))  {
 		ri.Printf( PRINT_DEVELOPER, "DETAILHACK: %s - mips will be gray\n", name );
 		detailhack = 1;		// leilei - attempt to fade detail mips to gray, EXPECTS DST_COLOR/SRC_COLOR for this to work right
-		}
+	}
 
 	//
 	// load the pic from disk
