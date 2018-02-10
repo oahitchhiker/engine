@@ -40,7 +40,7 @@ R_LoadMDO
 =================
 */
 qboolean R_LoadMDO( model_t *mod, void *buffer, int filesize, const char *mod_name ) {
-	int					i, j, k, lodindex;
+	int					i, j, lodindex;
 	mdoHeader_t			*pinmodel, *mdo;
     mdoFrame_t			*frame;
 	mdoLOD_t			*lod;
@@ -103,7 +103,7 @@ qboolean R_LoadMDO( model_t *mod, void *buffer, int filesize, const char *mod_na
 	mod->numLods = mdo->numLODs; // ... don't forget this or LODs won't work
     
 	// swap all the frames
-	frameSize = (int)( &((mdoFrame_t *)0)->bones[ mdo->numBones ] );
+	frameSize = (size_t)( &((mdoFrame_t *)0)->bones[ mdo->numBones ] );
     for ( i = 0 ; i < mdo->numFrames ; i++, frame++) {
 	    frame = (mdoFrame_t *) ( (byte *)mdo + mdo->ofsFrames + i * frameSize );
     	frame->radius = LittleFloat( frame->radius );
@@ -206,7 +206,7 @@ qboolean R_LoadMDO( model_t *mod, void *buffer, int filesize, const char *mod_na
 		// find the next LOD
 		lod = (mdoLOD_t *)( (byte *)lod + lod->ofsEnd );
 	}
-
+	
 	return qtrue;
 }
 
@@ -357,7 +357,7 @@ void R_AddMDOSurfaces( trRefEntity_t *ent ) {
 	mdoLOD_t		*lod;
 	shader_t		*shader;
 	skin_t		   *skin;
-	int				i, j, k;
+	int				i, j;
 	int				lodnum = 0;
 	int				fogNum = 0;
 	int				cull;
@@ -581,8 +581,6 @@ md3Tag_t *R_GetMDOTag( mdoHeader_t *mod, int framenum, const char *tagName, md3T
 
 		if ( !strcmp( bone->name, tagName ) )
 		{
-			vec4_t	quat;
-			vec3_t	trans;
 			float	matrix[3][4];
 
 			Q_strncpyz(dest->name, bone->name, sizeof(dest->name));
@@ -618,7 +616,7 @@ void RB_SurfaceMDO( mdoSurface_t *surface )
 {
 	int				i, j, k;
 	int				frameSize;
-	float			frontlerp, backlerp;
+	float			backlerp;
 	int				*triangles;
 	int				indexes;
 	int				baseIndex, baseVertex;
@@ -629,8 +627,7 @@ void RB_SurfaceMDO( mdoSurface_t *surface )
 	mdoHeader_t		*header;
 	mdoFrame_t		*frame;
 	mdoFrame_t		*oldFrame;
-	boneMatrix_t	bones[MDO_MAX_BONES], *bonePtr, *bone;	
-	mdoBoneInfo_t	*boneInfo;
+	boneMatrix_t	bones[MDO_MAX_BONES], *bonePtr, *bone;
 	refEntity_t		*ent;
 
 	ent = &backEnd.currentEntity->e;
@@ -640,12 +637,10 @@ void RB_SurfaceMDO( mdoSurface_t *surface )
 	if (ent->oldframe == ent->frame) 
 	{
 		backlerp	= 0;	// if backlerp is 0, lerping is off and frontlerp is never used
-		frontlerp	= 1;
 	} 
 	else  
 	{
 		backlerp	= ent->backlerp;
-		frontlerp	= 1.0f - backlerp;
 	}
 
 	header = (mdoHeader_t *)((byte *)surface - surface->ofsHeader);
@@ -677,9 +672,6 @@ void RB_SurfaceMDO( mdoSurface_t *surface )
 	// boneRefs
 	boneRefList = ( int * )( (byte *)surface + surface->ofsBoneRefs );
 	boneRef = boneRefList;
-
-	// boneInfos
-	boneInfo = (mdoBoneInfo_t *)((byte *)header + header->ofsBones);
 
 	bonePtr = bones;
 	for( i = 0 ; i < surface->numBoneRefs ; i++, boneRef++ )

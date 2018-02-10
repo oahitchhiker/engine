@@ -1150,7 +1150,7 @@ void RB_CalcEnvironmentTexCoordsR( float *st )
 	vec3_t		sundy;
 	float		size;
 	float		dist;
-	vec3_t		origin, vec1, vec2;
+	vec3_t		vec1, vec2;
 
 	v = tess.xyz[0];
 	normal = tess.normal[0];
@@ -1196,7 +1196,7 @@ void RB_CalcCelTexCoords( float *st )
 {
 	int			i;
 	float		*v, *normal;
-	vec3_t		viewer, reflected, lightdir, directedLight, lightdured;
+	vec3_t		viewer, reflected, lightdir, directedLight;
 	float		d, l, p;
 
 
@@ -1385,12 +1385,12 @@ void RB_CalcRotateTexCoords( float degsPerSecond, float *st )
 
 void RB_CalcAtlasTexCoords( const atlas_t *at, float *st )
 {
-	float p;
 	texModInfo_t tmi;
 	int w = (int)at->width;	
 	int h = (int)at->height;
 
-	int framex, framey;
+	int framex = 0;
+	int framey = 0;
 
 	// modes:
 	// 0 - static / animated
@@ -1707,28 +1707,16 @@ static void RB_CalcDiffuseColor_scalar( unsigned char *colors )
 // leilei - reveal normals to GLSL for light processing. HACK HACK HACK HACK HACK HACK
 void RB_CalcNormal( unsigned char *colors )
 {
-	int				i, j;
 	float			*v;
-	float		*normal = ( float * ) tess.normal; 
-	float			incoming;
-	trRefEntity_t	*ent;
-	int				ambientLightInt;
-	vec3_t			ambientLight;
-	vec3_t			lightDir;
-	vec3_t			directedLight;
+	float		*normal = ( float * ) tess.normal;
 	vec3_t			n, m;
 	int				numVertexes;
-	float		mult = r_shownormals->value - 1;
-	ent = backEnd.currentEntity;
-	ambientLightInt = ent->ambientLightInt;
 
 	v = tess.xyz[0];
 	//normal = tess.normal[0];
 
-
-
 	numVertexes = tess.numVertexes;
-	for (i = 0 ; i < numVertexes ; i++, v += 4, normal += 4) {
+	for (int i = 0 ; i < numVertexes ; i++, v += 4, normal += 4) {
 		int y;
 		float mid;
 		for (y=0;y<3;y++){
@@ -1765,7 +1753,6 @@ void RB_CalcNormal( unsigned char *colors )
 void RB_CalcDiffuseColor_Specular( unsigned char *colors )
 {
 	int				i, j;
-	int 		speccap = 0;
 	float		spec;
 	float			*v, *normal;
 	float			incoming;
@@ -1825,16 +1812,13 @@ void RB_CalcDiffuseColor_Specular( unsigned char *colors )
 		
 		{
 			float ilength;
-			int b;
 			vec3_t		viewer,  reflected;
-			float		l, d;
-		//	int			b;
 	
 			VectorCopy( backEnd.currentEntity->lightDir, lightDir );
 			VectorNormalizeFast( lightDir );
 	
 			// calculate the specular color
-			d = DotProduct (normal, lightDir);
+			float d = DotProduct (normal, lightDir);
 	
 			// we don't optimize for the d < 0 case since this tends to
 			// cause visual artifacts such as faceted "snapping"
@@ -1844,7 +1828,7 @@ void RB_CalcDiffuseColor_Specular( unsigned char *colors )
 	
 			VectorSubtract (backEnd.or.viewOrigin, v, viewer);
 			ilength = Q_rsqrt( DotProduct( viewer, viewer ) );
-			l = DotProduct (reflected, viewer);
+			float l = DotProduct (reflected, viewer);
 			l *= ilength;
 	
 			if (l < 0) {
@@ -1869,14 +1853,20 @@ void RB_CalcDiffuseColor_Specular( unsigned char *colors )
 		}
 
 		j = ri.ftol(ambientLight[0] + incoming * directedLight[0]);
-		if ( j > shadecap ) {j = shadecap ; j += ri.ftol(spec * specularLight[0]); }
+		if ( j > shadecap ) {
+			j = shadecap; 
+			j += ri.ftol(spec * specularLight[0]); 
+		}
 		
 	//	j += specularLight[0];
 		if ( j > 255) j = 255;
 		colors[i*4+0] = j;
 
 		j = ri.ftol(ambientLight[1] + incoming * directedLight[1]);
-		if ( j > shadecap ) { j = shadecap ; 		j += ri.ftol(spec * specularLight[1]); }
+		if ( j > shadecap ) { 
+			j = shadecap;
+			j += ri.ftol(spec * specularLight[1]); 
+		}
 
 	//	j += specularLight[1];
 		if ( j > 255) j = 255;
@@ -1885,7 +1875,10 @@ void RB_CalcDiffuseColor_Specular( unsigned char *colors )
 		colors[i*4+1] = j;
 
 		j = ri.ftol(ambientLight[2] + incoming * directedLight[2]);
-		if ( j > shadecap ) {j = shadecap ; 		j += ri.ftol(spec * specularLight[2]); }
+		if ( j > shadecap ) {
+			j = shadecap;
+			j += ri.ftol(spec * specularLight[2]);
+		}
 
 	//	j += specularLight[2];
 		if ( j > 255) j = 255;
@@ -1925,7 +1918,7 @@ void RB_CalcUniformColor( unsigned char *colors )
 	int				i;
 	trRefEntity_t	*ent;
 	vec3_t			ambientLight;
-	vec3_t			directedLight;
+	//vec3_t			directedLight;
 	vec4_t			uniformLight;
 	int				numVertexes;
 	float			normalize;
@@ -1933,7 +1926,7 @@ void RB_CalcUniformColor( unsigned char *colors )
 	ent = backEnd.currentEntity;
 
 	VectorCopy( ent->ambientLight, ambientLight );
-	VectorCopy( ent->directedLight, directedLight );
+	//VectorCopy( ent->directedLight, directedLight );
 
 	VectorAdd( ambientLight, ambientLight/*directedLight*/, uniformLight );
 
@@ -1990,22 +1983,11 @@ void RB_CalcFlatAmbient( unsigned char *colors )
 {
 	int				i, j;
 	float			*v, *normal;
-	float			incoming;
 	trRefEntity_t	*ent;
-	int				ambientLightInt;
 	vec3_t			ambientLight;
-	vec3_t			lightDir;
-	vec3_t			directedLight;
 	int				numVertexes;
 	ent = backEnd.currentEntity;
-	ambientLightInt = ent->ambientLightInt;
 	VectorCopy( ent->ambientLight, ambientLight );
-	//VectorCopy( ent->directedLight, directedLight );
-
-
-	lightDir[0] = 0;
-	lightDir[1] = 0;
-	lightDir[2] = 1;
 
 	v = tess.xyz[0];
 	normal = tess.normal[0];
@@ -2038,15 +2020,11 @@ void RB_CalcFlatDirect( unsigned char *colors )
 {
 	int				i, j;
 	float			*v, *normal;
-	float			incoming;
 	trRefEntity_t	*ent;
-	int				ambientLightInt;
 	vec3_t			ambientLight;
-	vec3_t			lightDir;
 	vec3_t			directedLight;
 	int				numVertexes;
 	ent = backEnd.currentEntity;
-	ambientLightInt = ent->ambientLightInt;
 	VectorCopy( ent->ambientLight, ambientLight );
 	VectorCopy( ent->directedLight, directedLight );
 	
@@ -2059,10 +2037,6 @@ void RB_CalcFlatDirect( unsigned char *colors )
 	if (directedLight[0] < 0) directedLight[0] = 0;	
 	if (directedLight[1] < 0) directedLight[1] = 0;
 	if (directedLight[2] < 0) directedLight[2] = 0;
-
-	lightDir[0] = 0;
-	lightDir[1] = 0;
-	lightDir[2] = 1;
 
 	v = tess.xyz[0];
 	normal = tess.normal[0];
@@ -2118,14 +2092,12 @@ void RB_CalcEyes( float *st, qboolean theothereye)
 {
 	int			i;
 	float		*v, *normal;
-	vec3_t		viewer, reflected, eyepos, eyelook, stare;
-	float		d, l, erp;
+	vec3_t		viewer, reflected, eyepos, stare;
+	float		d;
 	int	idk;
 
-	vec3_t		stareat, staree;
-	float dilation = 2;
+	vec3_t		stareat;
 
-	VectorCopy(lightOrigin, staree);
 	VectorCopy(backEnd.or.viewOrigin, stareat);
 
 
@@ -2156,11 +2128,11 @@ void RB_CalcEyes( float *st, qboolean theothereye)
 	// We need to adjust the stareat vectors to local coordinates
 
 
-		vec3_t temp;
-		VectorSubtract( stareat, backEnd.currentEntity->e.origin, temp );
-		stareat[0] = DotProduct( temp, backEnd.currentEntity->e.axis[0] );
-		stareat[1] = DotProduct( temp, backEnd.currentEntity->e.axis[1] );
-		stareat[2] = DotProduct( temp, backEnd.currentEntity->e.axis[2] );
+	vec3_t temp;
+	VectorSubtract( stareat, backEnd.currentEntity->e.origin, temp );
+	stareat[0] = DotProduct( temp, backEnd.currentEntity->e.axis[0] );
+	stareat[1] = DotProduct( temp, backEnd.currentEntity->e.axis[1] );
+	stareat[2] = DotProduct( temp, backEnd.currentEntity->e.axis[2] );
 
 
 
@@ -2195,8 +2167,6 @@ if (r_leidebugeye->integer == 2)
 
 	for (i = 0 ; i < tess.numVertexes ; i++, v += 4, normal += 4, st += 2 ) 
 	{
-		
-		float norm1, norm2;
 		// Base eye position
 		VectorSubtract (backEnd.or.viewOrigin, v, viewer);
 		//VectorSubtract (backEnd.currentEntity->e.eyepos[0], v, viewer);
@@ -2227,8 +2197,6 @@ if (r_leidebugeye->integer == 2)
 
 		VectorSubtract (stareat, v, stare);
 		VectorNormalizeFast (stare);
-
-		erp = DotProduct (normal, stare);
 
 		// Limit the eye's turning so it doesn't have dead eyes
 		for (idk=0;idk<3;idk++){
