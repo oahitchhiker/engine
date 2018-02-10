@@ -1401,17 +1401,16 @@ void RB_CalcAtlasTexCoords( const atlas_t *at, float *st )
 		int frametotal = w * h;
 		float alha = ((0.25+backEnd.currentEntity->e.shaderRGBA[3]) / (tr.identityLight * 256.0f));
 		int framethere = frametotal - ((frametotal * alha));
-			int f;
-			framex = 0;
-			for(f=0; f<framethere; f++)
-			{
-				framex +=1;
+		framex = 0;
+		for(int f=0; f<framethere; f++)
+		{
+			framex +=1;
 
-					if (framex >= w){
-						framey +=1;	// next row!
-						framex = 0; // reset column
-					}
+			if (framex >= w){
+				framey +=1;	// next row!
+				framex = 0; // reset column
 			}
+		}
 
 	}
 	else			// static/animated
@@ -1452,12 +1451,11 @@ void RB_CalcAtlasTexCoords( const atlas_t *at, float *st )
 
 	tmi.matrix[0][0] = 1.0f / w;
 	tmi.matrix[1][0] = 0;
-	tmi.matrix[2][0] = 0;
+	tmi.matrix[0][1] = 0;
 	tmi.translate[0] = ((1.0f / w) * framex);
 
 	tmi.matrix[0][1] = 0;
 	tmi.matrix[1][1] = 1.0f / h;
-	tmi.matrix[2][1] = 0;
 	tmi.translate[1] = ((1.0f / h) * framey);
 
 	RB_CalcTransformTexCoords( &tmi, st );
