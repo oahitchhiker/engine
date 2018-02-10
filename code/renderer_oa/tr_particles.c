@@ -866,7 +866,7 @@ void R_AddParticles (void)
 		VectorCopy(p->org, oldorg);
 		// if we're told to die, it's most likely a quake particle.
 		if (p->die) {
-			int scal = 2.6f;
+			int scal = 2;
 			p->endtime = THEtime + (p->die);
 			p->die = 0;
 			p->height= scal;

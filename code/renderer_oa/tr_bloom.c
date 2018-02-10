@@ -331,13 +331,13 @@ static void R_Bloom_InitTextures( void )
 
 	data = ri.Hunk_AllocateTempMemory( bloom.screen.width * bloom.screen.height * 4 );
 	Com_Memset( data, 0, bloom.screen.width * bloom.screen.height * 4 );
-	bloom.screen.texture = R_CreateImage( "***bloom screen texture***", data, bloom.screen.width, bloom.screen.height, qfalse, qfalse, GL_CLAMP_TO_EDGE  );
+	bloom.screen.texture = R_CreateImage( "***bloom screen texture***", data, bloom.screen.width, bloom.screen.height, 0, 0, GL_CLAMP_TO_EDGE  );
 	ri.Hunk_FreeTempMemory( data );
 
 	data = ri.Hunk_AllocateTempMemory( bloom.effect.width * bloom.effect.height * 4 );
 	Com_Memset( data, 0, bloom.effect.width * bloom.effect.height * 4 );
-	bloom.effect.texture = R_CreateImage( "***bloom effect texture***", data, bloom.effect.width, bloom.effect.height, qfalse, qfalse, GL_CLAMP_TO_EDGE  );
-	bloom.effect2.texture = R_CreateImage( "***bloom effect texture 2***", data, bloom.effect.width, bloom.effect.height, qfalse, qfalse, GL_CLAMP_TO_EDGE  );
+	bloom.effect.texture = R_CreateImage( "***bloom effect texture***", data, bloom.effect.width, bloom.effect.height, 0, 0, GL_CLAMP_TO_EDGE  );
+	bloom.effect2.texture = R_CreateImage( "***bloom effect texture 2***", data, bloom.effect.width, bloom.effect.height, 0, 0, GL_CLAMP_TO_EDGE  );
 	ri.Hunk_FreeTempMemory( data );
 	bloom.started = qtrue;
 	force32upload = 0;
@@ -1170,7 +1170,7 @@ static void R_Postprocess_InitTextures( void )
 
 	data = ri.Hunk_AllocateTempMemory( postproc.screen.width * postproc.screen.height * 4 );
 	Com_Memset( data, 0, postproc.screen.width * postproc.screen.height * 4 );
-	postproc.screen.texture = R_CreateImage( "***postproc screen texture***", data, postproc.screen.width, postproc.screen.height, qfalse, qfalse, GL_CLAMP_TO_EDGE  );
+	postproc.screen.texture = R_CreateImage( "***postproc screen texture***", data, postproc.screen.width, postproc.screen.height, 0, 0, GL_CLAMP_TO_EDGE  );
 	ri.Hunk_FreeTempMemory( data );
 
 	// leilei - tv output texture
@@ -1207,7 +1207,7 @@ static void R_Postprocess_InitTextures( void )
 
 		data = ri.Hunk_AllocateTempMemory( tvWidth * tvHeight * 4 );
 		Com_Memset( data, 0, tvWidth * tvHeight * 4 );
-		postproc.tv.texture = R_CreateImage( "***tv output screen texture***", data, tvWidth, tvHeight, qfalse, qfalse, GL_CLAMP_TO_EDGE  );
+		postproc.tv.texture = R_CreateImage( "***tv output screen texture***", data, tvWidth, tvHeight, 0, 0, GL_CLAMP_TO_EDGE  );
 		ri.Hunk_FreeTempMemory( data );
 	}
 
@@ -1216,15 +1216,15 @@ static void R_Postprocess_InitTextures( void )
 	if (r_motionblur->integer > 2) {
 		data = ri.Hunk_AllocateTempMemory( postproc.screen.width * postproc.screen.height * 4 );
 		Com_Memset( data, 0, postproc.screen.width * postproc.screen.height * 4 );
-		postproc.motion1.texture = R_CreateImage( "***motionblur1 texture***", data, postproc.screen.width, postproc.screen.height, qfalse, qfalse, GL_CLAMP_TO_EDGE  );
-		postproc.motion2.texture = R_CreateImage( "***motionblur2 texture***", data, postproc.screen.width, postproc.screen.height, qfalse, qfalse, GL_CLAMP_TO_EDGE  );
-		postproc.motion3.texture = R_CreateImage( "***motionblur3 texture***", data, postproc.screen.width, postproc.screen.height, qfalse, qfalse, GL_CLAMP_TO_EDGE  );
-		postproc.motion4.texture = R_CreateImage( "***motionblur4 texture***", data, postproc.screen.width, postproc.screen.height, qfalse, qfalse, GL_CLAMP_TO_EDGE  );
-		postproc.motion5.texture = R_CreateImage( "***motionblur5 texture***", data, postproc.screen.width, postproc.screen.height, qfalse, qfalse, GL_CLAMP_TO_EDGE  );
-		postproc.mpass1.texture = R_CreateImage( "***motionaccum1 texture***", data, postproc.screen.width, postproc.screen.height, qfalse, qfalse, GL_CLAMP_TO_EDGE  );
-		postproc.mpass2.texture = R_CreateImage( "***motionaccum1 texture***", data, postproc.screen.width, postproc.screen.height, qfalse, qfalse, GL_CLAMP_TO_EDGE  );
-		postproc.mpass3.texture = R_CreateImage( "***motionaccum1 texture***", data, postproc.screen.width, postproc.screen.height, qfalse, qfalse, GL_CLAMP_TO_EDGE  );
-		postproc.mpass4.texture = R_CreateImage( "***motionaccum1 texture***", data, postproc.screen.width, postproc.screen.height, qfalse, qfalse, GL_CLAMP_TO_EDGE  );
+		postproc.motion1.texture = R_CreateImage( "***motionblur1 texture***", data, postproc.screen.width, postproc.screen.height, 0, 0, GL_CLAMP_TO_EDGE  );
+		postproc.motion2.texture = R_CreateImage( "***motionblur2 texture***", data, postproc.screen.width, postproc.screen.height, 0, 0, GL_CLAMP_TO_EDGE  );
+		postproc.motion3.texture = R_CreateImage( "***motionblur3 texture***", data, postproc.screen.width, postproc.screen.height, 0, 0, GL_CLAMP_TO_EDGE  );
+		postproc.motion4.texture = R_CreateImage( "***motionblur4 texture***", data, postproc.screen.width, postproc.screen.height, 0, 0, GL_CLAMP_TO_EDGE  );
+		postproc.motion5.texture = R_CreateImage( "***motionblur5 texture***", data, postproc.screen.width, postproc.screen.height, 0, 0, GL_CLAMP_TO_EDGE  );
+		postproc.mpass1.texture = R_CreateImage( "***motionaccum1 texture***", data, postproc.screen.width, postproc.screen.height, 0, 0, GL_CLAMP_TO_EDGE  );
+		postproc.mpass2.texture = R_CreateImage( "***motionaccum1 texture***", data, postproc.screen.width, postproc.screen.height, 0, 0, GL_CLAMP_TO_EDGE  );
+		postproc.mpass3.texture = R_CreateImage( "***motionaccum1 texture***", data, postproc.screen.width, postproc.screen.height, 0, 0, GL_CLAMP_TO_EDGE  );
+		postproc.mpass4.texture = R_CreateImage( "***motionaccum1 texture***", data, postproc.screen.width, postproc.screen.height, 0, 0, GL_CLAMP_TO_EDGE  );
 		ri.Hunk_FreeTempMemory( data );
 	}
 
@@ -1233,7 +1233,7 @@ static void R_Postprocess_InitTextures( void )
 	data = ri.Hunk_AllocateTempMemory( postproc.screen.width * postproc.screen.height *4);
 	Com_Memset( data, 0, postproc.screen.width * postproc.screen.height * 4 );
 	depthimage=1;
-	postproc.depth.texture = R_CreateImage( "***depthbuffer texture***",  data, postproc.screen.width, postproc.screen.height, qfalse, qfalse, GL_CLAMP_TO_EDGE   );
+	postproc.depth.texture = R_CreateImage( "***depthbuffer texture***",  data, postproc.screen.width, postproc.screen.height, 0, 0, GL_CLAMP_TO_EDGE   );
 	depthimage=0;
 	ri.Hunk_FreeTempMemory( data );
 

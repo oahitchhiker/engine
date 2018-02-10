@@ -5385,13 +5385,13 @@ shader_t *R_FindShaderReal( const char *name, int lightmapIndex, qboolean mipRaw
 						detailhack = 1;
 						if (material == 1) {
 							// metalsteps
-							stages[thisstage].bundle[0].image[0] = R_FindImageFile( "gfx/fx/detail/d_genericmetal.tga", IMGFLAG_MIPMAP , IMGFLAG_MIPMAP);
+							stages[thisstage].bundle[0].image[0] = R_FindImageFile( "gfx/fx/detail/d_genericmetal.tga", IMGTYPE_NORMAL , IMGFLAG_MIPMAP);
 						}
 						else if (hasaDetailImage && imageDetail) {
 							stages[thisstage].bundle[0].image[0] = imageDetail;
 						}
 						else {
-							stages[thisstage].bundle[0].image[0] = R_FindImageFile( "gfx/fx/detail/d_generic.tga", IMGFLAG_MIPMAP , IMGFLAG_MIPMAP);
+							stages[thisstage].bundle[0].image[0] = R_FindImageFile( "gfx/fx/detail/d_generic.tga", IMGTYPE_NORMAL , IMGFLAG_MIPMAP);
 						}
 						stages[thisstage].active = qtrue;
 						stages[thisstage].rgbGen = CGEN_IDENTITY;
@@ -5566,7 +5566,7 @@ shader_t *R_FindShaderReal( const char *name, int lightmapIndex, qboolean mipRaw
 				
 				if (f+2 > MAX_SHADER_STAGES) break;// don't exceed limit!
 				
-			 	stages[2+f].bundle[0].image[0] = R_FindImageFile( "gfx/fx/detail/d_generic.tga", IMGFLAG_MIPMAP , IMGFLAG_MIPMAP); // TODO: use metal detail for metal surfaces
+			 	stages[2+f].bundle[0].image[0] = R_FindImageFile( "gfx/fx/detail/d_generic.tga", IMGTYPE_NORMAL , IMGFLAG_MIPMAP); // TODO: use metal detail for metal surfaces
 
 			// determine detail size first, our detail textures are typically 128x128
 				wi = 0.25 * (f + 1)  * stages[1].bundle[0].image[0]->uploadWidth / detailScale;
