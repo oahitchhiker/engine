@@ -598,7 +598,7 @@ ifeq ($(PLATFORM),mingw32)
     TOOLS_BINEXT=.exe
   endif
 
-  LIBS= -lws2_32 -lwinmm 
+  LIBS= -lws2_32 -lwinmm
   CLIENT_LDFLAGS += -mwindows
   CLIENT_LIBS = -lgdi32 -lole32
   RENDERER_LIBS = -lgdi32 -lole32 -lopengl32
@@ -1719,7 +1719,6 @@ Q3ROAOBJ = \
   $(B)/renderer_oa/tr_mesh.o \
   $(B)/renderer_oa/tr_model.o \
   $(B)/renderer_oa/tr_model_iqm.o \
-  $(B)/renderer_oa/tr_model_mdo.o \
   $(B)/renderer_oa/tr_noise.o \
   $(B)/renderer_oa/tr_scene.o \
   $(B)/renderer_oa/tr_shade.o \
@@ -1794,7 +1793,6 @@ Q3RSOFTOBJ = \
   $(B)/renderer_oa/tr_mesh.o \
   $(B)/renderer_oa/tr_model.o \
   $(B)/renderer_oa/tr_model_iqm.o \
-  $(B)/renderer_oa/tr_model_mdo.o \
   $(B)/renderer_oa/tr_noise.o \
   $(B)/renderer_oa/tr_scene.o \
   $(B)/renderer_oa/tr_shade.o \

@@ -1249,9 +1249,6 @@ void R_AddEntitySurfaces (void) {
 				case MOD_MDR:
 					R_MDRAddAnimSurfaces( ent );
 					break;
-				case MOD_MDO:
-					R_AddMDOSurfaces( ent );
-					break;
 				case MOD_IQM:
 					R_AddIQMSurfaces( ent );
 					break;
