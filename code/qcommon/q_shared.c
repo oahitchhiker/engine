@@ -1447,3 +1447,6 @@ char *Com_SkipTokens( char *s, int numTokens, char *sep )
 	else
 		return s;
 }
+
+int vresWidth;
+int vresHeight;

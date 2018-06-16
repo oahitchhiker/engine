@@ -1403,8 +1403,8 @@ typedef enum _flag_status {
 
 
 // leilei - virtual res
-int vresWidth;
-int vresHeight;
+extern int vresWidth;
+extern int vresHeight;
 
 #define	MAX_GLOBAL_SERVERS				4096
 #define	MAX_OTHER_SERVERS					128
