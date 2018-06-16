@@ -52,7 +52,7 @@ static QGLContext opengl_context;
 int tvMode;	// leilei - tvmode
 int tvWidth;
 int tvHeight;
-int tvinterlace;	// leilei - interlace value for height
+int tvinterlace = 1;	// leilei - interlace value for height
 float tvAspectW;	// leilei - for aspect correction
 
 //int vresWidth;		

@@ -141,7 +141,7 @@ int		leifxmode;
 int		leifxpass;
 int		fakeit = 0;
 
-int 	tvinterlace = 1;
+extern int 	tvinterlace;
 int 	tvinter= 1;
 extern int tvWidth;
 extern int tvHeight;
