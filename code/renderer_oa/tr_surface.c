@@ -854,7 +854,6 @@ static void LerpMeshVertexes(md3Surface_t *surf, float backlerp)
 	LerpMeshVertexes_scalar( surf, backlerp );
 }
 
-
 /*
 =============
 RB_SurfaceMesh

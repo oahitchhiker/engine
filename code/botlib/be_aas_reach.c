@@ -2141,6 +2141,8 @@ int AAS_Reachability_Jump(int area1num, int area2num)
 	if (area2->mins[2] > area1->maxs[2] + maxjumpheight) return qfalse;
 	//
 	bestdist = 999999;
+	memset(&beststart2, 0, sizeof(beststart2));
+	memset(&bestend2,0,sizeof(bestend2));
 	//
 	for (i = 0; i < area1->numfaces; i++)
 	{
@@ -3163,6 +3165,8 @@ aas_lreachability_t *AAS_FindFaceReachabilities(vec3_t *facepoints, int numpoint
 	lreachabilities = NULL;
 	bestfacenum = 0;
 	bestfaceplane = NULL;
+	memset(&beststart2, 0, sizeof(beststart2));
+	memset(&bestend2, 0 , sizeof(bestend2));
 	//
 	for (i = 1; i < aasworld.numareas; i++)
 	{

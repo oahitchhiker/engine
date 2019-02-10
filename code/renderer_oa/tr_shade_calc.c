@@ -115,12 +115,14 @@ void RB_CalcLightscaleTexCoords(float *st )
 	float p;
 	texModInfo_t tmi;
 	float light = 1.0f;
-	//vec3_t		lightDir;
-	//vec3_t		ambientLight;
+#if 0
+	vec3_t		lightDir;
+	vec3_t		ambientLight;
+	VectorCopy( backEnd.currentEntity->ambientLight, ambientLight );
+	VectorCopy( backEnd.currentEntity->lightDir, lightDir );
+#endif
 	vec3_t		directedLight;
-	//VectorCopy( backEnd.currentEntity->ambientLight, ambientLight );
 	VectorCopy( backEnd.currentEntity->directedLight, directedLight );
-	//VectorCopy( backEnd.currentEntity->lightDir, lightDir );
 	//light = DotProduct (directedLight, lightDir);
 	light = ((directedLight[0] + directedLight[1] + directedLight[2]) * 0.333) / 255;
 	if (light > 1)
@@ -652,39 +654,41 @@ void RB_DeformTessGeometry( void ) {
 		ds = &tess.shader->deforms[ i ];
 
 		switch ( ds->deformation ) {
-        case DEFORM_NONE:
-            break;
-		case DEFORM_NORMALS:
-			RB_CalcDeformNormals( ds );
-			break;
-		case DEFORM_WAVE:
-			RB_CalcDeformVertexes( ds );
-			break;
-		case DEFORM_BULGE:
-			RB_CalcBulgeVertexes( ds );
-			break;
-		case DEFORM_MOVE:
-			RB_CalcMoveVertexes( ds );
-			break;
-		case DEFORM_PROJECTION_SHADOW:
-			RB_ProjectionShadowDeform();
-			break;
-		case DEFORM_AUTOSPRITE:
-			AutospriteDeform();
-			break;
-		case DEFORM_AUTOSPRITE2:
-			Autosprite2Deform();
-			break;
-		case DEFORM_TEXT0:
-		case DEFORM_TEXT1:
-		case DEFORM_TEXT2:
-		case DEFORM_TEXT3:
-		case DEFORM_TEXT4:
-		case DEFORM_TEXT5:
-		case DEFORM_TEXT6:
-		case DEFORM_TEXT7:
-			DeformText( backEnd.refdef.text[ds->deformation - DEFORM_TEXT0] );
-			break;
+			case DEFORM_NONE:
+				break;
+			case DEFORM_NORMALS:
+				RB_CalcDeformNormals( ds );
+				break;
+			case DEFORM_WAVE:
+				RB_CalcDeformVertexes( ds );
+				break;
+			case DEFORM_BULGE:
+				RB_CalcBulgeVertexes( ds );
+				break;
+			case DEFORM_MOVE:
+				RB_CalcMoveVertexes( ds );
+				break;
+			case DEFORM_PROJECTION_SHADOW:
+				RB_ProjectionShadowDeform();
+				break;
+			case DEFORM_AUTOSPRITE:
+				AutospriteDeform();
+				break;
+			case DEFORM_AUTOSPRITE2:
+				Autosprite2Deform();
+				break;
+			case DEFORM_TEXT0:
+			case DEFORM_TEXT1:
+			case DEFORM_TEXT2:
+			case DEFORM_TEXT3:
+			case DEFORM_TEXT4:
+			case DEFORM_TEXT5:
+			case DEFORM_TEXT6:
+			case DEFORM_TEXT7:
+				DeformText( backEnd.refdef.text[ds->deformation - DEFORM_TEXT0] );
+				break;
+			default:
+				break;
 		}
 	}
 }
@@ -1033,7 +1037,7 @@ void RB_CalcEnvironmentTexCoordsNew( float *st )
 	int			i;
 	float		*v, *normal;
 	vec3_t		viewer, reflected, where, what, why, who;
-	float		d; //, a;
+	float		d = 0.0f;
 
 	v = tess.xyz[0];
 	normal = tess.normal[0];
@@ -1055,7 +1059,6 @@ void RB_CalcEnvironmentTexCoordsNew( float *st )
 		VectorNormalizeFast (who);
 
 		d = DotProduct (normal, viewer);
-		//a = DotProduct (normal, where);
 
 		if ( backEnd.currentEntity == &tr.worldEntity ){
 
@@ -1371,6 +1374,94 @@ void RB_CalcRotateTexCoords( float degsPerSecond, float *st )
 }
 
 
+
+
+/*
+** RB_CalcAtlasTexCoords
+*/
+
+
+// TODO: refactor. There is a loop in there for now
+
+void RB_CalcAtlasTexCoords( const atlas_t *at, float *st )
+{
+	texModInfo_t tmi;
+	int w = (int)at->width;	
+	int h = (int)at->height;
+
+	int framex = 0;
+	int framey = 0;
+
+	// modes:
+	// 0 - static / animated
+	// 1 - entity alpha (i.e. cgame rocket smoke)
+
+	if (at->mode == 1)	// follow alpha modulation
+	{
+		int frametotal = w * h;
+		float alha = ((0.25+backEnd.currentEntity->e.shaderRGBA[3]) / (tr.identityLight * 256.0f));
+		int framethere = frametotal - ((frametotal * alha));
+		framex = 0;
+		for(int f=0; f<framethere; f++)
+		{
+			framex +=1;
+
+			if (framex >= w){
+				framey +=1;	// next row!
+				framex = 0; // reset column
+			}
+		}
+
+	}
+	else			// static/animated
+	{
+		//
+		// Process frame sequence for animation
+		//
+		
+		{
+			int framethere = (tess.shaderTime * at->fps) + at->frame;			
+
+				int f;
+				framex = 0;
+				for(f=0; f<framethere; f++)
+				{
+					framex +=1;
+	
+						if (framex >= w){
+							framey +=1;	// next row!
+							framex = 0; // reset column
+						}
+						if (framey >= h){
+							framey = 0; // reset row
+							framex = 0; // reset column
+						}
+				}
+				
+
+		}
+	}
+
+		
+
+	
+	//
+	// now use that information to alter our coordinates
+	//
+
+	tmi.matrix[0][0] = 1.0f / w;
+	tmi.matrix[1][0] = 0;
+	tmi.matrix[0][1] = 0;
+	tmi.translate[0] = ((1.0f / w) * framex);
+
+	tmi.matrix[0][1] = 0;
+	tmi.matrix[1][1] = 1.0f / h;
+	tmi.translate[1] = ((1.0f / h) * framey);
+
+	RB_CalcTransformTexCoords( &tmi, st );
+}
+
+
 /*
 ** RB_CalcSpecularAlpha
 **
@@ -1614,24 +1705,16 @@ static void RB_CalcDiffuseColor_scalar( unsigned char *colors )
 // leilei - reveal normals to GLSL for light processing. HACK HACK HACK HACK HACK HACK
 void RB_CalcNormal( unsigned char *colors )
 {
-	int				i;
 	float			*v;
-	float		*normal = ( float * ) tess.normal; 
-	//trRefEntity_t	*ent;
-	//int				ambientLightInt;
+	float		*normal = ( float * ) tess.normal;
 	vec3_t			n, m;
 	int				numVertexes;
-	//float		mult = r_shownormals->value - 1;
-	//ent = backEnd.currentEntity;
-	//ambientLightInt = ent->ambientLightInt;
 
 	v = tess.xyz[0];
 	//normal = tess.normal[0];
 
-
-
 	numVertexes = tess.numVertexes;
-	for (i = 0 ; i < numVertexes ; i++, v += 4, normal += 4) {
+	for (int i = 0 ; i < numVertexes ; i++, v += 4, normal += 4) {
 		int y;
 		float mid;
 		for (y=0;y<3;y++){
@@ -1728,14 +1811,12 @@ void RB_CalcDiffuseColor_Specular( unsigned char *colors )
 		{
 			float ilength;
 			vec3_t		viewer,  reflected;
-			float		l, d;
-		//	int			b;
 	
 			VectorCopy( backEnd.currentEntity->lightDir, lightDir );
 			VectorNormalizeFast( lightDir );
 	
 			// calculate the specular color
-			d = DotProduct (normal, lightDir);
+			float d = DotProduct (normal, lightDir);
 	
 			// we don't optimize for the d < 0 case since this tends to
 			// cause visual artifacts such as faceted "snapping"
@@ -1745,7 +1826,7 @@ void RB_CalcDiffuseColor_Specular( unsigned char *colors )
 	
 			VectorSubtract (backEnd.or.viewOrigin, v, viewer);
 			ilength = Q_rsqrt( DotProduct( viewer, viewer ) );
-			l = DotProduct (reflected, viewer);
+			float l = DotProduct (reflected, viewer);
 			l *= ilength;
 	
 			if (l < 0) {
@@ -1770,14 +1851,20 @@ void RB_CalcDiffuseColor_Specular( unsigned char *colors )
 		}
 
 		j = ri.ftol(ambientLight[0] + incoming * directedLight[0]);
-		if ( j > shadecap ) {j = shadecap ; j += ri.ftol(spec * specularLight[0]); }
+		if ( j > shadecap ) {
+			j = shadecap; 
+			j += ri.ftol(spec * specularLight[0]); 
+		}
 		
 	//	j += specularLight[0];
 		if ( j > 255) j = 255;
 		colors[i*4+0] = j;
 
 		j = ri.ftol(ambientLight[1] + incoming * directedLight[1]);
-		if ( j > shadecap ) { j = shadecap ; 		j += ri.ftol(spec * specularLight[1]); }
+		if ( j > shadecap ) { 
+			j = shadecap;
+			j += ri.ftol(spec * specularLight[1]); 
+		}
 
 	//	j += specularLight[1];
 		if ( j > 255) j = 255;
@@ -1786,7 +1873,10 @@ void RB_CalcDiffuseColor_Specular( unsigned char *colors )
 		colors[i*4+1] = j;
 
 		j = ri.ftol(ambientLight[2] + incoming * directedLight[2]);
-		if ( j > shadecap ) {j = shadecap ; 		j += ri.ftol(spec * specularLight[2]); }
+		if ( j > shadecap ) {
+			j = shadecap;
+			j += ri.ftol(spec * specularLight[2]);
+		}
 
 	//	j += specularLight[2];
 		if ( j > 255) j = 255;
@@ -1892,19 +1982,10 @@ void RB_CalcFlatAmbient( unsigned char *colors )
 	int				i, j;
 	float			*v, *normal;
 	trRefEntity_t	*ent;
-	//int				ambientLightInt;
 	vec3_t			ambientLight;
-	//vec3_t			lightDir;
 	int				numVertexes;
 	ent = backEnd.currentEntity;
-	//ambientLightInt = ent->ambientLightInt;
 	VectorCopy( ent->ambientLight, ambientLight );
-	//VectorCopy( ent->directedLight, directedLight );
-
-
-	//lightDir[0] = 0;
-	//lightDir[1] = 0;
-	//lightDir[2] = 1;
 
 	v = tess.xyz[0];
 	normal = tess.normal[0];
@@ -1938,13 +2019,10 @@ void RB_CalcFlatDirect( unsigned char *colors )
 	int				i, j;
 	float			*v, *normal;
 	trRefEntity_t	*ent;
-	//int				ambientLightInt;
 	vec3_t			ambientLight;
-	//vec3_t			lightDir;
 	vec3_t			directedLight;
 	int				numVertexes;
 	ent = backEnd.currentEntity;
-	//ambientLightInt = ent->ambientLightInt;
 	VectorCopy( ent->ambientLight, ambientLight );
 	VectorCopy( ent->directedLight, directedLight );
 	
@@ -1957,10 +2035,6 @@ void RB_CalcFlatDirect( unsigned char *colors )
 	if (directedLight[0] < 0) directedLight[0] = 0;	
 	if (directedLight[1] < 0) directedLight[1] = 0;
 	if (directedLight[2] < 0) directedLight[2] = 0;
-
-	//lightDir[0] = 0;
-	//lightDir[1] = 0;
-	//lightDir[2] = 1;
 
 	v = tess.xyz[0];
 	normal = tess.normal[0];
@@ -2017,13 +2091,11 @@ void RB_CalcEyes( float *st, qboolean theothereye)
 	int			i;
 	float		*v, *normal;
 	vec3_t		viewer, reflected, eyepos, stare;
-	float		d; //, erp;
+	float		d;
 	int	idk;
 
-	vec3_t		stareat; //, staree;
-	//float dilation = 2;
+	vec3_t		stareat;
 
-	//VectorCopy(lightOrigin, staree);
 	VectorCopy(backEnd.or.viewOrigin, stareat);
 
 
@@ -2054,11 +2126,11 @@ void RB_CalcEyes( float *st, qboolean theothereye)
 	// We need to adjust the stareat vectors to local coordinates
 
 
-		vec3_t temp;
-		VectorSubtract( stareat, backEnd.currentEntity->e.origin, temp );
-		stareat[0] = DotProduct( temp, backEnd.currentEntity->e.axis[0] );
-		stareat[1] = DotProduct( temp, backEnd.currentEntity->e.axis[1] );
-		stareat[2] = DotProduct( temp, backEnd.currentEntity->e.axis[2] );
+	vec3_t temp;
+	VectorSubtract( stareat, backEnd.currentEntity->e.origin, temp );
+	stareat[0] = DotProduct( temp, backEnd.currentEntity->e.axis[0] );
+	stareat[1] = DotProduct( temp, backEnd.currentEntity->e.axis[1] );
+	stareat[2] = DotProduct( temp, backEnd.currentEntity->e.axis[2] );
 
 
 
@@ -2093,7 +2165,6 @@ if (r_leidebugeye->integer == 2)
 
 	for (i = 0 ; i < tess.numVertexes ; i++, v += 4, normal += 4, st += 2 ) 
 	{
-		
 		// Base eye position
 		VectorSubtract (backEnd.or.viewOrigin, v, viewer);
 		//VectorSubtract (backEnd.currentEntity->e.eyepos[0], v, viewer);
@@ -2124,8 +2195,6 @@ if (r_leidebugeye->integer == 2)
 
 		VectorSubtract (stareat, v, stare);
 		VectorNormalizeFast (stare);
-
-		//erp = DotProduct (normal, stare);
 
 		// Limit the eye's turning so it doesn't have dead eyes
 		for (idk=0;idk<3;idk++){

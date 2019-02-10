@@ -39,6 +39,8 @@ static char **shaderTextHashTable[MAX_SHADERTEXT_HASH];
 
 extern cvar_t 	*r_mockvr;
 
+extern int detailhack;
+
 /*
 ================
 return a hash value for the filename
@@ -83,11 +85,13 @@ static glslProgram_t *R_GLSL_GetProgramByHandle(qhandle_t index) {
 	return program;
 }*/
 
+
 /*
  * R_GLSL_AllocProgram
  * Reserve memory for program
  */
 static glslProgram_t *R_GLSL_AllocProgram(void) {
+#ifdef GLSL_BACKEND
 	glslProgram_t	*program;
 
 	if (tr.numPrograms == MAX_PROGRAMS)
@@ -160,6 +164,7 @@ static glslProgram_t *R_GLSL_AllocProgram(void) {
 	tr.numPrograms++;
 
 	return program;
+#endif
 }
 
 
@@ -168,6 +173,7 @@ static glslProgram_t *R_GLSL_AllocProgram(void) {
  * Parse program for uniform locations
  */
 static void R_GLSL_ParseProgram(glslProgram_t *program, char *_text) {
+#ifdef GLSL_BACKEND
 	char	**text = &_text;
 	char	*token;
 
@@ -342,6 +348,7 @@ static void R_GLSL_ParseProgram(glslProgram_t *program, char *_text) {
 
 		token = COM_ParseExt(text, qtrue);
 	}
+#endif
 }
 
 /*
@@ -349,6 +356,7 @@ static void R_GLSL_ParseProgram(glslProgram_t *program, char *_text) {
  * Load, compile and link program
  */
 static qboolean R_GLSL_LoadProgram(glslProgram_t *program, const char *name, const char *programVertexObjects, int numVertexObjects, const char *programFragmentObjects, int numFragmentObjects) {
+#ifdef GLSL_BACKEND
 	GLcharARB		*buffer_vp[MAX_PROGRAM_OBJECTS];
 	GLcharARB		*buffer_fp[MAX_PROGRAM_OBJECTS];
 	GLcharARB		buffer_fp_final[20000];
@@ -511,6 +519,7 @@ static qboolean R_GLSL_LoadProgram(glslProgram_t *program, const char *name, con
 		ri.FS_FreeFile(buffer_vp[i]);
 
 	return qtrue;
+#endif
 }
 
 /*
@@ -518,6 +527,7 @@ static qboolean R_GLSL_LoadProgram(glslProgram_t *program, const char *name, con
  * Loads in a program of given name
  */
 qhandle_t RE_GLSL_RegisterProgram(const char *name, const char *programVertexObjects, int numVertexObjects, const char *programFragmentObjects, int numFragmentObjects) {
+#ifdef GLSL_BACKEND
 	glslProgram_t	*program;
 	qhandle_t		hProgram;
 
@@ -567,7 +577,9 @@ qhandle_t RE_GLSL_RegisterProgram(const char *name, const char *programVertexObj
 	program->valid = qtrue;
 	ri.Printf(PRINT_WARNING, "GLSL RegisterProgram: '%s' compiled ----- OK\n", name);
 	return program->index;
+#endif
 }
+
 
 void R_RemapShader(const char *shaderName, const char *newShaderName, const char *timeOffset) {
 	char		strippedName[MAX_QPATH];
@@ -1003,6 +1015,55 @@ static void ParseTexMod( char *_text, shaderStage_t *stage )
 		
 		tmi->type = TMOD_STRETCH;
 	}
+//
+	// leilei - atlas
+	//
+	else if ( !Q_stricmp( token, "atlas" ) )
+	{
+		token = COM_ParseExt( text, qfalse );
+		if ( token[0] == 0 )
+		{
+			ri.Printf( PRINT_WARNING, "WARNING: missing atlas parms in shader '%s'\n", shader.name );
+			return;
+		}
+		tmi->atlas.mode = atof( token );
+
+		token = COM_ParseExt( text, qfalse );
+		if ( token[0] == 0 )
+		{
+			ri.Printf( PRINT_WARNING, "WARNING: missing atlas parms in shader '%s'\n", shader.name );
+			return;
+		}
+		tmi->atlas.frame = atof( token );
+
+		token = COM_ParseExt( text, qfalse );
+		if ( token[0] == 0 )
+		{
+			ri.Printf( PRINT_WARNING, "WARNING: missing atlas parms in shader '%s'\n", shader.name );
+			return;
+		}
+		tmi->atlas.fps = atof( token );
+
+		token = COM_ParseExt( text, qfalse );
+		if ( token[0] == 0 )
+		{
+			ri.Printf( PRINT_WARNING, "WARNING: missing atlas parms in shader '%s'\n", shader.name );
+			return;
+		}
+		tmi->atlas.width = atof( token );
+			ri.Printf( PRINT_WARNING, "shader '%s' has width %f\n", shader.name, tmi->atlas.width );
+
+		token = COM_ParseExt( text, qfalse );
+		if ( token[0] == 0 )
+		{
+			ri.Printf( PRINT_WARNING, "WARNING: missing atlas parms in shader '%s'\n", shader.name );
+			return;
+		}
+		tmi->atlas.height = atof( token );
+		
+		tmi->type = TMOD_ATLAS;
+	}
+
 	else if ( !Q_stricmp( token, "lightscale" ) )
 	{
 		token = COM_ParseExt( text, qfalse );
@@ -1153,7 +1214,7 @@ static qboolean ParseStage( shaderStage_t *stage, char **text )
 						ri.Printf(PRINT_WARNING, "WARNING: no 'fragmentProgram' specified for 'program %s' in shader '%s'\n", programName, shader.name);
 						return qfalse;
 					}
-
+#ifdef GLSL_TEXTURES
 					stage->isGLSL=0;
 					stage->program = RE_GLSL_RegisterProgram(programName, (const char *)programVertexObjects, numVertexObjects, (const char *)programFragmentObjects, numFragmentObjects);
 					if (!stage->program) {
@@ -1162,6 +1223,7 @@ static qboolean ParseStage( shaderStage_t *stage, char **text )
 					}
 					else
 						stage->isGLSL=1;
+#endif
 				}
 			} else if (numVertexObjects) {
 				ri.Printf(PRINT_WARNING, "WARNING: no 'program' specified for 'vertexProgram' in shader '%s'\n", shader.name);
@@ -1206,7 +1268,7 @@ static qboolean ParseStage( shaderStage_t *stage, char **text )
 				ri.Printf(PRINT_WARNING, "WARNING: missing parameter(s) for 'vertexProgram' keyword in shader '%s'\n", shader.name);
 				return qfalse;
 			}
-
+#ifdef GLSL_TEXTURES
 			// parse up to MAX_PROGRAM_OBJECTS files
 			for(;;) {
 				if (numVertexObjects < MAX_PROGRAM_OBJECTS) {
@@ -1221,6 +1283,9 @@ static qboolean ParseStage( shaderStage_t *stage, char **text )
 				if (!token[0])
 					break;
 			}
+#else
+		// NO!
+#endif
 		}
 		//
 		// fragmentProgram <path1> .... <pathN>
@@ -2951,6 +3016,7 @@ qboolean ParseStageSimple( shaderStage_t *stage, char **text )
 
 		if ( token[0] == '}' )
 		{
+#ifdef GLSL_TEXTURES
 			if (programName[0]) {
 				if (!Q_stricmp(programName, "skip")) {
 					stage->program = tr.skipProgram;
@@ -2981,7 +3047,7 @@ qboolean ParseStageSimple( shaderStage_t *stage, char **text )
 				ri.Printf(PRINT_WARNING, "WARNING: no 'program' specified for 'fragmentProgram' in shader '%s'\n", shader.name);
 				return qfalse;
 			}
-		
+#endif
 	break;
 	}
 		//
@@ -3134,8 +3200,7 @@ qboolean ParseStageSimple( shaderStage_t *stage, char **text )
 			imgFlags_t flags = IMGFLAG_CLAMPTOEDGE;
 
 			token = COM_ParseExt( text, qfalse );
-			if ( !token[0] )
-			{
+			if ( !token[0] ) {
 				ri.Printf( PRINT_WARNING, "WARNING: missing parameter for 'clampmap' keyword in shader '%s'\n", shader.name );
 				return qfalse;
 			}
@@ -3143,13 +3208,14 @@ qboolean ParseStageSimple( shaderStage_t *stage, char **text )
 			if (!shader.noMipMaps)
 				flags |= IMGFLAG_MIPMAP;
 
-			if (!shader.noPicMip)
+			if (!shader.noPicMip) {
 				flags |= IMGFLAG_PICMIP;
+			}
 
-				stage->bundle[0].image[0] = tr.whiteImage;
-				COM_StripExtension( token, imageName, MAX_QPATH );
-				itype = type; iflags = flags;
-				loadlater = 1;
+			stage->bundle[0].image[0] = tr.whiteImage;
+			COM_StripExtension( token, imageName, MAX_QPATH );
+			itype = type; iflags = flags;
+			loadlater = 1;
 		}
 		//
 		// animMap <frequency> <image1> .... <imageN>
@@ -4322,10 +4388,11 @@ otherwise set to the generic stage function
 */
 static void ComputeStageIteratorFunc( void )
 {
-
+#ifdef GLSL_TEXTURES
 	if (vertexShaders)
 		shader.optimalStageIteratorFunc = RB_GLSL_StageIteratorGeneric;
 	else
+#endif
 		shader.optimalStageIteratorFunc = RB_StageIteratorGeneric;
 
 	//
@@ -4371,9 +4438,11 @@ static void ComputeStageIteratorFunc( void )
 						{
 							if ( !shader.numDeforms )
 							{
+#ifdef GLSL_TEXTURES
 								if (vertexShaders)
 									shader.optimalStageIteratorFunc = RB_GLSL_StageIteratorVertexLitTexture;
 								else
+#endif
 									shader.optimalStageIteratorFunc = RB_StageIteratorVertexLitTexture;
 								return;
 							}
@@ -4401,9 +4470,11 @@ static void ComputeStageIteratorFunc( void )
 					{
 						if ( shader.multitextureEnv )
 						{
+#ifdef GLSL_TEXTURES
 							if (vertexShaders)
 								shader.optimalStageIteratorFunc = RB_GLSL_StageIteratorLightmappedMultitexture;
 							else
+#endif
 								shader.optimalStageIteratorFunc = RB_StageIteratorLightmappedMultitexture;
 						}
 					}
@@ -4873,7 +4944,7 @@ static shader_t *FinishShader( void ) {
 			break;
 		}
 
-
+#ifdef GLSL_TEXTURES
 		// Try to use leifx dither here instead of postprocess for more authentic overdraw artifacts
 		if (r_leifx->integer > 1)
 		{		
@@ -4903,6 +4974,8 @@ static shader_t *FinishShader( void ) {
 		//	 R_GLSL_SetUniform_u_ScreenToNextPixelY(pStage->program, (float)1.0/(float)pStage->imgHeight);
 	
 		}
+
+#endif	// GLSL_TEXTURES
 
     // check for a missing texture
 		if ( !pStage->bundle[0].image[0] ) {
@@ -4962,16 +5035,17 @@ static shader_t *FinishShader( void ) {
     //}
 
 
-
+#ifdef GLSL_TEXTURES
 
 		// leilei - force new phong on lightdiffuse and lightdiffusespecular models
+		// FIXME: Intel HD doesn't like this.
 		if ((r_modelshader->integer) && (pStage->isGLSL==0) && (r_ext_vertex_shader->integer) && ((pStage->rgbGen == CGEN_LIGHTING_DIFFUSE) || (pStage->rgbGen == CGEN_LIGHTING_DIFFUSE_SPECULAR)))
 		{
 			pStage->program = RE_GLSL_RegisterProgram("leishade", "glsl/leishade_vp.glsl", 1, "glsl/leishade_fp.glsl", 1);
 			pStage->isGLSL=1;
 			pStage->isLeiShade=1;
 		}
-
+#endif
 		//
 		// determine sort order and fog color adjustment
 		//
@@ -5221,7 +5295,7 @@ shader_t *R_FindShaderReal( const char *name, int lightmapIndex, qboolean mipRaw
 	// LEILEI's DETAIL TEXTURE STUFFS
 	//
 	int material;	// leilei - for picking detail texture
-	int shouldIDetail = 0; // leilei - checking if I should detail.
+	qboolean shouldIDetail = qfalse; // leilei - checking if I should detail.
 	int wi, hi; // leilei - for determining detail texture size by uploaded texture
 	int detailScale; // leilei - detail scale hack
 	int detailLayer; // leilei - detail layer hack
@@ -5307,94 +5381,95 @@ shader_t *R_FindShaderReal( const char *name, int lightmapIndex, qboolean mipRaw
 			shader.defaultShader = qtrue;
 		}
 
-		if (shader.surfaceFlags || SURF_METALSTEPS)
+		if (shader.surfaceFlags | SURF_METALSTEPS) {
 			material = 1;
+		}
 
 
-			// leilei -  SUPER detail hack to existing shaders,very aggressive and won't look good on 100% of shaders
-		
-			if((shader.lightmapIndex != LIGHTMAP_WHITEIMAGE && shader.lightmapIndex != LIGHTMAP_BY_VERTEX && shader.lightmapIndex != LIGHTMAP_2D && shader.lightmapIndex != LIGHTMAP_NONE) ){
-			if (r_detailTextures->integer)
-				{
-					image_t		*imageDetail;		 // for snagging it into more layers if we find a defined one
-					int e = 0;
-					int f = 0;
-					int gotdetailalready = 0;
-					int hasaDetailImage = 0;
-					int thisstage = 0;
-					material = 0;
-					wi = hi = 32; // reset to none....
+		// leilei -  SUPER detail hack to existing shaders,very aggressive and won't look good on 100% of shaders
+		if((shader.lightmapIndex != LIGHTMAP_WHITEIMAGE && shader.lightmapIndex != LIGHTMAP_BY_VERTEX && shader.lightmapIndex != LIGHTMAP_2D && shader.lightmapIndex != LIGHTMAP_NONE) ){
+			if (r_detailTextures->integer) {
+				image_t *imageDetail = NULL;  // for snagging it into more layers if we find a defined one
+				int e = 0;
+				int f = 0;
+				qboolean gotdetailalready = qfalse;
+				qboolean hasaDetailImage = qfalse;
+				int thisstage = 0;
+				material = 0;
+				wi = hi = 32; // reset to none....
 
-					shouldIDetail = 0; //yeah
-					for (f=0;f<detailLayer;f++){
-					for (e=0;e<(MAX_SHADER_STAGES-1);e++)
-					{
+				shouldIDetail = qfalse; //yeah
+				for (f=0;f<detailLayer;f++) {
+					for (e=0;e<(MAX_SHADER_STAGES-1);e++) {
 						if (shader.defaultShader)
 							break; // DON'T! This fixes a crash, trying to stage up placeholder/default textures
 
 						// Pick the first free stage to do, hopefully the last
-						if (stages[e].active == qfalse){ thisstage = e; shouldIDetail = 1; break;}
-			
+						if (stages[e].active == qfalse){
+							thisstage = e;
+							shouldIDetail = qtrue;
+							break;
+						}
+
 						// find detail texture scale by determining which of the stages have the largest image
 						if (stages[e].bundle[0].image[0]->uploadHeight > wi) wi = stages[e].bundle[0].image[0]->uploadWidth;
 						if (stages[e].bundle[0].image[0]->uploadHeight > hi) hi = stages[e].bundle[0].image[0]->uploadHeight;
 
 						// for adjusting the detail textures and skipping some redundancy
 						if (stages[e].isDetail){ 
-	
-							if (f < 1){ gotdetailalready = 1; shouldIDetail = 0;
 
-							imageDetail = stages[e].bundle[0].image[0]; // this is it
-							hasaDetailImage = 1;
-									}
-							if (r_detailTextureScale->integer){
-
-								if (stages[e].bundle[0].texMods[0].type == TMOD_SCALE)
-								{
-										wi = 0.25 * wi / (detailScale / (f + 1));
-										hi = 0.25 * hi / (detailScale / (f + 1));
-										stages[e].bundle[0].texMods[0].scale[0] = wi;
-										stages[e].bundle[0].texMods[0].scale[1] = hi;
+							if (f < 1) { 
+								gotdetailalready = qtrue; 
+								shouldIDetail = qfalse;
+								imageDetail = stages[e].bundle[0].image[0]; // this is it
+								hasaDetailImage = qtrue;
+							}
+							if (r_detailTextureScale->integer) {
+								if (stages[e].bundle[0].texMods[0].type == TMOD_SCALE) {
+									wi = 0.25 * wi / (detailScale / (f + 1));
+									hi = 0.25 * hi / (detailScale / (f + 1));
+									stages[e].bundle[0].texMods[0].scale[0] = wi;
+									stages[e].bundle[0].texMods[0].scale[1] = hi;
 								}
 							}
 						}						
 
 					}
-					if (r_detailTextures->integer < 3) shouldIDetail = 0; // don't add detail for low settings
-
-					if ((!gotdetailalready || thisstage) && (shouldIDetail)){
-		
-						// detail it up because i don't care.
-							{
-
-								wi = 0.25  * (f + 1)  * wi / detailScale;
-								hi = 0.25  * (f + 1)  * hi / detailScale;
-
-								if (material == 1)	// metalsteps
-							 	stages[thisstage].bundle[0].image[0] = R_FindImageFile( "gfx/fx/detail/d_genericmetal.tga", IMGFLAG_MIPMAP , IMGFLAG_MIPMAP);
-								else if (hasaDetailImage && imageDetail)
-							 	stages[thisstage].bundle[0].image[0] = imageDetail;
-								else
-							 	stages[thisstage].bundle[0].image[0] = R_FindImageFile( "gfx/fx/detail/d_generic.tga", IMGFLAG_MIPMAP , IMGFLAG_MIPMAP);
-								stages[thisstage].active = qtrue;
-								stages[thisstage].rgbGen = CGEN_IDENTITY;
-								stages[thisstage].stateBits |= GLS_SRCBLEND_DST_COLOR | GLS_DSTBLEND_SRC_COLOR | GLS_DEPTHFUNC_EQUAL;
-								stages[thisstage].bundle[0].texMods[0].scale[0] = wi;
-								stages[thisstage].bundle[0].texMods[0].scale[1] = hi;
-								stages[thisstage].bundle[0].texMods[0].type = TMOD_SCALE;
-								stages[thisstage].isDetail = qtrue;
-								stages[thisstage].bundle[0].numTexMods = 1;
-				
-							}			
-		
-		
-						}
+					if (r_detailTextures->integer < 3) {
+						// don't add detail for low settings
+						shouldIDetail = qfalse;
 					}
-				
-				}
+
+					if ((!gotdetailalready || thisstage) && (shouldIDetail)) {
+						// detail it up because i don't care.
+						wi = 0.25  * (f + 1)  * wi / detailScale;
+						hi = 0.25  * (f + 1)  * hi / detailScale;
+
+						detailhack = 1;
+						if (material == 1) {
+							// metalsteps
+							stages[thisstage].bundle[0].image[0] = R_FindImageFile( "gfx/fx/detail/d_genericmetal.tga", IMGTYPE_NORMAL , IMGFLAG_MIPMAP);
+						}
+						else if (hasaDetailImage && imageDetail) {
+							stages[thisstage].bundle[0].image[0] = imageDetail;
+						}
+						else {
+							stages[thisstage].bundle[0].image[0] = R_FindImageFile( "gfx/fx/detail/d_generic.tga", IMGTYPE_NORMAL , IMGFLAG_MIPMAP);
+						}
+						stages[thisstage].active = qtrue;
+						stages[thisstage].rgbGen = CGEN_IDENTITY;
+						stages[thisstage].stateBits |= GLS_SRCBLEND_DST_COLOR | GLS_DSTBLEND_SRC_COLOR | GLS_DEPTHFUNC_EQUAL;
+						stages[thisstage].bundle[0].texMods[0].scale[0] = wi;
+						stages[thisstage].bundle[0].texMods[0].scale[1] = hi;
+						stages[thisstage].bundle[0].texMods[0].type = TMOD_SCALE;
+						stages[thisstage].isDetail = qtrue;
+						stages[thisstage].bundle[0].numTexMods = 1;
+						detailhack = 0;
+					}
 				}
 
-
+			}
+		}
 		sh = FinishShader();
 		return sh;
 	}
@@ -5554,7 +5629,7 @@ shader_t *R_FindShaderReal( const char *name, int lightmapIndex, qboolean mipRaw
 				
 				if (f+2 > MAX_SHADER_STAGES) break;// don't exceed limit!
 				
-			 	stages[2+f].bundle[0].image[0] = R_FindImageFile( "gfx/fx/detail/d_generic.tga", IMGFLAG_MIPMAP , IMGFLAG_MIPMAP); // TODO: use metal detail for metal surfaces
+			 	stages[2+f].bundle[0].image[0] = R_FindImageFile( "gfx/fx/detail/d_generic.tga", IMGTYPE_NORMAL , IMGFLAG_MIPMAP); // TODO: use metal detail for metal surfaces
 
 			// determine detail size first, our detail textures are typically 128x128
 				wi = 0.25 * (f + 1)  * stages[1].bundle[0].image[0]->uploadWidth / detailScale;
@@ -6203,6 +6278,9 @@ static void CreateExternalShaders( void ) {
 	if(!tr.placeholderFogShader->defaultShader) 		tr.placeholderFogAvail = 1;
 
 
+// leilei - lfx shaders
+
+	LFX_ShaderInit();
 }
 
 /*

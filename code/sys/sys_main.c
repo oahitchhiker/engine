@@ -337,6 +337,10 @@ void Sys_AnsiColorPrint( const char *msg )
 	}
 }
 
+#if defined( _WIN32 ) && defined( USE_CONSOLE_WINDOW )
+void Conbuf_AppendText( const char *pMsg );// leilei - console restoration
+#endif
+
 /*
 =================
 Sys_Print
@@ -344,6 +348,9 @@ Sys_Print
 */
 void Sys_Print( const char *msg )
 {
+#if defined( _WIN32 ) && defined( USE_CONSOLE_WINDOW )
+	Conbuf_AppendText (msg);		// leilei - console restoration
+#endif
 	CON_LogWrite( msg );
 	CON_Print( msg );
 }
@@ -648,7 +655,7 @@ int main( int argc, char **argv )
 
 	while( 1 )
 	{
-		IN_Frame( );
+		IN_Frame( qfalse );	// youurayy input lag fix
 		Com_Frame( );
 	}
 

@@ -152,6 +152,18 @@ ifndef USE_OPENAL
 USE_OPENAL=1
 endif
 
+ifndef GLSL_POSTPROCESS
+GLSL_POSTPROCESS=1
+endif
+
+ifndef GLSL_TEXTURES
+GLSL_TEXTURES=1
+endif
+
+ifndef GLSL_BACKEND
+GLSL_BACKEND=1
+endif
+
 ifndef USE_OPENAL_DLOPEN
 USE_OPENAL_DLOPEN=1
 endif
@@ -218,6 +230,10 @@ endif
 
 ifndef USE_RENDERER_DLOPEN
 USE_RENDERER_DLOPEN=1
+endif
+
+ifndef USE_CONSOLE_WINDOW
+USE_CONSOLE_WINDOW=1
 endif
 
 ifndef DEBUG_CFLAGS
@@ -295,7 +311,7 @@ ifeq ($(wildcard .git),.git)
   endif
 endif
 
-
+USE_GIT=0
 #############################################################################
 # SETUP AND BUILD -- LINUX
 #############################################################################
@@ -327,17 +343,15 @@ ifneq (,$(findstring "$(PLATFORM)", "linux" "gnu_kfreebsd" "kfreebsd-gnu"))
   OPTIMIZEVM = -O3 -funroll-loops -fomit-frame-pointer
   OPTIMIZE = $(OPTIMIZEVM) -ffast-math
 
+
   ifeq ($(ARCH),x86_64)
-    OPTIMIZEVM = -O3 -fomit-frame-pointer -funroll-loops \
-      -falign-loops=2 -falign-jumps=2 -falign-functions=2 \
-      -fstrength-reduce
+    OPTIMIZEVM = -O3 -fomit-frame-pointer -funroll-loops
     OPTIMIZE = $(OPTIMIZEVM) -ffast-math
     HAVE_VM_COMPILED = true
   else
   ifeq ($(ARCH),x86)
     OPTIMIZEVM = -O3 -march=i586 -fomit-frame-pointer \
-      -funroll-loops -falign-loops=2 -falign-jumps=2 \
-      -falign-functions=2 -fstrength-reduce
+      -funroll-loops
     OPTIMIZE = $(OPTIMIZEVM) -ffast-math
     HAVE_VM_COMPILED=true
   else
@@ -562,16 +576,15 @@ ifeq ($(PLATFORM),mingw32)
 
   ifeq ($(ARCH),x86_64)
     OPTIMIZEVM = -O3 -fno-omit-frame-pointer \
-      -falign-loops=2 -funroll-loops -falign-jumps=2 -falign-functions=2 \
-      -fstrength-reduce
+      -funroll-loops
     OPTIMIZE = $(OPTIMIZEVM) --fast-math
     HAVE_VM_COMPILED = true
   endif
   ifeq ($(ARCH),x86)
     OPTIMIZEVM = -O3 -march=i586 -fno-omit-frame-pointer \
-      -falign-loops=2 -funroll-loops -falign-jumps=2 -falign-functions=2 \
-      -fstrength-reduce
+      -funroll-loops
     OPTIMIZE = $(OPTIMIZEVM) -ffast-math
+    OPTIMIZE += -flto
     HAVE_VM_COMPILED = true
   endif
 
@@ -585,10 +598,17 @@ ifeq ($(PLATFORM),mingw32)
     TOOLS_BINEXT=.exe
   endif
 
-  LIBS= -lws2_32 -lwinmm -lpsapi
+  LIBS= -lws2_32 -lwinmm
   CLIENT_LDFLAGS += -mwindows
   CLIENT_LIBS = -lgdi32 -lole32
   RENDERER_LIBS = -lgdi32 -lole32 -lopengl32
+
+  #ifeq ($(USE_CONSOLE_WINDOW),0)
+    CLIENT_CFLAGS += -DUSE_CONSOLE_WINDOW
+    CLIENT_LIBS += -lcomdlg32 -lcomctl32
+    LIBS += -lcomdlg32 -lcomctl32
+    LIBS += -lgdi32 -lole32 -lcomctl32 -lcomdlg32 #leilei - for console. if it works. :/
+  #endif
 
   ifeq ($(USE_FREETYPE),1)
     BASE_CFLAGS += -Ifreetype2
@@ -714,16 +734,13 @@ ifeq ($(PLATFORM),openbsd)
   OPTIMIZE = $(OPTIMIZEVM) -ffast-math
 
   ifeq ($(ARCH),x86_64)
-    OPTIMIZEVM = -O3 -fomit-frame-pointer -funroll-loops \
-      -falign-loops=2 -falign-jumps=2 -falign-functions=2 \
-      -fstrength-reduce
+    OPTIMIZEVM = -O3 -fomit-frame-pointer -funroll-loops
     OPTIMIZE = $(OPTIMIZEVM) -ffast-math
     HAVE_VM_COMPILED = true
   else
   ifeq ($(ARCH),x86)
     OPTIMIZEVM = -O3 -march=i586 -fomit-frame-pointer \
-      -funroll-loops -falign-loops=2 -falign-jumps=2 \
-      -falign-functions=2 -fstrength-reduce
+      -funroll-loops
     OPTIMIZE = $(OPTIMIZEVM) -ffast-math
     HAVE_VM_COMPILED=true
   else
@@ -860,9 +877,7 @@ ifeq ($(PLATFORM),sunos)
     HAVE_VM_COMPILED=true
   else
   ifeq ($(ARCH),x86)
-    OPTIMIZEVM += -march=i586 -fomit-frame-pointer \
-      -falign-loops=2 -falign-jumps=2 \
-      -falign-functions=2 -fstrength-reduce
+    OPTIMIZEVM += -march=i586 -fomit-frame-pointer
     HAVE_VM_COMPILED=true
     BASE_CFLAGS += -m32
     CLIENT_CFLAGS += -I/usr/X11/include/NVIDIA
@@ -939,15 +954,15 @@ endif
 ifneq ($(BUILD_CLIENT),0)
   ifneq ($(USE_RENDERER_DLOPEN),0)
     TARGETS += $(B)/$(CLIENTBIN)$(FULLBINEXT) $(B)/renderer_openarena1_$(SHLIBNAME)
-    TARGETS += $(B)/renderer_opengl1_$(SHLIBNAME)
-    TARGETS += $(B)/renderer_software_$(SHLIBNAME)
+#    TARGETS += $(B)/renderer_opengl1_$(SHLIBNAME)
+#    TARGETS += $(B)/renderer_software_$(SHLIBNAME)
     ifneq ($(BUILD_RENDERER_OPENGL2), 0)
       TARGETS += $(B)/renderer_opengl2_$(SHLIBNAME)
     endif
   else
     TARGETS += $(B)/$(CLIENTBIN)$(FULLBINEXT)
-    TARGETS += $(B)/$(CLIENTBIN)_opengl1$(FULLBINEXT)
-    TARGETS += $(B)/$(CLIENTBIN)_software$(FULLBINEXT)
+#    TARGETS += $(B)/$(CLIENTBIN)_opengl1$(FULLBINEXT)
+#    TARGETS += $(B)/$(CLIENTBIN)_software$(FULLBINEXT)
     ifneq ($(BUILD_RENDERER_OPENGL2), 0)
       TARGETS += $(B)/$(CLIENTBIN)_opengl2$(FULLBINEXT)
     endif
@@ -1716,6 +1731,7 @@ Q3ROAOBJ = \
   \
   $(B)/renderer_oa/tr_bloom.o \
   $(B)/renderer_oa/tr_extensions.o \
+  $(B)/renderer_oa/tr_particles.o \
   \
   $(B)/renderergl1/sdl_gamma.o \
   $(B)/renderergl1/sdl_glimp.o
@@ -1789,6 +1805,7 @@ Q3RSOFTOBJ = \
   \
   $(B)/renderer_oa/tr_bloom.o \
   $(B)/renderer_oa/tr_extensions.o \
+  $(B)/renderer_oa/tr_particles.o \
   \
   $(B)/renderersoft/sdl_gamma.o \
   $(B)/renderersoft/sdl_glimp.o
@@ -2621,7 +2638,7 @@ $(B)/client/%.o: $(ASMDIR)/%.s
 
 # k8 so inline assembler knows about SSE
 $(B)/client/%.o: $(ASMDIR)/%.c
-	$(DO_CC) -march=k8
+	$(DO_CC) -march=k8 -mmmx -msse2
 
 $(B)/client/%.o: $(CDIR)/%.c
 	$(DO_CC)
@@ -2726,7 +2743,7 @@ $(B)/ded/%.o: $(ASMDIR)/%.s
 
 # k8 so inline assembler knows about SSE
 $(B)/ded/%.o: $(ASMDIR)/%.c
-	$(DO_CC) -march=k8
+	$(DO_CC) -march=k8 -mmmx -msse2
 
 $(B)/ded/%.o: $(SDIR)/%.c
 	$(DO_DED_CC)

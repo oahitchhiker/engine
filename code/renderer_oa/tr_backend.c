@@ -1035,6 +1035,10 @@ void RB_RenderDrawSurfList( drawSurf_t *drawSurfs, int numDrawSurfs ) {
 	// darken down any stencil shadows
 	RB_ShadowFinish();		
 
+	// add the particles
+	//R_AddParticles ();
+	R_RenderParticles ();
+
 	// add light flares on lights that aren't obscured
 	RB_RenderFlares();
 
@@ -1542,6 +1546,8 @@ float	mblur_timelast;
 float	time_now;
 float	time_last;
 float	mbluracc;
+int	mblurredframes;
+int	mblurredframestotal;
 void RB_AccumBlurValue (void)
 {
 	// calculate how much we need, determined by motion blur fps
@@ -1550,7 +1556,6 @@ void RB_AccumBlurValue (void)
 	mbluracc *= -1;
 	mbluracc += 1.0f;
 	mbluracc /= 2;
-	
 };
 
 void RB_DrawAccumBlur (void)
@@ -1566,8 +1571,8 @@ void RB_DrawAccumBlur (void)
 	accblur = mbluracc;
 
 	//ri.Printf( PRINT_WARNING, "accum value %f\n", mbluracc );
-	if (accblur > 1.0f)
-		accblur = 0.5f;
+//	if (accblur > 1.0f)
+//		accblur = 0.5f;
 
    if (accblur <= 0.0f)
    {
@@ -1584,6 +1589,7 @@ void RB_DrawAccumBlur (void)
    }
    else
    {
+      qglAccum (GL_LOAD, 1.0f);
       qglAccum (GL_MULT, accblur); // scale contents of accumulation buffer
       qglAccum (GL_ACCUM, 1.0f - accblur); // add screen contents
       qglAccum (GL_RETURN, 1.0f); // read result back
@@ -1601,7 +1607,6 @@ RB_SwapBuffers
 const void	*RB_SwapBuffers( const void *data ) {
 	const swapBuffersCommand_t	*cmd;
 
-	
 
 	// finish any 2D drawing if needed
 	if ( tess.numIndexes ) {
@@ -1635,7 +1640,9 @@ const void	*RB_SwapBuffers( const void *data ) {
 
 	if (r_motionblur->integer == 1){
 		RB_DrawAccumBlur ();
+
 	}
+
 	
 
 	R_BrightScreen();		// leilei - alternate brightness - do it here so we hit evereything that represents our video buffer
@@ -1695,6 +1702,13 @@ const void	*RB_SwapBuffers( const void *data ) {
 	backEnd.doneraa = qfalse;
 	glsl_lights=0;
 
+	backEnd.doneParticles = qfalse;
+	
+	// leilei - only reset this every 15hz to keep it fast and synchronized
+	if (backEnd.refdef.time > backEnd.flareTestTime){
+	backEnd.doneFlareTests = qfalse;
+	backEnd.flareTestTime = backEnd.refdef.time + 100.0f;
+	}
 
 	// leilei - artificial slowness (mapper debug) - this might be windows only
 #ifdef _WIN32
@@ -1748,11 +1762,9 @@ void RB_ExecuteRenderCommands( const void *data ) {
 		case RC_STRETCH_PIC:
 			//Check if it's time for BLOOM!
 			leifxmode = 0;
-			R_WaterScreen(); // do this first
 			R_PostprocessScreen();
 			R_BloomScreen();
 			R_FilmScreen();
-			R_AnimeScreen();
 			data = RB_StretchPic( data );
 			break;
 		case RC_DRAW_SURFS:
@@ -1764,12 +1776,9 @@ void RB_ExecuteRenderCommands( const void *data ) {
 		case RC_SWAP_BUFFERS:
 			//Check if it's time for BLOOM!
 			leifxmode = 0;
-			R_WaterScreen(); // do this first
 			R_PostprocessScreen();
 			R_BloomScreen();
 			R_FilmScreen();
-			R_AnimeScreen();
-
 			data = RB_SwapBuffers( data );
 			break;
 		case RC_SCREENSHOT:
